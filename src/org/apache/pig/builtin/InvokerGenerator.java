@@ -35,6 +35,7 @@ import org.objectweb.asm.MethodVisitor;
 
 //TODO statically cache the generated code based on the input Strings
 //TODO benchmark against native, and against Dmitriy's
+//TODO add tests. leverage the tests used for other invoker
 public class InvokerGenerator extends EvalFunc<Object> {
     private String className_;
     private String methodName_;
@@ -115,6 +116,10 @@ public class InvokerGenerator extends EvalFunc<Object> {
 
     @Override
     public Schema outputSchema(Schema input) {
+        for (String s : argumentTypes_)
+            if (!returnTypeMap.containsKey(nameToClassObjectMap.get(s)))
+                throw new RuntimeException("Given input schema " + input + " does not match the list of inputs " + argumentTypes_);
+
         if (!isInitialized)
             initialize();
 
