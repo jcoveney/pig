@@ -18,13 +18,16 @@ public abstract class IteratingAccumulatorEvalFunc<T> extends AccumulatorEvalFun
     private BlockingQueue<Tuple> queue;
     private volatile boolean isFinished = false;
     private volatile boolean noMoreValues = false;
+    private volatile boolean exceptionThrown = false;
     private T returnValue;
     private Thread executionThread;
+    private Exception executionThreadException;
 
     private static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     private static final long WAIT_TO_OFFER = 500L;
     private static final long WAIT_TO_POLL = 500L;
+    private static final long WAIT_TO_JOIN = 500L;
 
     private void initialize() {
         dqi = new DelayedQueueIterator();
@@ -35,10 +38,11 @@ public abstract class IteratingAccumulatorEvalFunc<T> extends AccumulatorEvalFun
             public void run() {
                 try {
                     returnValue = exec(dqi);
+                    isFinished = true;
                 } catch (IOException e) {
-                    throw new RuntimeException("Error in execution of iterate function", e); //TODO do I need to do something special to surface this?
+                    executionThreadException = e;
+                    exceptionThrown = true;
                 }
-                isFinished = true;
             }
         });
         executionThread.start();
@@ -63,11 +67,14 @@ public abstract class IteratingAccumulatorEvalFunc<T> extends AccumulatorEvalFun
                 return;
 
             boolean added = false;
-            while (!isFinished && !added)
+            while (!isFinished && !added && !exceptionThrown)
                 try {
                     added = queue.offer(t, WAIT_TO_OFFER, TimeUnit.MILLISECONDS);
                 } catch (InterruptedException e) {
                 }
+
+            if (exceptionThrown)
+                throw new RuntimeException("Exception thrown in thread: ", executionThreadException);
         }
     }
 
@@ -75,12 +82,20 @@ public abstract class IteratingAccumulatorEvalFunc<T> extends AccumulatorEvalFun
     public T getValue() {
         noMoreValues = true;
 
+        if (exceptionThrown)
+            throw new RuntimeException("Exception thrown in thread: ", executionThreadException);
+
         //TODO handle the exception
-        try {
-            executionThread.join();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        do {
+            if (exceptionThrown)
+                throw new RuntimeException("Exception thrown in thread: ", executionThreadException);
+
+            try {
+                executionThread.join(WAIT_TO_JOIN);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        } while (executionThread.isAlive());
 
         return returnValue;
     }
