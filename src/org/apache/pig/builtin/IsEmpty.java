@@ -65,9 +65,6 @@ public class IsEmpty extends FilterFunc implements TerminatingAccumulator<Boolea
     @Override
     public void accumulate(Tuple b) throws IOException {
         isEmpty &= exec(b);
-        System.out.println("INPUT: " + b); //remove
-        System.out.println("OUTPUT OF ACCUM: " + exec(b)); //remove
-        System.out.println("IS FINISHED? " + !isEmpty); //remove
     }
 
     @Override
