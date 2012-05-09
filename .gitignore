@@ -2,8 +2,10 @@
 build/
 src-gen/
 test/org/apache/pig/test/utils/dotGraph/parser/
+target/
 ivy/*.jar
 pig.jar
 pig-withouthadoop.jar
-*.log
-*.patch
+*.iml
+*.ipr
+*.iws
