@@ -56,6 +56,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.pig.PigRunner.ReturnCode;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
@@ -644,18 +645,15 @@ static int run(String args[], PigProgressNotificationListener listener) {
 }
 
 protected static PigProgressNotificationListener makeListener(Properties properties) {
-    String className = properties.getProperty(PROGRESS_NOTIFICATION_LISTENER_KEY);
-    if (className != null) {
-        FuncSpec fs = null;
-        if (properties.containsKey(PROGRESS_NOTIFICATION_LISTENER_ARG_KEY)) {
-            fs = new FuncSpec(className,
-                    properties.getProperty(PROGRESS_NOTIFICATION_LISTENER_ARG_KEY));
-        } else {
-            fs = new FuncSpec(className);
-        }
-        return (PigProgressNotificationListener) PigContext.instantiateFuncFromSpec(fs);
-    } else {
-        return null;
+
+    try {
+        return PigContext.instantiateObjectFromParams(
+                    ConfigurationUtil.toConfiguration(properties),
+                    PROGRESS_NOTIFICATION_LISTENER_KEY,
+                    PROGRESS_NOTIFICATION_LISTENER_ARG_KEY,
+                    PigProgressNotificationListener.class);
+    } catch (ExecException e) {
+        throw new RuntimeException(e);
     }
 }
 
@@ -904,7 +902,7 @@ public static void printProperties(){
         System.out.println("            Enable optimizer rules to simplify filter expressions.");
         System.out.println("    Miscellaneous:");
         System.out.println("        exectype=mapreduce|local; default is mapreduce. This property is the same as -x switch");
-        System.out.println("        pig.additional.jars=<comma seperated list of jars>. Used in place of register command.");
+        System.out.println("        pig.additional.jars=<colon seperated list of jars>. Used in place of register command.");
         System.out.println("        udf.import.list=<comma seperated list of imports>. Used to avoid package names in UDF.");
         System.out.println("        stop.on.failure=true|false; default is false. Set to true to terminate on the first error.");
 	System.out.println("Additionally, any Hadoop property can be specified.");

@@ -17,16 +17,31 @@
  */
 package org.apache.pig;
 
-/**
- * This is an interface which, if implemented, allows an Accumulator
- * function to signal that it can terminate early. Certain classes of
- * UDF to do not need access to an entire set of data in order to
- * finish processing. A model example is {@link IsEmpty}. IsEmpty
- * can be Accumulative as if it receives even one line, it knows that
- * it is not empty. Another example might be a UDF which does streaming
- * analysis, and once a given stream matches a criteria, can terminate
- * without needing any further analysis.
- */
-public interface TerminatingAccumulator<T> extends Accumulator<T> {
-    public boolean isFinished();
+import java.io.IOException;
+
+import org.apache.pig.data.Tuple;
+
+public class TestingAccumulatorHelper extends AccumulatorEvalFunc<Integer> implements TerminatingAccumulator<Integer> {
+    public boolean earlyTerminate = false;
+    public int accumulates = 0;
+
+    public TestingAccumulatorHelper(String earlyTerminate) {
+        this.earlyTerminate = Boolean.parseBoolean(earlyTerminate);
+    }
+
+    public void accumulate(Tuple input) throws IOException {
+        accumulates++;
+    }
+
+    public Integer getValue() {
+        return accumulates;
+    }
+
+    public void cleanup() {
+        accumulates = 0;
+    }
+
+    public boolean isFinished() {
+        return earlyTerminate;
+    }
 }

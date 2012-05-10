@@ -81,7 +81,7 @@ sub replaceParameters
     $cmd =~ s/:DBNAME:/$testCmd->{'dbdb'}/g;
 #    $cmd =~ s/:LOCALINPATH:/$testCmd->{'localinpathbase'}/g;
 #    $cmd =~ s/:LOCALOUTPATH:/$testCmd->{'localoutpathbase'}/g;
-#    $cmd =~ s/:LOCALTESTPATH:/$testCmd->{'localpathbase'}/g;
+    $cmd =~ s/:LOCALTESTPATH:/$testCmd->{'localpathbase'}/g;
     $cmd =~ s/:BMPATH:/$testCmd->{'benchmarkPath'}/g;
     $cmd =~ s/:TMP:/$testCmd->{'tmpPath'}/g;
     $cmd =~ s/:HDFSTMP:/tmp\/$testCmd->{'runid'}/g;
@@ -861,7 +861,7 @@ sub countStores($$)
     # also note that this won't work if you comment out a store
     my @q = split(/\n/, $testCmd->{'pig'});
         for (my $i = 0; $i < @q; $i++) {
-            $count += $q[$i] =~ /store\s+[a-zA-Z][a-zA-Z0-9_]*\s+into/i;
+            $count += $q[$i] =~ /store\s+(\$)?[a-zA-Z][a-zA-Z0-9_]*\s+into/i;
     }
 
     return $count;
