@@ -26,10 +26,30 @@ import java.util.concurrent.TimeUnit;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 
 /**
- *
+ * This class provides a much more intuitive way to write Accumulator UDFs.<br>
+ * For example, you could express IsEmpty as follows:
+ * <pre><code>public class IsEmpty extends IteratingAccumulatorEvalFunc<Boolean> {
+ *     public Boolean exec(Iterator<Tuple> iter) throws IOException {
+ *         return !iter.hashNext();
+ *     }
+ * }</code></pre>
+ * Count could be implemented as follows:
+ * <pre><code>public class Count extends IteratingAccumulatorEvalFunc<Long> {
+ *     public Long exec(Iterator<Tuple> iter) throws IOException {
+ *         long ct = 0;
+ *         for (; iter.hasNext(); iter.next()) {
+ *             ct++;
+ *         }
+ *         return ct;
+ *     }
+ * }</code></pre>
  */
+@InterfaceAudience.Public
+@InterfaceStability.Unstable
 public abstract class IteratingAccumulatorEvalFunc<T> extends AccumulatorEvalFunc<T> implements TerminatingAccumulator<T> {
     private boolean isInitialized = false;
     private DelayedQueueIterator dqi;
