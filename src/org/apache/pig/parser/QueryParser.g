@@ -16,12 +16,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 /**
  * Parser file for Pig Parser
  *
- * NOTE: THIS FILE IS THE BASE FOR A FEW TREE PARSER FILES, such as AstValidator.g, 
- *       SO IF YOU CHANGE THIS FILE, YOU WILL PROBABLY NEED TO MAKE CORRESPONDING CHANGES TO 
+ * NOTE: THIS FILE IS THE BASE FOR A FEW TREE PARSER FILES, such as AstValidator.g,
+ *       SO IF YOU CHANGE THIS FILE, YOU WILL PROBABLY NEED TO MAKE CORRESPONDING CHANGES TO
  *       THOSE FILES AS WELL.
  */
 
@@ -94,7 +94,7 @@ private static Log log = LogFactory.getLog( QueryParser.class );
 private Set<String> memory = new HashSet<String>();
 
 @Override
-protected Object recoverFromMismatchedToken(IntStream input, int ttype, BitSet follow) 
+protected Object recoverFromMismatchedToken(IntStream input, int ttype, BitSet follow)
 throws RecognitionException {
     throw new MismatchedTokenException( ttype, input );
 }
@@ -114,7 +114,7 @@ public String getErrorMessage(RecognitionException e, String[] tokenNames ) {
             return super.getErrorMessage( e, tokenNames );
         }
     }
-    
+
     List stack =  getRuleInvocationStack( e, this.getClass().getName() );
     String msg = null;
     if( e instanceof NoViableAltException ) {
@@ -152,8 +152,8 @@ query : statement* EOF
 statement : SEMI_COLON!
           | general_statement
           | foreach_statement
-          | split_statement  
-          | inline_statement        
+          | split_statement
+          | inline_statement
           | import_statement
           | realias_statement
 ;
@@ -167,14 +167,14 @@ inline_statement : inline_clause SEMI_COLON!
 split_statement : split_clause SEMI_COLON!
 ;
 
-general_statement : ( alias EQUAL )? (op_clause parallel_clause? | LEFT_PAREN op_clause parallel_clause? RIGHT_PAREN) SEMI_COLON 
+general_statement : ( alias EQUAL )? (op_clause parallel_clause? | LEFT_PAREN op_clause parallel_clause? RIGHT_PAREN) SEMI_COLON
                  -> ^( STATEMENT alias? op_clause parallel_clause? )
 ;
 
 realias_statement : realias_clause SEMI_COLON!
 ;
 
-realias_clause : alias EQUAL identifier 
+realias_clause : alias EQUAL identifier
     -> ^(REALIAS alias identifier)
 ;
 
@@ -183,9 +183,27 @@ parallel_clause : PARALLEL^ INTEGER
 
 // Statement represented by a foreach operator with a nested block. Simple foreach statement
 // is covered by general_statement.
-// We need to handle foreach specifically because of the ending ';', which is not required 
+// We need to handle foreach specifically because of the ending ';', which is not required
 // if there is a nested block. This is ugly, but it gets the job done.
-foreach_statement : ( ( alias EQUAL )?  FOREACH rel LEFT_CURLY ) => foreach_complex_statement
+
+foreach_statement : ( alias EQUAL )? foreach_clause
+                 -> ^( STATEMENT alias? foreach_clause )
+;
+
+foreach_clause : foreach_complex
+               | foreach_simple
+;
+
+foreach_complex : foreach_clause_complex SEMI_COLON?
+              -> foreach_clause_complex
+;
+
+foreach_simple : (foreach_clause_simple parallel_clause?
+                 | LEFT_PAREN foreach_clause_simple parallel_clause? RIGHT_PAREN) SEMI_COLON
+              -> foreach_clause_simple parallel_clause?
+;
+/*
+foreach_statement : foreach_complex_statement
                   | foreach_simple_statement
 ;
 
@@ -193,17 +211,31 @@ foreach_complex_statement : ( alias EQUAL )? foreach_clause_complex SEMI_COLON?
                          -> ^( STATEMENT alias? foreach_clause_complex )
 ;
 
-foreach_simple_statement : ( alias EQUAL )? (foreach_clause_simple parallel_clause? 
+foreach_simple_statement : ( alias EQUAL )? (foreach_clause_simple parallel_clause?
                                                 | LEFT_PAREN foreach_clause_simple parallel_clause? RIGHT_PAREN) SEMI_COLON
                         -> ^( STATEMENT alias? foreach_clause_simple parallel_clause? )
+;
+*/
+foreach_clause_simple : FOREACH^ rel foreach_plan_simple
+;
+
+foreach_plan_simple : generate_clause
+                   -> ^( FOREACH_PLAN_SIMPLE generate_clause )
+;
+
+foreach_clause_complex : FOREACH^ rel foreach_plan_complex
+;
+
+foreach_plan_complex : nested_blk
+                    -> ^( FOREACH_PLAN_COMPLEX nested_blk )
 ;
 
 alias : identifier
 ;
 
-parameter 
-    : identifier 
-    | INTEGER 
+parameter
+    : identifier
+    | INTEGER
     | DOUBLENUMBER
     | QUOTEDSTRING
     | DOLLARVAR
@@ -212,7 +244,7 @@ parameter
 content : LEFT_CURLY ( content | ~(LEFT_CURLY | RIGHT_CURLY) )* RIGHT_CURLY
 ;
 
-op_clause : define_clause 
+op_clause : define_clause
           | load_clause
           | group_clause
           | store_clause
@@ -232,7 +264,7 @@ macro_param_clause : LEFT_PAREN ( alias (COMMA alias)* )? RIGHT_PAREN
     -> ^(PARAMS alias*)
 ;
 
-macro_return_clause 
+macro_return_clause
     : RETURNS ((alias (COMMA alias)*) | VOID)
         -> ^(RETURN_VAL alias*)
 ;
@@ -245,10 +277,10 @@ macro_clause : macro_param_clause macro_return_clause macro_body_clause
     -> ^(MACRO_DEF macro_param_clause macro_return_clause macro_body_clause)
 ;
 
-inline_return_clause 
+inline_return_clause
     : alias EQUAL -> ^(RETURN_VAL alias)
 	| alias (COMMA alias)+ EQUAL -> ^(RETURN_VAL alias+)
-	| -> ^(RETURN_VAL)  
+	| -> ^(RETURN_VAL)
 ;
 
 inline_param_clause : LEFT_PAREN ( parameter (COMMA parameter)* )? RIGHT_PAREN
@@ -271,7 +303,7 @@ cmd : EXECCOMMAND^ ( ship_clause | cache_clause | input_clause | output_clause |
 ship_clause : SHIP^ LEFT_PAREN! path_list? RIGHT_PAREN!
 ;
 
-path_list : QUOTEDSTRING ( COMMA QUOTEDSTRING )* 
+path_list : QUOTEDSTRING ( COMMA QUOTEDSTRING )*
          -> QUOTEDSTRING+
 ;
 
@@ -362,7 +394,7 @@ group_item_list : group_item ( COMMA group_item )*
 group_item : rel ( join_group_by_clause | ALL | ANY ) ( INNER | OUTER )?
 ;
 
-rel : alias 
+rel : alias
     | LEFT_PAREN! ( foreach_clause_complex | ( ( op_clause | foreach_clause_simple ) parallel_clause? ) ) RIGHT_PAREN!
 ;
 
@@ -371,7 +403,7 @@ flatten_generated_item : flatten_clause ( AS! ( ( LEFT_PAREN! field_def_list RIG
                        | expr ( AS! field_def )?
                        | STAR ( AS! ( ( LEFT_PAREN! field_def_list RIGHT_PAREN! ) | field_def ) )?
 ;
-	
+
 flatten_clause : FLATTEN^ LEFT_PAREN! expr RIGHT_PAREN!
 ;
 
@@ -439,7 +471,7 @@ bag_type_cast : BAG LEFT_CURLY tuple_type_cast? RIGHT_CURLY
              -> ^( BAG_TYPE_CAST tuple_type_cast? )
 ;
 
-unary_expr : expr_eval 
+unary_expr : expr_eval
            | LEFT_PAREN expr RIGHT_PAREN
           -> ^( EXPR_IN_PAREN expr )
            | neg_expr
@@ -454,15 +486,15 @@ var_expr : projectable_expr ( dot_proj | pound_proj )*
 projectable_expr: func_eval | col_ref | bin_expr | type_conversion
 ;
 
-type_conversion : LEFT_CURLY real_arg_list RIGHT_CURLY 
+type_conversion : LEFT_CURLY real_arg_list RIGHT_CURLY
                -> ^( FUNC_EVAL TOBAG real_arg_list )
-               | LEFT_BRACKET real_arg_list RIGHT_BRACKET 
+               | LEFT_BRACKET real_arg_list RIGHT_BRACKET
                -> ^( FUNC_EVAL TOMAP real_arg_list )
                | LEFT_PAREN real_arg ( COMMA real_arg )+ RIGHT_PAREN // to disable convertion on 1 element tuples
                -> ^( FUNC_EVAL TOTUPLE real_arg+ )
 ;
 
-dot_proj : PERIOD ( col_alias_or_index 
+dot_proj : PERIOD ( col_alias_or_index
                   | ( LEFT_PAREN col_alias_or_index ( COMMA col_alias_or_index )* RIGHT_PAREN ) )
         -> ^( PERIOD col_alias_or_index+ )
 ;
@@ -478,7 +510,7 @@ col_index : DOLLARVAR
 
 col_range : c1 = col_ref DOUBLE_PERIOD c2 = col_ref?
           -> ^(COL_RANGE $c1 DOUBLE_PERIOD $c2?)
-          |  DOUBLE_PERIOD col_ref 
+          |  DOUBLE_PERIOD col_ref
           -> ^(COL_RANGE DOUBLE_PERIOD col_ref)
 
 ;
@@ -512,7 +544,7 @@ order_col_list : order_col ( COMMA order_col )*
 ;
 
 order_col : col_range (ASC | DESC)?
-          | col_ref ( ASC | DESC )?  
+          | col_ref ( ASC | DESC )?
           | LEFT_PAREN! col_ref ( ASC | DESC )? RIGHT_PAREN!
 ;
 
@@ -560,20 +592,6 @@ join_group_by_expr : col_range  | expr | STAR
 union_clause : UNION^ ONSCHEMA? rel_list
 ;
 
-foreach_clause_simple : FOREACH^ rel foreach_plan_simple
-;
-
-foreach_plan_simple : generate_clause
-                   -> ^( FOREACH_PLAN_SIMPLE generate_clause )
-;
-
-foreach_clause_complex : FOREACH^ rel foreach_plan_complex
-;
-
-foreach_plan_complex : nested_blk
-                    -> ^( FOREACH_PLAN_COMPLEX nested_blk )
-;
-
 nested_blk : LEFT_CURLY! nested_command_list ( generate_clause SEMI_COLON! ) RIGHT_CURLY!
 ;
 
@@ -583,7 +601,6 @@ generate_clause : GENERATE flatten_generated_item ( COMMA flatten_generated_item
 
 nested_command_list : ( nested_command SEMI_COLON )*
                    -> nested_command*
-                    |
 ;
 
 nested_command : ( identifier EQUAL col_ref PERIOD col_ref_list { input.LA( 1 ) == SEMI_COLON }? ) => ( identifier EQUAL nested_proj )
