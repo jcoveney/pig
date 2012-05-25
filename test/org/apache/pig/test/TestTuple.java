@@ -19,6 +19,7 @@ package org.apache.pig.test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import junit.framework.TestCase;
 
@@ -69,20 +70,20 @@ public class TestTuple extends TestCase {
         long size = t.getMemorySize();
         assertEquals("tuple size",size, 96);
     }
-    
+
     public void testEmptyBagSize() {
         DataBag bag = DefaultBagFactory.getInstance().newDefaultBag();
         long size = bag.getMemorySize();
         assertEquals("bag size",size, 124);
     }
-    
+
     // See PIG-1443
     public void testTupleSizeWithString() {
         Tuple t = Util.createTuple(new String[] {"1234567", "bar"});
         long size = t.getMemorySize();
         assertEquals("tuple size",size, 200);
     }
-    
+
     public void testTupleSizeWithByteArrays() {
         Tuple t = TupleFactory.getInstance().newTuple();
         t.append(new DataByteArray("1234567"));
@@ -106,7 +107,7 @@ public class TestTuple extends TestCase {
         long size = t.getMemorySize();
         assertEquals("tuple size",size, 128);
     }
-    
+
     public void testTupleSizeWithLongs() {
         Tuple t = TupleFactory.getInstance().newTuple();
         t.append(new Long(100));
@@ -114,13 +115,32 @@ public class TestTuple extends TestCase {
         long size = t.getMemorySize();
         assertEquals("tuple size",size, 128);
     }
-    
+
     public void testTupleSizeWithBooleans() {
         Tuple t = TupleFactory.getInstance().newTuple();
         t.append(new Boolean(true));
         t.append(new Boolean(false));
         long size = t.getMemorySize();
         assertEquals("tuple size",size, 128);
-    }    
-    
+    }
+
+    public void testTupleIterator() {
+        Tuple t = TupleFactory.getInstance().newTuple();
+        Random r = new Random();
+        for (int i = 0; i < 1000; i++) {
+            t.append(r.nextLong());
+        }
+        for (int i = 0; i < 1000; i++) {
+            t.append(r.nextInt());
+        }
+        int i = 0;
+        for (Object o : t) {
+            try {
+                assertEquals("Element " + i, t.get(i++), o);
+            } catch (ExecException e) {
+                throw new RuntimeException();
+            }
+        }
+    }
+
 }

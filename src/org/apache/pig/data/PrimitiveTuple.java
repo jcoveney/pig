@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Iterator;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BinInterSedes;
@@ -485,5 +486,9 @@ public class PrimitiveTuple implements TypeAwareTuple {
     @Override
     @Deprecated
     public void setNull(boolean isNull) {
+    }
+
+    public Iterator<Object> iterator() {
+        return getAll().iterator();
     }
 }

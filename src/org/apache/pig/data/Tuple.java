@@ -44,20 +44,20 @@ import org.apache.pig.backend.executionengine.ExecException;
 @SuppressWarnings("unchecked")
 @InterfaceAudience.Public
 @InterfaceStability.Stable
-public interface Tuple extends WritableComparable, Serializable {
-       
+public interface Tuple extends WritableComparable, Serializable, Iterable<Object> {
+
     /**
      * Marker for indicating whether the value this object holds
      * is a null
      */
     public static byte NULL = 0x00;
-    
+
     /**
      * Marker for indicating whether the value this object holds
      * is not a null
      */
     public static byte NOTNULL = 0x01;
-    
+
     /**
      * Make this tuple reference the contents of another.  This method does not copy
      * the underlying data.   It maintains references to the data from the original
@@ -112,7 +112,7 @@ public interface Tuple extends WritableComparable, Serializable {
      * Set the value in a given field.  This should not be called unless
      * the tuple was constructed by {@link TupleFactory#newTuple(int)} with an
      * argument greater than the fieldNum being passed here.  This call will
-     * not automatically expand the tuple size.  That is if you called 
+     * not automatically expand the tuple size.  That is if you called
      * {@link TupleFactory#newTuple(int)} with a 2, it is okay to call
      * this function with a 1, but not with a 2 or greater.
      * @param fieldNum Number of the field to set the value for.
@@ -125,8 +125,8 @@ public interface Tuple extends WritableComparable, Serializable {
     /**
      * Append a field to a tuple.  This method is not efficient as it may
      * force copying of existing data in order to grow the data structure.
-     * Whenever possible you should construct your Tuple with 
-     * {@link TupleFactory#newTuple(int)} and then fill in the values with 
+     * Whenever possible you should construct your Tuple with
+     * {@link TupleFactory#newTuple(int)} and then fill in the values with
      * {@link #set(int, Object)}, rather
      * than construct it with {@link TupleFactory#newTuple()} and append values.
      * @param val Object to append to the tuple.
@@ -141,7 +141,7 @@ public interface Tuple extends WritableComparable, Serializable {
      */
     long getMemorySize();
 
-    /** 
+    /**
      * Write a tuple of atomic values into a string.  All values in the
      * tuple must be atomic (no bags, tuples, or maps).
      * @param delim Delimiter to use in the string.
@@ -149,7 +149,7 @@ public interface Tuple extends WritableComparable, Serializable {
      * @throws ExecException if a non-atomic value is found.
      */
     String toDelimitedString(String delim) throws ExecException;
-    
+
     /**
      * This is an unsupported method.
      * It never really worked. Don't use it!
@@ -157,7 +157,7 @@ public interface Tuple extends WritableComparable, Serializable {
      */
     @Deprecated
     public boolean isNull();
-    
+
     /**
      * This is an unsupported method.
      * It never really worked. Don't use it!

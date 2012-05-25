@@ -3,6 +3,7 @@ package org.apache.pig.data;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Iterator;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BinInterSedes.BinInterSedesTupleRawComparator;
@@ -314,5 +315,9 @@ public abstract class PrimitiveFieldTuple implements TypeAwareTuple {
     @Override
     @Deprecated
     public void setNull(boolean isNull) {
+    }
+
+    public Iterator<Object> iterator() {
+        return getAll().iterator();
     }
 }

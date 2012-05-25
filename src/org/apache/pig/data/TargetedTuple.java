@@ -22,6 +22,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Iterator;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -33,10 +34,10 @@ import org.apache.pig.impl.plan.OperatorKey;
  */
 public class TargetedTuple implements Tuple {
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 2L;
-    
+
     private Tuple t;
     // The list of operators to which this tuple
     // has to be attached as input.
@@ -163,7 +164,7 @@ public class TargetedTuple implements Tuple {
     public int compareTo(Object o) {
         return t.compareTo(o);
     }
-    
+
     @Override
     @SuppressWarnings("unchecked")
     public boolean equals(Object o) {
@@ -174,7 +175,7 @@ public class TargetedTuple implements Tuple {
     public int hashCode() {
         return t.hashCode();
     }
-    
+
     @Override
     @Deprecated
     public boolean isNull() {
@@ -186,4 +187,7 @@ public class TargetedTuple implements Tuple {
     public void setNull(boolean isNull) {
     }
 
+    public Iterator<Object> iterator() {
+        return getAll().iterator();
+    }
 }

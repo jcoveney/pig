@@ -22,6 +22,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.List;
+import java.util.Iterator;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
@@ -40,7 +41,7 @@ public class ExampleTuple implements Tuple {
     public ExampleTuple() {
 
     }
-    
+
     public ExampleTuple(Object expr) {
       this.expr = expr;
     }
@@ -141,5 +142,9 @@ public class ExampleTuple implements Tuple {
     @Override
     @Deprecated
     public void setNull(boolean isNull) {
+    }
+
+    public Iterator<Object> iterator() {
+        return getAll().iterator();
     }
 }
