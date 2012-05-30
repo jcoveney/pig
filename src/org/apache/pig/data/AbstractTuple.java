@@ -36,13 +36,7 @@ public abstract class AbstractTuple implements Tuple {
     }
 
     /**
-     * Write a tuple of atomic values into a string. All values in the tuple must be atomic (no bags, tuples, or maps).
-     *
-     * @param delim
-     *            Delimiter to use in the string.
-     * @return A string containing the tuple.
-     * @throws ExecException
-     *             if a non-atomic value is found.
+     * {@inheritDoc}
      */
     @Override
     public String toDelimitedString(String delim) throws ExecException {
@@ -50,14 +44,7 @@ public abstract class AbstractTuple implements Tuple {
     }
 
     /**
-     * Find the type of a given field.
-     *
-     * @param fieldNum
-     *            Number of field to get the type for.
-     * @return type, encoded as a byte value. The values are taken from the class DataType. If the field is null, then
-     *         DataType.UNKNOWN will be returned.
-     * @throws ExecException
-     *             if the field number is greater than or equal to the number of fields in the tuple.
+     * {@inheritDoc}
      */
     @Override
     public byte getType(int fieldNum) throws ExecException {
@@ -65,25 +52,25 @@ public abstract class AbstractTuple implements Tuple {
     }
 
     /**
-     * Find out if a given field is null.
-     *
-     * @param fieldNum
-     *            Number of field to check for null.
-     * @return true if the field is null, false otherwise.
-     * @throws ExecException
-     *             if the field number given is greater than or equal to the number of fields in the tuple.
+     * {@inheritDoc}
      */
     @Override
     public boolean isNull(int fieldNum) throws ExecException {
         return (get(fieldNum) == null);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Deprecated
     public boolean isNull() {
         return false;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Deprecated
     public void setNull(boolean isNull) {
