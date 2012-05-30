@@ -15,7 +15,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
 /**
@@ -61,7 +60,7 @@ numFields                       benchmark    ns linear runtime
 </pre>
  *
  */
-public class PrimitiveTuple implements TypeAwareTuple {
+public class PrimitiveTuple extends AbstractTypeAwareTuple {
     private static final long serialVersionUID = 1L;
     private ByteBuffer buffer;
     private boolean[] nulls;
@@ -422,11 +421,6 @@ public class PrimitiveTuple implements TypeAwareTuple {
         return types.length;
     }
 
-    @Override
-    public String toDelimitedString(String arg0) throws ExecException {
-        return Joiner.on(arg0).join(getAll());
-    }
-
     /**
      * NOT IMPLEMENTED
      */
@@ -470,25 +464,5 @@ public class PrimitiveTuple implements TypeAwareTuple {
     @Override
     public String getString(int idx) throws ExecException {
         throw new ExecException("PrimitiveTuple does not support Strings");
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        return (compareTo(other) == 0);
-    }
-
-    @Override
-    @Deprecated
-    public boolean isNull() {
-        return false;
-    }
-
-    @Override
-    @Deprecated
-    public void setNull(boolean isNull) {
-    }
-
-    public Iterator<Object> iterator() {
-        return getAll().iterator();
     }
 }
