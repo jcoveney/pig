@@ -33,10 +33,10 @@ import org.apache.pig.impl.plan.OperatorKey;
  */
 public class TargetedTuple implements Tuple {
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 2L;
-    
+
     private Tuple t;
     // The list of operators to which this tuple
     // has to be attached as input.
@@ -163,7 +163,7 @@ public class TargetedTuple implements Tuple {
     public int compareTo(Object o) {
         return t.compareTo(o);
     }
-    
+
     @Override
     @SuppressWarnings("unchecked")
     public boolean equals(Object o) {
@@ -174,16 +174,4 @@ public class TargetedTuple implements Tuple {
     public int hashCode() {
         return t.hashCode();
     }
-    
-    @Override
-    @Deprecated
-    public boolean isNull() {
-        return false;
-    }
-
-    @Override
-    @Deprecated
-    public void setNull(boolean isNull) {
-    }
-
 }
