@@ -138,7 +138,7 @@ public class TestTuple extends TestCase {
             try {
                 assertEquals("Element " + i, t.get(i++), o);
             } catch (ExecException e) {
-                throw new RuntimeException();
+                throw new RuntimeException(e);
             }
         }
     }
