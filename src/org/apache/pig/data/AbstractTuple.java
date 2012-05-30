@@ -1,8 +1,13 @@
 package org.apache.pig.data;
 
+import java.util.Iterator;
+
+import org.apache.pig.impl.util.TupleFormat;
+import org.apache.pig.backend.executionengine.ExecException;
+
 import com.google.common.base.Joiner;
 
-public class AbstractTuple implements Tuple {
+public abstract class AbstractTuple implements Tuple {
     @Override
     public Iterator<Object> iterator() {
         return getAll().iterator();
@@ -24,7 +29,7 @@ public class AbstractTuple implements Tuple {
      */
     @Override
     public String toDelimitedString(String delim) throws ExecException {
-        return Joiner.on(arg0).join(getAll());
+        return Joiner.on(delim).join(getAll());
     }
 
     /**
