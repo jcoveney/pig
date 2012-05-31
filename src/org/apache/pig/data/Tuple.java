@@ -142,11 +142,10 @@ public interface Tuple extends WritableComparable, Serializable, Iterable<Object
     long getMemorySize();
 
     /**
-     * Write a tuple of atomic values into a string.  All values in the
-     * tuple must be atomic (no bags, tuples, or maps).
+     * Write a tuple of values into a string. The output will be the result
+     * of calling toString on each of the values in the tuple.
      * @param delim Delimiter to use in the string.
      * @return A string containing the tuple.
-     * @throws ExecException if a non-atomic value is found.
      */
     String toDelimitedString(String delim) throws ExecException;
 
