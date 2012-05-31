@@ -504,25 +504,4 @@ public class DefaultTuple extends AbstractTuple {
     public static Class<? extends TupleRawComparator> getComparatorClass() {
         return DefaultTupleRawComparator.class;
     }
-
-    /**
-     * Write a tuple of atomic values into a string. All values in the tuple must be atomic (no bags, tuples, or maps).
-     *
-     * @param delim
-     *            Delimiter to use in the string.
-     * @return A string containing the tuple.
-     * @throws ExecException
-     *             if a non-atomic value is found.
-     */
-    @Override
-    public String toDelimitedString(String delim) throws ExecException {
-        StringBuilder buf = new StringBuilder();
-        for (Iterator<Object> it = mFields.iterator(); it.hasNext();) {
-            Object field = it.next();
-            buf.append(field == null ? "" : field.toString());
-            if (it.hasNext())
-                buf.append(delim);
-        }
-        return buf.toString();
-    }
 }
