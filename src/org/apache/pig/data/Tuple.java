@@ -146,6 +146,7 @@ public interface Tuple extends WritableComparable, Serializable, Iterable<Object
      * of calling toString on each of the values in the tuple.
      * @param delim Delimiter to use in the string.
      * @return A string containing the tuple.
+     * @throws ExecException this is never thrown. This only exists for backwards compatability reasons.
      */
     String toDelimitedString(String delim) throws ExecException;
 
