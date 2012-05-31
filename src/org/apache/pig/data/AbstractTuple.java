@@ -25,7 +25,8 @@ import org.apache.pig.backend.executionengine.ExecException;
 import com.google.common.base.Joiner;
 
 /**
- *
+ * This class provides a convenient base for Tuple implementations. This makes it easier
+ * to provide default implementations as the Tuple interface is evolved.
  */
 public abstract class AbstractTuple implements Tuple {
     @Override
@@ -43,7 +44,7 @@ public abstract class AbstractTuple implements Tuple {
      */
     @Override
     public String toDelimitedString(String delim) throws ExecException {
-        return Joiner.on(delim).useForNull("").join(getAll());
+        return Joiner.on(delim).useForNull("").join(this);
     }
 
     /**
@@ -60,23 +61,6 @@ public abstract class AbstractTuple implements Tuple {
     @Override
     public boolean isNull(int fieldNum) throws ExecException {
         return (get(fieldNum) == null);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    @Deprecated
-    public boolean isNull() {
-        return false;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    @Deprecated
-    public void setNull(boolean isNull) {
     }
 
     @Override
