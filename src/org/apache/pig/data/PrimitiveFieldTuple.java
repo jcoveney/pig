@@ -9,7 +9,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BinInterSedes.BinInterSedesTupleRawComparator;
 
 @SuppressWarnings("serial")
-public abstract class PrimitiveFieldTuple extends AbstractTypeAwareTuple {
+public abstract class PrimitiveFieldTuple extends AbstractTuple implements TypeAwareTuple {
     protected boolean isSet = false;
 
     @Override

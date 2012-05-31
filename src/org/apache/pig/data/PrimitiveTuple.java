@@ -60,7 +60,7 @@ numFields                       benchmark    ns linear runtime
 </pre>
  *
  */
-public class PrimitiveTuple extends AbstractTypeAwareTuple {
+public class PrimitiveTuple extends AbstractTuple implements TypeAwareTuple {
     private static final long serialVersionUID = 1L;
     private ByteBuffer buffer;
     private boolean[] nulls;
