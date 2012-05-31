@@ -40,7 +40,7 @@ public abstract class AbstractTuple implements Tuple {
      */
     @Override
     public String toDelimitedString(String delim) throws ExecException {
-        return Joiner.on(delim).join(getAll());
+        return Joiner.on(delim).useForNull("").join(getAll());
     }
 
     /**
