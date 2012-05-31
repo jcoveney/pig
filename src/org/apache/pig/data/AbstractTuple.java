@@ -24,6 +24,9 @@ import org.apache.pig.backend.executionengine.ExecException;
 
 import com.google.common.base.Joiner;
 
+/**
+ *
+ */
 public abstract class AbstractTuple implements Tuple {
     @Override
     public Iterator<Object> iterator() {
