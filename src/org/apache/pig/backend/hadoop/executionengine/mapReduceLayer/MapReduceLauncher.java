@@ -269,9 +269,9 @@ public class MapReduceLauncher extends Launcher{
             // Now wait, till we are finished.
             while(!jc.allFinished()){
 
-            	try { Thread.sleep(sleepTime); } 
+              try { jcThread.join(sleepTime); }
             	catch (InterruptedException e) {}
-            	
+
             	List<Job> jobsAssignedIdInThisRun = new ArrayList<Job>();
 
             	for(Job job : jobsWithoutIds){
@@ -285,6 +285,8 @@ public class MapReduceLauncher extends Launcher{
                         if (mro != null) {
                             String alias = ScriptState.get().getAlias(mro);
                             log.info("Processing aliases " + alias);
+                            String aliasLocation = ScriptState.get().getAliasLocation(mro);
+                            log.info("detailed locations: " + aliasLocation);
                         }
 
                         
