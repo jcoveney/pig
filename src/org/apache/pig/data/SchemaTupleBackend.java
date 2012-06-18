@@ -267,6 +267,9 @@ public class SchemaTupleBackend {
     }
 
     public static SchemaTupleFactory newSchemaTupleFactory(Schema s, boolean isAppendable, GenContext context)  {
+        if (stb == null) {
+            LOG.error("initialize was not called! Even when SchemaTuple feature is not set, it should be called.");
+        }
         return stb.internalNewSchemaTupleFactory(s, isAppendable, context);
     }
 
