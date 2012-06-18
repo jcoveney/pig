@@ -1102,7 +1102,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                 try {
                     mergedSchema = leftSchema.clone();
                     String opName = ((LogicalRelationalOperator)inputs.get(0)).getAlias();
-                    for (Schema.FieldSchema fs : leftSchema.getFields()) {
+                    for (Schema.FieldSchema fs : mergedSchema.getFields()) {
                         fs.alias = opName + "::" + fs.alias;
                     }
                     opName = ((LogicalRelationalOperator)inputs.get(1)).getAlias();
