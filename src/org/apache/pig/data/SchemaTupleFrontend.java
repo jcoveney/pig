@@ -32,8 +32,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
+import org.apache.pig.data.utils.StructuresHelper.Pair;
 import org.apache.pig.data.utils.StructuresHelper.SchemaKey;
-import org.apache.pig.data.utils.StructuresHelper.Triple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -50,13 +50,13 @@ public class SchemaTupleFrontend {
     /**
      * Schemas registered for generation are held here.
      */
-    private static Map<SchemaKey, Triple<Integer, Boolean, Set<GenContext>>> schemasToGenerate = Maps.newHashMap();
+    private static Map<Pair<SchemaKey, Boolean>, Pair<Integer, Set<GenContext>>> schemasToGenerate = Maps.newHashMap();
 
     private int internalRegisterToGenerateIfPossible(Schema udfSchema, boolean isAppendable, GenContext type) {
-        SchemaKey sk = new SchemaKey(udfSchema);
-        Triple<Integer, Boolean, Set<GenContext>> pr = schemasToGenerate.get(sk);
+        Pair<SchemaKey, Boolean> key = Pair.make(new SchemaKey(udfSchema), isAppendable);
+        Pair<Integer, Set<GenContext>> pr = schemasToGenerate.get(key);
         if (pr != null) {
-            pr.getThird().add(type);
+            pr.getSecond().add(type);
             return pr.getFirst();
         }
         if (!SchemaTupleFactory.isGeneratable(udfSchema)) {
@@ -66,13 +66,13 @@ public class SchemaTupleFrontend {
         Set<GenContext> contexts = Sets.newHashSet();
         contexts.add(GenContext.FORCE_LOAD);
         contexts.add(type);
-        schemasToGenerate.put(sk, Triple.make(Integer.valueOf(id), isAppendable, contexts));
+        schemasToGenerate.put(key, Pair.make(Integer.valueOf(id), contexts));
         LOG.info("Registering "+(isAppendable ? "Appendable" : "")+"Schema for generation ["
                 + udfSchema + "] with id [" + id + "] and context: " + type);
         return id;
     }
 
-    private Map<SchemaKey, Triple<Integer, Boolean, Set<GenContext>>> getSchemasToGenerate() {
+    private Map<Pair<SchemaKey, Boolean>, Pair<Integer, Set<GenContext>>> getSchemasToGenerate() {
         return schemasToGenerate;
     }
 
@@ -160,7 +160,7 @@ public class SchemaTupleFrontend {
          * into the temporary directory.
          * @return true of false depending on if there are any files to copy to the distributed cache
          */
-        private boolean generateAll(Map<SchemaKey, Triple<Integer, Boolean, Set<GenContext>>> schemasToGenerate) {
+        private boolean generateAll(Map<Pair<SchemaKey, Boolean>, Pair<Integer, Set<GenContext>>> schemasToGenerate) {
             boolean filesToShip = false;
             String shouldString = conf.get(SchemaTupleBackend.SHOULD_GENERATE_KEY);
             if (shouldString == null || !Boolean.parseBoolean(shouldString)) {
@@ -168,12 +168,13 @@ public class SchemaTupleFrontend {
                 return false;
             }
             LOG.info("Generating all registered Schemas.");
-            for (Map.Entry<SchemaKey, Triple<Integer,Boolean, Set<GenContext>>> entry : schemasToGenerate.entrySet()) {
-                Schema s = entry.getKey().get();
-                Triple<Integer, Boolean, Set<GenContext>> value = entry.getValue();
+            for (Map.Entry<Pair<SchemaKey, Boolean>, Pair<Integer, Set<GenContext>>> entry : schemasToGenerate.entrySet()) {
+                Pair<SchemaKey, Boolean> keyPair = entry.getKey();
+                Schema s = keyPair.getFirst().get();
+                Pair<Integer, Set<GenContext>> valuePair = entry.getValue();
                 Set<GenContext> contextsToInclude = Sets.newHashSet();
                 boolean isShipping = false;
-                for (GenContext context : value.getThird()) {
+                for (GenContext context : valuePair.getSecond()) {
                     if (!context.shouldGenerate(conf)) {
                         LOG.info("Skipping generation of Schema [" + s + "], as key value [" + context.key() + "] was false.");
                     } else {
@@ -184,8 +185,8 @@ public class SchemaTupleFrontend {
                 if (!isShipping) {
                     continue;
                 }
-                int id = value.getFirst();
-                boolean isAppendable = value.getSecond();
+                int id = valuePair.getFirst();
+                boolean isAppendable = keyPair.getSecond();
                 SchemaTupleClassGenerator.generateSchemaTuple(s, isAppendable, id, codeDir, contextsToInclude.toArray(new GenContext[0]));
                 filesToShip = true;
             }

@@ -98,27 +98,6 @@ public class POMergeJoin extends PhysicalOperator {
     // Buffer to hold accumulated left tuples.
     private transient List<Tuple> leftTuples;
 
-    private static class TuplesToSchemaTupleList extends ArrayList<Tuple> {
-        static final long serialVersionUID = 1L;
-
-        private SchemaTupleFactory tf;
-
-        public TuplesToSchemaTupleList(int ct, SchemaTupleFactory tf) {
-            super(ct);
-            this.tf = tf;
-        }
-
-        public boolean add(Tuple t) {
-            SchemaTuple<?> st = (SchemaTuple<?>)tf.newTuple();
-            try {
-                st.set(t);
-            } catch (ExecException e) {
-                throw new RuntimeException("Unable to set SchemaTuple with schema ["+st.getSchemaString()+"] with given Tuple in merge join.");
-            }
-            return super.add(st);
-        }
-    }
-
     private MultiMap<PhysicalOperator, PhysicalPlan> inpPlans;
 
     private PhysicalOperator rightPipelineLeaf;
@@ -143,14 +122,18 @@ public class POMergeJoin extends PhysicalOperator {
 
     private String signature;
 
+    // This serves as the default TupleFactory
     private transient TupleFactory mTupleFactory;
 
+    /**
+     * These TupleFactories are used for more efficient Tuple generation. This should
+     * decrease the amount of memory needed for a given map task to successfully perform
+     * a merge join.
+     */
     private transient TupleFactory mergedTupleFactory;
     private transient TupleFactory leftTupleFactory;
-    private transient TupleFactory rightTupleFactory;
 
     private Schema leftInputSchema;
-    private Schema rightInputSchema;
     private Schema mergedInputSchema;
 
     /**
@@ -172,7 +155,6 @@ public class POMergeJoin extends PhysicalOperator {
         this.indexFile = null;
         this.joinType = joinType;
         this.leftInputSchema = leftInputSchema;
-        this.rightInputSchema = rightInputSchema;
         this.mergedInputSchema = mergedInputSchema;
     }
 
@@ -198,10 +180,9 @@ public class POMergeJoin extends PhysicalOperator {
         }
     }
 
-    static abstract class TupleCreator {
-        public abstract void make();
-    }
-
+    /**
+     * This is a helper method that sets up all of the TupleFactory members.
+     */
     private void prepareTupleFactories() {
         mTupleFactory = TupleFactory.getInstance();
 
@@ -212,15 +193,6 @@ public class POMergeJoin extends PhysicalOperator {
             log.debug("No SchemaTupleFactory available for combined left merge join schema: " + leftInputSchema);
         } else {
             log.debug("Using SchemaTupleFactory for left merge join schema: " + leftInputSchema);
-        }
-
-        if (rightInputSchema != null) {
-            rightTupleFactory = SchemaTupleBackend.newSchemaTupleFactory(rightInputSchema, false, GenContext.JOIN);
-        }
-        if (rightTupleFactory == null) {
-            log.debug("No SchemaTupleFactory available for combined right merge join schema: " + rightInputSchema);
-        } else {
-            log.debug("Using SchemaTupleFactory for right merge join schema: " + rightInputSchema);
         }
 
         if (mergedInputSchema != null) {
@@ -234,11 +206,43 @@ public class POMergeJoin extends PhysicalOperator {
 
     }
 
+    /**
+     * This provides a List to store Tuples in. The implementation of that list depends on whether
+     * or not there is a TupleFactory available.
+     * @return the list object to store Tuples in
+     */
     private List<Tuple> newLeftTupleArray() {
         if (leftTupleFactory == null) {
             return new ArrayList<Tuple>(arrayListSize);
         } else {
             return new TuplesToSchemaTupleList(arrayListSize, (SchemaTupleFactory)leftTupleFactory);
+        }
+    }
+
+    /**
+     * This is a class that extends ArrayList, making it easy to provide on the fly conversion
+     * from Tuple to SchemaTuple. This is necessary because we are not getting SchemaTuples
+     * from the source, though in the future that is what we would like to do.
+     */
+    private static class TuplesToSchemaTupleList extends ArrayList<Tuple> {
+        static final long serialVersionUID = 1L;
+
+        private SchemaTupleFactory tf;
+
+        public TuplesToSchemaTupleList(int ct, SchemaTupleFactory tf) {
+            super(ct);
+            this.tf = tf;
+        }
+
+        public boolean add(Tuple t) {
+            SchemaTuple<?> st = (SchemaTuple<?>)tf.newTuple();
+            try {
+                st.set(t);
+            } catch (ExecException e) {
+                throw new RuntimeException("Unable to set SchemaTuple with schema ["
+                        + st.getSchemaString() + "] with given Tuple in merge join.");
+            }
+            return super.add(st);
         }
     }
 
