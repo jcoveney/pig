@@ -1114,6 +1114,12 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                     LOG.warn("Unable to clone and merge left and right schema. Left schema: " + leftSchema
                             + ", right schema: " + rightSchema);
                 }
+                if (leftSchema != null) {
+                    SchemaTupleFrontend.registerToGenerateIfPossible(leftSchema, false, GenContext.JOIN);
+                }
+                if (rightSchema != null) {
+                    SchemaTupleFrontend.registerToGenerateIfPossible(rightSchema, false, GenContext.JOIN);
+                }
                 if (mergedSchema != null) {
                     SchemaTupleFrontend.registerToGenerateIfPossible(mergedSchema, false, GenContext.JOIN);
                 }
@@ -1127,6 +1133,8 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                                             joinPlans,
                                             keyTypes,
                                             loj.getJoinType(),
+                                            leftSchema,
+                                            rightSchema,
                                             mergedSchema);
                 }
                 catch (PlanException e) {
