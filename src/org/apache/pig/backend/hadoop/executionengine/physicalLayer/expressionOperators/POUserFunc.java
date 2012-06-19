@@ -139,6 +139,7 @@ public class POUserFunc extends ExpressionOperator {
             inputTupleFactory = TupleFactory.getInstanceForSchema(tmpS, false, GenContext.UDF);
             if (inputTupleFactory == null) {
                 LOG.debug("No SchemaTupleFactory found for Schema ["+tmpS+"], using default TupleFactory");
+                usingSchemaTupleFactory = false;
             } else {
                 LOG.debug("Using SchemaTupleFactory for Schema: " + tmpS);
                 usingSchemaTupleFactory = true;
@@ -152,7 +153,7 @@ public class POUserFunc extends ExpressionOperator {
         }
     }
 
-    private TupleFactory inputTupleFactory;
+    private transient TupleFactory inputTupleFactory;
     private boolean usingSchemaTupleFactory;
 
     @Override

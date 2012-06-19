@@ -126,7 +126,7 @@ public class POMergeJoin extends PhysicalOperator {
 
     private boolean schemaTupleFactory = false;
 
-    private TupleFactory mergedTupleFactory;
+    private transient TupleFactory mergedTupleFactory;
 
     /**
      * @param k
@@ -148,7 +148,6 @@ public class POMergeJoin extends PhysicalOperator {
         this.indexFile = null;
         this.joinType = joinType;
         this.mergedInputSchema = mergedInputSchema;
-        mTupleFactory = TupleFactory.getInstance();
     }
 
     /**
