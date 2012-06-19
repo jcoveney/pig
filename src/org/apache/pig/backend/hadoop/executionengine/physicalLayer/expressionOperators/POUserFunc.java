@@ -44,6 +44,7 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
+import org.apache.pig.data.SchemaTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
@@ -136,7 +137,7 @@ public class POUserFunc extends ExpressionOperator {
             //Currently, getInstanceForSchema returns null if no class was found. This works fine...
             //if it is null, the default will be used. We pass the context because if it happens that
             //the same Schema was generated elsewhere, we do not want to override user expectations
-            inputTupleFactory = TupleFactory.getInstanceForSchema(tmpS, false, GenContext.UDF);
+            inputTupleFactory = SchemaTupleFactory.getInstance(tmpS, false, GenContext.UDF);
             if (inputTupleFactory == null) {
                 LOG.debug("No SchemaTupleFactory found for Schema ["+tmpS+"], using default TupleFactory");
                 usingSchemaTupleFactory = false;

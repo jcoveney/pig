@@ -92,46 +92,46 @@ public class TestSchemaTuple {
         udfSchema = Utils.getSchemaFromString("a:int");
         isAppendable = false;
         context = GenContext.UDF;
-        TupleFactory tf = TupleFactory.getInstanceForSchema(udfSchema, isAppendable, context);
+        TupleFactory tf = SchemaTupleFactory.getInstance(udfSchema, isAppendable, context);
         putThroughPaces(tf, udfSchema, isAppendable);
 
         context = GenContext.JOIN;
-        tf = TupleFactory.getInstanceForSchema(udfSchema, isAppendable, context);
+        tf = SchemaTupleFactory.getInstance(udfSchema, isAppendable, context);
         assertNull(tf);
 
         udfSchema = Utils.getSchemaFromString("a:long");
         context = GenContext.UDF;
         isAppendable = true;
 
-        tf = TupleFactory.getInstanceForSchema(udfSchema, isAppendable, context);
+        tf = SchemaTupleFactory.getInstance(udfSchema, isAppendable, context);
         putThroughPaces(tf, udfSchema, isAppendable);
 
         isAppendable = false;
-        tf = TupleFactory.getInstanceForSchema(udfSchema, isAppendable, context);
+        tf = SchemaTupleFactory.getInstance(udfSchema, isAppendable, context);
         assertNull(tf);
 
         udfSchema = Utils.getSchemaFromString("a:chararray,(a:chararray)");
         isAppendable = false;
         context = GenContext.LOAD;
-        tf = TupleFactory.getInstanceForSchema(udfSchema, isAppendable, context);
+        tf = SchemaTupleFactory.getInstance(udfSchema, isAppendable, context);
         putThroughPaces(tf, udfSchema, isAppendable);
 
         udfSchema = Utils.getSchemaFromString("(a:chararray)");
-        tf = TupleFactory.getInstanceForSchema(udfSchema, isAppendable, context);
+        tf = SchemaTupleFactory.getInstance(udfSchema, isAppendable, context);
         assertNull(tf);
 
         udfSchema = Utils.getSchemaFromString("a:int,(a:int,(a:int,(a:int,(a:int,(a:int,(a:int))))))");
-        tf = TupleFactory.getInstanceForSchema(udfSchema, isAppendable, context);
+        tf = SchemaTupleFactory.getInstance(udfSchema, isAppendable, context);
         putThroughPaces(tf, udfSchema, isAppendable);
 
         udfSchema = Utils.getSchemaFromString("((a:int,b:int),(a:int,b:int),(a:int,b:int)),((a:int,b:int),(a:int,b:int),(a:int,b:int))");
-        tf = TupleFactory.getInstanceForSchema(udfSchema, isAppendable, context);
+        tf = SchemaTupleFactory.getInstance(udfSchema, isAppendable, context);
         putThroughPaces(tf, udfSchema, isAppendable);
 
         udfSchema = Utils.getSchemaFromString("a:int, b:long, c:chararray, d:boolean, e:bytearray, f:float, g:double,"
                 +"(a:int, b:long, c:chararray, d:boolean, e:bytearray, f:float, g:double,"
                 +"(a:int, b:long, c:chararray, d:boolean, e:bytearray, f:float, g:double))");
-        tf = TupleFactory.getInstanceForSchema(udfSchema, isAppendable, context);
+        tf = SchemaTupleFactory.getInstance(udfSchema, isAppendable, context);
         putThroughPaces(tf, udfSchema, isAppendable);
 
         udfSchema = Utils.getSchemaFromString("boolean, boolean, boolean, boolean, boolean, boolean"
@@ -147,7 +147,7 @@ public class TestSchemaTuple {
                 + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
                 + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
                 + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean");
-        tf = TupleFactory.getInstanceForSchema(udfSchema, isAppendable, context);
+        tf = SchemaTupleFactory.getInstance(udfSchema, isAppendable, context);
         putThroughPaces(tf, udfSchema, isAppendable);
     }
 
@@ -223,8 +223,8 @@ public class TestSchemaTuple {
         for (FieldSchema fs : udfSchema.getFields()) {
             Object val;
             if (fs.type == DataType.TUPLE) {
-                val = TupleFactory
-                            .getInstanceForSchema(fs.schema, false, GenContext.FORCE_LOAD)
+                val = SchemaTupleFactory
+                            .getInstance(fs.schema, false, GenContext.FORCE_LOAD)
                             .newTuple();
                 fillWithData((SchemaTuple<?>)val, fs.schema);
             } else {

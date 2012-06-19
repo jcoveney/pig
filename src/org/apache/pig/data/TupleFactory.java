@@ -24,8 +24,6 @@ import java.util.List;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTupleDefaultRawComparator;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
-import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
  * A factory to construct tuples.  This class is abstract so that users can
@@ -140,32 +138,6 @@ public abstract class TupleFactory {
      * @return A tuple with one field
      */
     public abstract Tuple newTuple(Object datum);
-
-
-    /**
-     * This method is the publicly facing method which returns a SchemaTupleFactory
-     * which will generate SchemaTuples of the given Schema. Note that this method
-     * returns null if such a given SchemaTupleFactory does not exist, instead of
-     * throwing an error.
-     * @param   schema
-     * @param   true or false if an appendable SchemaTuple is desired
-     * @return  a SchemaTupleFactory which will return SchemaTuple's of the desired Schema
-     */
-    public static SchemaTupleFactory getInstanceForSchema(Schema s, boolean isAppendable, GenContext context) {
-        return SchemaTupleBackend.newSchemaTupleFactory(s, isAppendable, context);
-    }
-
-    /**
-     * This method is the publicly facing method which returns a SchemaTupleFactory
-     * which will generate the SchemaTuple associated with the given identifier. This method
-     * is primarily for internal use in cases where the problem SchemaTuple is known
-     * based on the identifier associated with it (such as when deserializing).
-     * @param   identifier
-     * @return  a SchemaTupleFactory which will return SchemaTuple's of the given identifier
-     */
-    protected static SchemaTupleFactory getInstanceForSchemaId(int id) {
-        return SchemaTupleBackend.newSchemaTupleFactory(id);
-    }
 
     /**
      * Return the actual class representing a tuple that the implementing

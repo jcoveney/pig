@@ -22,6 +22,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.data.SchemaTuple.SchemaTupleQuickGenerator;
+import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.data.utils.MethodHelper;
 import org.apache.pig.data.utils.MethodHelper.NotImplemented;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -126,5 +127,38 @@ public class SchemaTupleFactory extends TupleFactory {
     @Override
     public boolean isFixedSize() {
         return clazz.isAssignableFrom(AppendableSchemaTuple.class);
+    }
+
+    /**
+     * This method is the publicly facing method which returns a SchemaTupleFactory
+     * which will generate the SchemaTuple associated with the given identifier. This method
+     * is primarily for internal use in cases where the problem SchemaTuple is known
+     * based on the identifier associated with it (such as when deserializing).
+     * @param   identifier
+     * @return  a SchemaTupleFactory which will return SchemaTuple's of the given identifier
+     */
+    protected static SchemaTupleFactory getInstance(int id) {
+        return SchemaTupleBackend.newSchemaTupleFactory(id);
+    }
+
+    /**
+     * This method is the publicly facing method which returns a SchemaTupleFactory
+     * which will generate SchemaTuples of the given Schema. Note that this method
+     * returns null if such a given SchemaTupleFactory does not exist, instead of
+     * throwing an error.
+     * @param   schema
+     * @param   true or false if an appendable SchemaTuple is desired
+     * @return  a SchemaTupleFactory which will return SchemaTuple's of the desired Schema
+     */
+    public static SchemaTupleFactory getInstance(Schema s, boolean isAppendable, GenContext context) {
+        return SchemaTupleBackend.newSchemaTupleFactory(s, isAppendable, context);
+    }
+
+    public static SchemaTupleFactory getInstance(Schema s, boolean isAppendable) {
+        return getInstance(s, isAppendable, GenContext.FORCE_LOAD);
+    }
+
+    public static SchemaTupleFactory getInstance(Schema s) {
+        return getInstance(s, false);
     }
 }
