@@ -627,11 +627,8 @@ public class JobControlCompiler{
                     // The pipeline is rerun only if there was a stream or merge-join.
                     conf.set(END_OF_INP_IN_MAP, "true");
                 }
-                if(!pigContext.inIllustrator) {
-                    log.info("About to serialize! " + mro.reducePlan); //remove
-                    log.info("About to serialize! " + mro.reducePlan.getClass()); //remove
+                if(!pigContext.inIllustrator)
                     conf.set("pig.reducePlan", ObjectSerializer.serialize(mro.reducePlan));
-                }
                 if(mro.isEndOfAllInputSetInReduce()) {
                     // this is used in Map.close() to decide whether the
                     // pipeline needs to be rerun one more time in the close()
