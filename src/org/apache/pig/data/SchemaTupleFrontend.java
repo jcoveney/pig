@@ -42,6 +42,12 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 
+/**
+ * This class is to be used at job creation time. It provides the API that lets code
+ * register Schemas with pig to be generated. It is necessary to register these Schemas
+ * so that the generated code can be made on the client side, and shipped to the mappers
+ * and reducers.
+ */
 public class SchemaTupleFrontend {
     private static final Log LOG = LogFactory.getLog(SchemaTupleFrontend.class);
 
@@ -194,6 +200,10 @@ public class SchemaTupleFrontend {
         }
     }
 
+    /**
+     * This allows the frontend/backend process to be repeated if on the same
+     * JVM (as in testing).
+     */
     public static void reset() {
         stf = null;
     }
@@ -201,21 +211,33 @@ public class SchemaTupleFrontend {
     /**
      * This method "registers" a Schema to be generated. It allows a portions of the code
      * to register a Schema for generation without knowing whether code generation is enabled.
-     * A unique ID will be passed back, so in the actual M/R job, code needs to make sure that
-     * generation was turned on or else the classes will not be present!
-     * @param   udfSchema
-     * @param   isAppendable
+     * A unique ID will be passed back that can be used internally to refer to generated SchemaTuples
+     * (such as in the case of serialization and deserialization). The context is necessary to allow
+     * the client to restrict where generated code can be used.
+     * @param   udfSchema       This is the Schema of a Tuple that we will potentially generate
+     * @param   isAppendable    This specifies whether or not we want the SchemaTuple to be appendable
+     * @param   context         This is the context in which users should be able to access the SchemaTuple
      * @return  identifier
      */
-    public static int registerToGenerateIfPossible(Schema udfSchema, boolean isAppendable, GenContext type) {
+    public static int registerToGenerateIfPossible(Schema udfSchema, boolean isAppendable, GenContext context) {
         if (stf == null) {
             stf = new SchemaTupleFrontend();
         }
-        return stf.internalRegisterToGenerateIfPossible(udfSchema, isAppendable, type);
+        return stf.internalRegisterToGenerateIfPossible(udfSchema, isAppendable, context);
     }
 
+    /**
+     * This key is used when a job is run in local mode to pass the location of the generated code
+     * from the frontent to the "backend."
+     */
     protected static final String LOCAL_CODE_DIR = "pig.schematuple.local.dir";
 
+    /**
+     * This must be called when the code has been generated and the generated code needs to be shipped
+     * to the cluster, so that it may be used by the mappers and reducers.
+     * @param pigContext
+     * @param conf
+     */
     public static void copyAllGeneratedToDistributedCache(PigContext pigContext, Configuration conf) {
         SchemaTupleFrontendGenHelper stfgh = new SchemaTupleFrontendGenHelper(pigContext, conf);
         stfgh.generateAll(stf.getSchemasToGenerate());

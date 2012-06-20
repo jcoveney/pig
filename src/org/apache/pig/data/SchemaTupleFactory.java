@@ -145,9 +145,14 @@ public class SchemaTupleFactory extends TupleFactory {
      * This method is the publicly facing method which returns a SchemaTupleFactory
      * which will generate SchemaTuples of the given Schema. Note that this method
      * returns null if such a given SchemaTupleFactory does not exist, instead of
-     * throwing an error.
-     * @param   schema
-     * @param   true or false if an appendable SchemaTuple is desired
+     * throwing an error. The GenContext is used to specify the context in which we
+     * are requesting a SchemaTupleFactory. This is necessary so that the use
+     * of SchemaTuple can be controlled -- it is possible that someone wants a
+     * factory that generates code in the context of joins, but wants to disable such
+     * use for udfs.
+     * @param   schema          the Schema generated
+     * @param   isAppendable    whether or not the SchemaTuple should be appendable
+     * @param   context         the context in which we want a SchemaTupleFactory
      * @return  a SchemaTupleFactory which will return SchemaTuple's of the desired Schema
      */
     public static SchemaTupleFactory getInstance(Schema s, boolean isAppendable, GenContext context) {
