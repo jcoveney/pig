@@ -25,8 +25,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
+import org.apache.pig.ResourceSchema;
+import org.apache.pig.SortColInfo;
+import org.apache.pig.SortColInfo.Order;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogicalToPhysicalTranslatorException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -57,6 +62,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
+import org.apache.pig.data.SchemaTupleFrontend;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
@@ -64,6 +71,7 @@ import org.apache.pig.impl.builtin.GFCross;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
@@ -82,9 +90,11 @@ import org.apache.pig.newplan.logical.Util;
 import org.apache.pig.newplan.logical.expression.ExpToPhyTranslationVisitor;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
+import org.apache.pig.newplan.logical.visitor.UDFFinder;
 import org.apache.pig.parser.SourceLocation;
 
 public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
+    private static final Log LOG = LogFactory.getLog(LogToPhyTranslationVisitor.class);
     
     public LogToPhyTranslationVisitor(OperatorPlan plan) throws FrontendException {
         super(plan, new DependencyOrderWalker(plan));
@@ -861,20 +871,71 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         throws LogicalToPhysicalTranslatorException{
             int errCode = 1103;
             String errMsg = "Merge join/Cogroup only supports Filter, Foreach, " +
-                "filter and Load as its predecessor. Found : ";
+                "Ascending Sort, or Load as its predecessors. Found : ";
             if(preds != null && !preds.isEmpty()){
                 for(Operator lo : preds){
-                    if (!(lo instanceof org.apache.pig.newplan.logical.relational.LOFilter || lo instanceof org.apache.pig.newplan.logical.relational.LOForEach 
-                            || lo instanceof org.apache.pig.newplan.logical.relational.LOLoad))
+                    if (!(lo instanceof LOFilter || lo instanceof LOForEach
+                            || lo instanceof LOGenerate || lo instanceof LOInnerLoad
+                            || lo instanceof LOLoad || lo instanceof LOSplitOutput
+                            || lo instanceof LOSplit
+                            || isAcceptableSortOp(lo)
+                            || isAcceptableForEachOp(lo))) {
                         throw new LogicalToPhysicalTranslatorException(errMsg, errCode);
+                    }
+
                     // All is good at this level. Visit predecessors now.
+                    if (! (lo instanceof LOSort)) {
                     validateMapSideMerge(lp.getPredecessors(lo),lp);
                 }
+            }
             }
             // We visited everything and all is good.
             return true;
     }
     
+    private boolean isAcceptableForEachOp(Operator lo) throws LogicalToPhysicalTranslatorException {
+        if (lo instanceof LOForEach) {
+            OperatorPlan innerPlan = ((LOForEach) lo).getInnerPlan();
+            validateMapSideMerge(innerPlan.getSinks(), innerPlan);
+            return !containsUDFs((LOForEach) lo);
+        } else {
+            return false;
+        }
+    }
+
+    private boolean containsUDFs(LOForEach fo) throws LogicalToPhysicalTranslatorException {
+        LogicalPlan logExpPlan = fo.getInnerPlan();
+        UDFFinder udfFinder;
+        try {
+            udfFinder = new UDFFinder(logExpPlan);
+            udfFinder.visit();
+            if (udfFinder.getUDFList().size() != 0) {
+                return true;
+            }
+        } catch (FrontendException e) {
+            throw new LogicalToPhysicalTranslatorException(e);
+        }
+        return false;
+    }
+
+    private boolean isAcceptableSortOp(Operator op) throws LogicalToPhysicalTranslatorException {
+        if (!(op instanceof LOSort)) {
+            return false;
+        }
+        LOSort sort = (LOSort) op;
+        try {
+            for (SortColInfo colInfo : sort.getSortInfo().getSortColInfoList()) {
+                // TODO: really, we should check that the sort is on the join keys, in the same order!
+                if (colInfo.getSortOrder() != Order.ASCENDING) {
+                    return false;
+                }
+            }
+        } catch (FrontendException e) {
+           throw new LogicalToPhysicalTranslatorException(e);
+        }
+        return true;
+    }
+
     @Override
     public void visit(LOJoin loj) throws FrontendException {
 
@@ -1035,12 +1096,51 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             boolean usePOMergeJoin = inputs.size() == 2 && innerFlags[0] && innerFlags[1] ; 
 
             if(usePOMergeJoin){
+                // We register the merge join schema information for code generation
+                Schema leftSchema = Schema.getPigSchema(new ResourceSchema(((LogicalRelationalOperator)inputs.get(0)).getSchema()));
+                Schema rightSchema = Schema.getPigSchema(new ResourceSchema(((LogicalRelationalOperator)inputs.get(1)).getSchema()));
+                Schema mergedSchema = null;
+                if (leftSchema != null) {
+                    SchemaTupleFrontend.registerToGenerateIfPossible(leftSchema, false, GenContext.JOIN);
+                }
+                if (rightSchema != null) {
+                    SchemaTupleFrontend.registerToGenerateIfPossible(rightSchema, false, GenContext.JOIN);
+                }
+                if (leftSchema != null && rightSchema != null) {
+                    try {
+                        mergedSchema = leftSchema.clone();
+                        String opName = ((LogicalRelationalOperator)inputs.get(0)).getAlias();
+                        for (Schema.FieldSchema fs : mergedSchema.getFields()) {
+                            fs.alias = opName + "::" + fs.alias;
+                        }
+                        opName = ((LogicalRelationalOperator)inputs.get(1)).getAlias();
+                        for (Schema.FieldSchema fs : rightSchema.clone().getFields()) {
+                            fs.alias = opName + "::" + fs.alias;
+                            mergedSchema.add(fs);
+                        }
+                    } catch (CloneNotSupportedException e) {
+                        LOG.warn("Unable to clone and merge left and right schema. Left schema: " + leftSchema
+                                + ", right schema: " + rightSchema);
+                    }
+
+                    if (mergedSchema != null) {
+                        SchemaTupleFrontend.registerToGenerateIfPossible(mergedSchema, false, GenContext.JOIN);
+                    }
+                }
+
                 // inner join on two sorted inputs. We have less restrictive 
                 // implementation here in a form of POMergeJoin which doesn't 
                 // require loaders to implement collectable interface.
                 try {
                     smj = new POMergeJoin(new OperatorKey(scope,nodeGen.getNextNodeId(scope)),
-                                            parallel,inp,joinPlans,keyTypes, loj.getJoinType());
+                                            parallel,
+                                            inp,
+                                            joinPlans,
+                                            keyTypes,
+                                            loj.getJoinType(),
+                                            leftSchema,
+                                            rightSchema,
+                                            mergedSchema);
                 }
                 catch (PlanException e) {
                     int errCode = 2042;
