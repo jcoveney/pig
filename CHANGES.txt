@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2699: Reduce the number of instances of Load and Store Funcs down to 2+1 (julien)
+
 PIG-2166: UDFs to join a bag (hluu via daijy)
 
 PIG-2651: Provide a much easier to use accumulator interface (jcoveney via daijy)
@@ -394,6 +396,10 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
+
+PIG-2759: Typo in document "Built In Functions" (daijy)
+
+PIG-2745: Pig e2e test RubyUDFs fails in MR mode when running from tarball (cheolsoo via daijy)
 
 PIG-2741: Python script throws an NameError: name 'Configuration' is not defined in case cache dir is not created
 (knoguchi via daijy)
