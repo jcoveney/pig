@@ -129,6 +129,10 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
 
     static final protected DataBag dummyBag = null;
 
+    static final protected BigInteger dummyBigInteger = null;
+
+    static final protected BigInteger dummyBigDecimal = null;
+
     static final protected Map dummyMap = null;
 
     // TODO: This is not needed. But a lot of tests check serialized physical plans
@@ -343,6 +347,10 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
             return getNext((Float) obj);
         case DataType.INTEGER:
             return getNext((Integer) obj);
+        case DataType.BIGINTEGER:
+            return getNext((BigInteger) obj);
+        case DataType.BIGDECIMAL:
+            return getNext((BigDecimal) obj);
         case DataType.LONG:
             return getNext((Long) obj);
         case DataType.MAP:
@@ -372,6 +380,10 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
             return dummyFloat;
         case DataType.LONG:
             return dummyLong;
+        case DataType.BIGINTEGER:
+            return dummyBigInteger;
+        case DataType.BIGDECIMAL:
+            return dummyBigDecimal;
         case DataType.MAP:
             return dummyMap;
         case DataType.TUPLE:

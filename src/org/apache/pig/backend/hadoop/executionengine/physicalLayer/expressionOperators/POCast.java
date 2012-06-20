@@ -120,6 +120,280 @@ public class POCast extends ExpressionOperator {
     }
 
     @Override
+    public Result getNext(BigInteger v) throws ExecException {
+        PhysicalOperator in = inputs.get(0);
+        Byte resultType = in.getResultType();
+        switch (resultType) {
+        case DataType.BAG: {
+            Result res = new Result();
+            res.returnStatus = POStatus.STATUS_ERR;
+            return res;
+        }
+
+        case DataType.TUPLE: {
+            Result res = new Result();
+            res.returnStatus = POStatus.STATUS_ERR;
+            return res;
+        }
+
+        case DataType.BYTEARRAY: {
+            DataByteArray dba = null;
+            Result res = in.getNext(dba);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                try {
+                    dba = (DataByteArray) res.result;
+                } catch (ClassCastException e) {
+                    // res.result is not of type ByteArray. But it can be one of the types from which cast is still possible.
+                    if (realType == null)
+                        // Find the type and cache it.
+                        realType = DataType.findType(res.result);
+                    try {
+                        res.result = DataType.toBigInteger(res.result, realType);
+                    } catch (ClassCastException cce) {
+                        // Type has changed. Need to find type again and try casting it again.
+                        realType = DataType.findType(res.result);
+                        res.result = DataType.toBigInteger(res.result, realType);
+                    }
+                    return res;
+                }
+                try {
+                    if (null != caster) {
+                        res.result = caster.bytesToBigInteger(dba.get());
+                    } else {
+                        int errCode = 1075;
+                        String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to BigInteger.";
+                        throw new ExecException(msg, errCode, PigException.INPUT);
+                    }
+                } catch (ExecException ee) {
+                    throw ee;
+                } catch (IOException e) {
+                    log.error("Error while casting from ByteArray to BigInteger");
+                }
+            }
+            return res;
+        }
+
+        case DataType.MAP: {
+            Result res = new Result();
+            res.returnStatus = POStatus.STATUS_ERR;
+            return res;
+        }
+
+        case DataType.BOOLEAN: {
+            Boolean b = null;
+            Result res = in.getNext(b);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                if (((Boolean) res.result) == true)
+                    res.result = BigInteger.ONE;
+                else
+                    res.result = BigInteger.ZERO;
+            }
+            return res;
+        }
+        case DataType.INTEGER: {
+            Integer i = null;
+            Result res = in.getNext(i);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = BigInteger.valueOf(((Integer) res.result).longValue());
+            }
+            return res;
+        }
+
+        case DataType.DOUBLE: {
+            Double d = null;
+            Result res = in.getNext(d);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = BigInteger.valueOf(((Double) res.result).longValue());
+            }
+            return res;
+        }
+
+        case DataType.LONG: {
+            Long l = null;
+            Result res = in.getNext(l);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = BigInteger.valueOf(((Long) res.result).longValue());
+            }
+            return res;
+        }
+
+        case DataType.FLOAT: {
+            Float f = null;
+            Result res = in.getNext(f);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = BigInteger.valueOf(((Float) res.result).longValue());
+            }
+            return res;
+        }
+
+        case DataType.CHARARRAY: {
+            String str = null;
+            Result res = in.getNext(str);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = new BigInteger((String)res.result);
+            }
+            return res;
+        }
+
+        case DataType.BIGINTEGER: {
+            Result res = in.getNext(v);
+            return res;
+        }
+
+        case DataType.BIGDECIMAL: {
+            BigDecimal bd = null;
+            Result res = in.getNext(bd);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = ((BigDecimal)res.result).toBigInteger();
+            }
+            return res;
+        }
+
+        }
+
+        Result res = new Result();
+        res.returnStatus = POStatus.STATUS_ERR;
+        return res;
+    }
+
+    @Override
+    public Result getNext(BigDecimal v) throws ExecException {
+        PhysicalOperator in = inputs.get(0);
+        Byte resultType = in.getResultType();
+        switch (resultType) {
+        case DataType.BAG: {
+            Result res = new Result();
+            res.returnStatus = POStatus.STATUS_ERR;
+            return res;
+        }
+
+        case DataType.TUPLE: {
+            Result res = new Result();
+            res.returnStatus = POStatus.STATUS_ERR;
+            return res;
+        }
+
+        case DataType.BYTEARRAY: {
+            DataByteArray dba = null;
+            Result res = in.getNext(dba);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                try {
+                    dba = (DataByteArray) res.result;
+                } catch (ClassCastException e) {
+                    // res.result is not of type ByteArray. But it can be one of the types from which cast is still possible.
+                    if (realType == null)
+                        // Find the type and cache it.
+                        realType = DataType.findType(res.result);
+                    try {
+                        res.result = DataType.toBigDecimal(res.result, realType);
+                    } catch (ClassCastException cce) {
+                        // Type has changed. Need to find type again and try casting it again.
+                        realType = DataType.findType(res.result);
+                        res.result = DataType.toBigDecimal(res.result, realType);
+                    }
+                    return res;
+                }
+                try {
+                    if (null != caster) {
+                        res.result = caster.bytesToBigInteger(dba.get());
+                    } else {
+                        int errCode = 1075;
+                        String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to BigDecimal.";
+                        throw new ExecException(msg, errCode, PigException.INPUT);
+                    }
+                } catch (ExecException ee) {
+                    throw ee;
+                } catch (IOException e) {
+                    log.error("Error while casting from ByteArray to BigDecimal");
+                }
+            }
+            return res;
+        }
+
+        case DataType.MAP: {
+            Result res = new Result();
+            res.returnStatus = POStatus.STATUS_ERR;
+            return res;
+        }
+
+        case DataType.BOOLEAN: {
+            Boolean b = null;
+            Result res = in.getNext(b);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                if (((Boolean) res.result) == true)
+                    res.result = BigDecimal.ONE;
+                else
+                    res.result = BigDecimal.ZERO;
+            }
+            return res;
+        }
+        case DataType.INTEGER: {
+            Integer i = null;
+            Result res = in.getNext(i);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = BigDecimal.valueOf(((Integer) res.result).longValue());
+            }
+            return res;
+        }
+
+        case DataType.DOUBLE: {
+            Double d = null;
+            Result res = in.getNext(d);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = BigDecimal.valueOf(((Double) res.result).doubleValue());
+            }
+            return res;
+        }
+
+        case DataType.LONG: {
+            Long l = null;
+            Result res = in.getNext(l);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = BigDecimal.valueOf(((Long) res.result).longValue());
+            }
+            return res;
+        }
+
+        case DataType.FLOAT: {
+            Float f = null;
+            Result res = in.getNext(f);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = BigDecimal.valueOf(((Float) res.result).doubleValue());
+            }
+            return res;
+        }
+
+        case DataType.CHARARRAY: {
+            String str = null;
+            Result res = in.getNext(str);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = new BigDecimal((String)res.result);
+            }
+            return res;
+        }
+
+        case DataType.BIGINTEGER: {
+            BigDecimal bd = null;
+            Result res = in.getNext(bd);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = new BigDecimal((BigInteger)res.result);
+            }
+            return res;
+        }
+
+        case DataType.BIGDECIMAL: {
+            Result res = in.getNext(v);
+            return res;
+        }
+
+        }
+
+        Result res = new Result();
+        res.returnStatus = POStatus.STATUS_ERR;
+        return res;
+    }
+
+    @Override
     public Result getNext(Boolean b) throws ExecException {
         PhysicalOperator in = inputs.get(0);
         Byte resultType = in.getResultType();
@@ -233,7 +507,7 @@ public class POCast extends ExpressionOperator {
             BigInteger bi = null;
             Result res = in.getNext(bi);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-                res.result = Boolean.valueOf(BigInteger.ZERO.equals((BigInteger)res.result));
+                res.result = Boolean.valueOf(!BigInteger.ZERO.equals((BigInteger)res.result));
             }
             return res;
         }
@@ -242,7 +516,7 @@ public class POCast extends ExpressionOperator {
             BigDecimal bd = null;
             Result res = in.getNext(bd);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-                res.result = Boolean.valueOf(BigDecimal.ZERO.equals((BigDecimal)res.result));
+                res.result = Boolean.valueOf(!BigDecimal.ZERO.equals((BigDecimal)res.result));
             }
             return res;
         }
@@ -1182,10 +1456,10 @@ public class POCast extends ExpressionOperator {
                 result = CastUtils.stringToBoolean((String)obj);
                 break;
             case DataType.BIGINTEGER:
-                result = Boolean.valueOf(BigInteger.ZERO.equals((BigInteger)obj));
+                result = Boolean.valueOf(!BigInteger.ZERO.equals((BigInteger)obj));
                 break;
             case DataType.BIGDECIMAL:
-                result = Boolean.valueOf(BigDecimal.ZERO.equals((BigDecimal)obj));
+                result = Boolean.valueOf(!BigDecimal.ZERO.equals((BigDecimal)obj));
                 break;
             default:
                 throw new ExecException("Cannot convert "+ obj + " to " + fs, 1120, PigException.INPUT);

@@ -128,7 +128,7 @@ public class POPartialAgg extends PhysicalOperator {
                 if (disableMapAgg) {
                     // the in-map partial aggregation is an optional step, just
                     // like the combiner.
-                    // act as if this operator was never there, by just 
+                    // act as if this operator was never there, by just
                     // returning the input
                     return inp;
                 }
@@ -246,7 +246,7 @@ public class POPartialAgg extends PhysicalOperator {
                     if (output.returnStatus != POStatus.STATUS_OK) {
                         return ERR_RESULT;
                     }
-                    
+
                     // set new current key, value
                     currentKey = key;
                     resetCurrentValues();
@@ -299,7 +299,7 @@ public class POPartialAgg extends PhysicalOperator {
 
     /**
      * Aggregate values accumulated in
-     * 
+     *
      * @throws ExecException
      */
     private void aggregateCurrentValues() throws ExecException {
@@ -411,7 +411,7 @@ public class POPartialAgg extends PhysicalOperator {
     private int getMinOutputReductionFromProp() {
         int minReduction = PigMapReduce.sJobConfInternal.get().getInt(
                 PROP_PARTAGG_MINREDUCTION, 0);
-     
+
         if (minReduction <= 0) {
             // the default minimum reduction is 10
             minReduction = DEFAULT_MIN_REDUCTION;
@@ -469,6 +469,8 @@ public class POPartialAgg extends PhysicalOperator {
         case DataType.FLOAT:
         case DataType.INTEGER:
         case DataType.LONG:
+        case DataType.BIGINTEGER:
+        case DataType.BIGDECIMAL:
         case DataType.MAP:
         case DataType.TUPLE:
             res = op.getNext(getDummy(op.getResultType()), op.getResultType());

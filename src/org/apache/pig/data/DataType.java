@@ -19,6 +19,8 @@ package org.apache.pig.data;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -122,6 +124,10 @@ public class DataType {
             return BOOLEAN;
         } else if (o instanceof Byte) {
             return BYTE;
+        } else if (o instanceof BigInteger) {
+            return BIGINTEGER;
+        } else if (o instanceof BigDecimal) {
+            return BIGDECIMAL;
         } else if (o instanceof WritableComparable) {
             return GENERIC_WRITABLECOMPARABLE;
         } else {return ERROR;}
@@ -155,6 +161,10 @@ public class DataType {
             return BOOLEAN;
         } else if (t == Byte.class) {
             return BYTE;
+        } else if (t == BigInteger.class) {
+            return BIGINTEGER;
+        } else if (t == BigDecimal.class) {
+            return BIGDECIMAL;
         } else if (t == InternalMap.class) {
             return INTERNALMAP;
         } else {
@@ -218,20 +228,46 @@ public class DataType {
      * @return byte array with an entry for each type.
      */
     public static byte[] genAllTypes(){
-        byte[] types = { DataType.BAG, DataType.BIGCHARARRAY, DataType.BOOLEAN, DataType.BYTE, DataType.BYTEARRAY,
-                DataType.CHARARRAY, DataType.DOUBLE, DataType.FLOAT,
-                DataType.GENERIC_WRITABLECOMPARABLE,
-                DataType.INTEGER, DataType.INTERNALMAP,
-                DataType.LONG, DataType.MAP, DataType.TUPLE};
+        byte[] types = {
+                BAG,
+                BIGCHARARRAY,
+                BOOLEAN,
+                BYTE,
+                BYTEARRAY,
+                CHARARRAY,
+                DOUBLE,
+                FLOAT,
+                GENERIC_WRITABLECOMPARABLE,
+                INTEGER,
+                INTERNALMAP,
+                LONG,
+                MAP,
+                TUPLE,
+                BIGINTEGER,
+                BIGDECIMAL
+            };
         return types;
     }
 
     private static String[] genAllTypeNames(){
-        String[] names = { "BAG", "BIGCHARARRAY", "BOOLEAN", "BYTE", "BYTEARRAY",
-                "CHARARRAY", "DOUBLE", "FLOAT",
+        String[] names = {
+                "BAG",
+                "BIGCHARARRAY",
+                "BOOLEAN",
+                "BYTE",
+                "BYTEARRAY",
+                "CHARARRAY",
+                "DOUBLE",
+                "FLOAT",
                 "GENERIC_WRITABLECOMPARABLE",
-                "INTEGER","INTERNALMAP",
-                "LONG", "MAP", "TUPLE" };
+                "INTEGER",
+                "INTERNALMAP",
+                "LONG",
+                "MAP",
+                "TUPLE",
+                "BIGINTEGER",
+                "BIGDECIMAL"
+            };
         return names;
     }
 
@@ -279,22 +315,24 @@ public class DataType {
      */
     public static String findTypeName(byte dt) {
         switch (dt) {
-        case NULL:      return "NULL";
-        case BOOLEAN:   return "boolean";
-        case BYTE:      return "byte";
-        case INTEGER:   return "int";
-        case LONG:      return "long";
-        case FLOAT:     return "float";
-        case DOUBLE:    return "double";
-        case BYTEARRAY: return "bytearray";
-        case BIGCHARARRAY: return "bigchararray";
-        case CHARARRAY: return "chararray";
-        case MAP:       return "map";
-        case INTERNALMAP: return "internalmap";
-        case TUPLE:     return "tuple";
-        case BAG:       return "bag";
-        case GENERIC_WRITABLECOMPARABLE: return "generic_writablecomparable";
-        default: return "Unknown";
+        case NULL:                          return "NULL";
+        case BOOLEAN:                       return "boolean";
+        case BYTE:                          return "byte";
+        case INTEGER:                       return "int";
+        case BIGINTEGER:                    return "biginteger";
+        case BIGDECIMAL:                    return "bigdecimal";
+        case LONG:                          return "long";
+        case FLOAT:                         return "float";
+        case DOUBLE:                        return "double";
+        case BYTEARRAY:                     return "bytearray";
+        case BIGCHARARRAY:                  return "bigchararray";
+        case CHARARRAY:                     return "chararray";
+        case MAP:                           return "map";
+        case INTERNALMAP:                   return "internalmap";
+        case TUPLE:                         return "tuple";
+        case BAG:                           return "bag";
+        case GENERIC_WRITABLECOMPARABLE:    return "generic_writablecomparable";
+        default:                            return "Unknown";
         }
     }
 
@@ -328,6 +366,8 @@ public class DataType {
                 (dataType == CHARARRAY) ||
                 (dataType == BIGCHARARRAY) ||
                 (dataType == INTEGER) ||
+                (dataType == BIGINTEGER) ||
+                (dataType == BIGDECIMAL) ||
                 (dataType == LONG) ||
                 (dataType == FLOAT) ||
                 (dataType == DOUBLE) ||
@@ -427,6 +467,12 @@ public class DataType {
             case CHARARRAY:
                 return ((String)o1).compareTo((String)o2);
 
+            case BIGINTEGER:
+                return ((BigInteger)o1).compareTo((BigInteger)o2);
+
+            case BIGDECIMAL:
+                return ((BigDecimal)o1).compareTo((BigDecimal)o2);
+
             case MAP: {
                 Map<String, Object> m1 = (Map<String, Object>)o1;
                 Map<String, Object> m2 = (Map<String, Object>)o2;
@@ -499,6 +545,8 @@ public class DataType {
         case BYTE:
             return new byte[] {((Byte) o)};
 
+        case BIGINTEGER:
+        case BIGDECIMAL:
         case INTEGER:
         case DOUBLE:
         case FLOAT:
@@ -554,6 +602,10 @@ public class DataType {
                 return Boolean.valueOf(((Integer) o).intValue() != 0);
             case LONG:
                 return Boolean.valueOf(((Long) o).longValue() != 0L);
+            case BIGINTEGER:
+                return Boolean.valueOf(!BigInteger.ZERO.equals(((BigInteger) o)));
+            case BIGDECIMAL:
+                return Boolean.valueOf(!BigDecimal.ZERO.equals(((BigDecimal) o)));
             case FLOAT:
                 return Boolean.valueOf(((Float) o).floatValue() != 0.0F);
             case DOUBLE:
@@ -647,6 +699,12 @@ public class DataType {
 			case CHARARRAY:
 			    return Integer.valueOf((String)o);
 
+			case BIGINTEGER:
+			    return Integer.valueOf(((BigInteger)o).intValue());
+
+			case BIGDECIMAL:
+			    return Integer.valueOf(((BigDecimal)o).intValue());
+
 			case NULL:
 			    return null;
 
@@ -736,6 +794,12 @@ public class DataType {
 			case CHARARRAY:
 			    return Long.valueOf((String)o);
 
+			case BIGINTEGER:
+                return Long.valueOf(((BigInteger)o).longValue());
+
+            case BIGDECIMAL:
+                return Long.valueOf(((BigDecimal)o).longValue());
+
 			case NULL:
 			    return null;
 
@@ -818,6 +882,12 @@ public class DataType {
 
 			case CHARARRAY:
 			    return Float.valueOf((String)o);
+
+	         case BIGINTEGER:
+                return Float.valueOf(((BigInteger)o).floatValue());
+
+            case BIGDECIMAL:
+                return Float.valueOf(((BigDecimal)o).floatValue());
 
 			case NULL:
 			    return null;
@@ -902,6 +972,12 @@ public class DataType {
 			case CHARARRAY:
 			    return Double.valueOf((String)o);
 
+			case BIGINTEGER:
+                return Double.valueOf(((BigInteger)o).doubleValue());
+
+            case BIGDECIMAL:
+                return Double.valueOf(((BigDecimal)o).doubleValue());
+
 			case NULL:
 			    return null;
 
@@ -949,6 +1025,134 @@ public class DataType {
         return toDouble(o, findType(o));
     }
 
+    public static BigInteger toBigInteger(Object o) throws ExecException {
+        return toBigInteger(o, findType(o));
+    }
+
+    public static BigInteger toBigInteger(Object o,byte type) throws ExecException {
+        try {
+            switch (type) {
+            case BOOLEAN:
+                return (Boolean) o ? BigInteger.ONE : BigInteger.ZERO;
+
+            case INTEGER:
+                return BigInteger.valueOf(((Integer)o).longValue());
+
+            case LONG:
+                return BigInteger.valueOf(((Long)o).longValue());
+
+            case FLOAT:
+                return BigInteger.valueOf(((Float)o).longValue());
+
+            case DOUBLE:
+                return BigInteger.valueOf(((Double)o).longValue());
+
+            case BYTEARRAY:
+                return new BigInteger(((DataByteArray)o).toString());
+
+            case CHARARRAY:
+                return new BigInteger((String)o);
+
+            case BIGINTEGER:
+                return (BigInteger)o;
+
+            case BIGDECIMAL:
+                return ((BigDecimal)o).toBigInteger();
+
+            case NULL:
+                return null;
+
+            case BYTE:
+            case MAP:
+            case INTERNALMAP:
+            case TUPLE:
+            case BAG:
+            case UNKNOWN:
+            default:
+                int errCode = 1071;
+                String msg = "Cannot convert a " + findTypeName(o) +
+                " to a BigInteger.";
+                throw new ExecException(msg, errCode, PigException.INPUT);
+            }
+        } catch (ClassCastException cce) {
+            throw cce;
+        } catch (ExecException ee) {
+            throw ee;
+        } catch (NumberFormatException nfe) {
+            int errCode = 1074;
+            String msg = "Problem with formatting. Could not convert " + o + " to BigInteger.";
+            throw new ExecException(msg, errCode, PigException.INPUT, nfe);
+        } catch (Exception e) {
+            int errCode = 2054;
+            String msg = "Internal error. Could not convert " + o + " to BigInteger.";
+            throw new ExecException(msg, errCode, PigException.BUG);
+        }
+    }
+
+    public static BigDecimal toBigDecimal(Object o) throws ExecException {
+        return toBigDecimal(o, findType(o));
+    }
+
+    public static BigDecimal toBigDecimal(Object o,byte type) throws ExecException {
+        try {
+            switch (type) {
+            case BOOLEAN:
+                return (Boolean) o ? BigDecimal.ONE : BigDecimal.ZERO;
+
+            case INTEGER:
+                return BigDecimal.valueOf(((Integer)o).longValue());
+
+            case LONG:
+                return BigDecimal.valueOf(((Long)o).longValue());
+
+            case FLOAT:
+                return BigDecimal.valueOf(((Float)o).doubleValue());
+
+            case DOUBLE:
+                return BigDecimal.valueOf(((Double)o).doubleValue());
+
+            case BYTEARRAY:
+                return new BigDecimal(((DataByteArray)o).toString());
+
+            case CHARARRAY:
+                return new BigDecimal((String)o);
+
+            case BIGINTEGER:
+                return new BigDecimal((BigInteger)o);
+
+            case BIGDECIMAL:
+                return (BigDecimal)o;
+
+            case NULL:
+                return null;
+
+            case BYTE:
+            case MAP:
+            case INTERNALMAP:
+            case TUPLE:
+            case BAG:
+            case UNKNOWN:
+            default:
+                int errCode = 1071;
+                String msg = "Cannot convert a " + findTypeName(o) +
+                " to a BigInteger.";
+                throw new ExecException(msg, errCode, PigException.INPUT);
+            }
+        } catch (ClassCastException cce) {
+            throw cce;
+        } catch (ExecException ee) {
+            throw ee;
+        } catch (NumberFormatException nfe) {
+            int errCode = 1074;
+            String msg = "Problem with formatting. Could not convert " + o + " to BigInteger.";
+            throw new ExecException(msg, errCode, PigException.INPUT, nfe);
+        } catch (Exception e) {
+            int errCode = 2054;
+            String msg = "Internal error. Could not convert " + o + " to BigInteger.";
+            throw new ExecException(msg, errCode, PigException.BUG);
+        }
+    }
+
     /**
      * Force a data object to a String, if possible.  Any simple (atomic) type
      * can be forced to a String including ByteArray.  Complex types cannot be
@@ -980,6 +1184,12 @@ public class DataType {
 
 			case CHARARRAY:
 			    return ((String)o);
+
+			case BIGINTEGER:
+                return ((BigInteger)o).toString();
+
+            case BIGDECIMAL:
+                return ((BigDecimal)o).toString();
 
 			case NULL:
 			    return null;
@@ -1138,11 +1348,13 @@ public class DataType {
      */
     public static boolean isNumberType(byte t) {
         switch (t) {
-            case INTEGER:   return true ;
-            case LONG:      return true ;
-            case FLOAT:     return true ;
-            case DOUBLE:    return true ;
-            default: return false ;
+            case INTEGER:       return true ;
+            case LONG:          return true ;
+            case FLOAT:         return true ;
+            case DOUBLE:        return true ;
+            case BIGINTEGER:    return true ;
+            case BIGDECIMAL:    return true ;
+            default:            return false ;
         }
     }
 
@@ -1316,6 +1528,8 @@ public class DataType {
         case LONG:
         case FLOAT:
         case DOUBLE:
+        case BIGINTEGER:
+        case BIGDECIMAL:
         case BYTEARRAY:
         case CHARARRAY:
         case MAP:

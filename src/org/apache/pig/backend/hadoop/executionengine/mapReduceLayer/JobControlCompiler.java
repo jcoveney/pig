@@ -77,6 +77,8 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.io.NullableBigDecimalWritable;
+import org.apache.pig.impl.io.NullableBigIntegerWritable;
 import org.apache.pig.impl.io.NullableBooleanWritable;
 import org.apache.pig.impl.io.NullableBytesWritable;
 import org.apache.pig.impl.io.NullableDoubleWritable;
@@ -906,6 +908,18 @@ public class JobControlCompiler{
         }
     }
 
+    public static class PigBigIntegerWritableComparator extends PigWritableComparator {
+        public PigBigIntegerWritableComparator() {
+            super(NullableBigIntegerWritable.class);
+        }
+    }
+
+    public static class PigBigDecimalWritableComparator extends PigWritableComparator {
+        public PigBigDecimalWritableComparator() {
+            super(NullableBigDecimalWritable.class);
+        }
+    }
+
     public static class PigCharArrayWritableComparator extends PigWritableComparator {
         public PigCharArrayWritableComparator() {
             super(NullableText.class);
@@ -992,6 +1006,18 @@ public class JobControlCompiler{
         }
     }
 
+    public static class PigGroupingBigIntegerWritableComparator extends WritableComparator {
+        public PigGroupingBigIntegerWritableComparator() {
+            super(NullableBigIntegerWritable.class, true);
+        }
+    }
+
+    public static class PigGroupingBigDecimalWritableComparator extends WritableComparator {
+        public PigGroupingBigDecimalWritableComparator() {
+            super(NullableBigDecimalWritable.class, true);
+        }
+    }
+
     private void selectComparator(
             MapReduceOper mro,
             byte keyType,
@@ -1045,6 +1071,14 @@ public class JobControlCompiler{
                 job.setSortComparatorClass(PigBytesRawComparator.class);
                 break;
 
+            case DataType.BIGINTEGER:
+                job.setSortComparatorClass(PigBigIntegerRawComparator.class);
+                break;
+
+            case DataType.BIGDECIMAL:
+                job.setSortComparatorClass(PigBigDecimalRawComparator.class);
+                break;
+
             case DataType.MAP:
                 int errCode = 1068;
                 String msg = "Using Map as key not supported.";
@@ -1074,6 +1108,16 @@ public class JobControlCompiler{
         case DataType.INTEGER:
             job.setSortComparatorClass(PigIntWritableComparator.class);
             job.setGroupingComparatorClass(PigGroupingIntWritableComparator.class);
+            break;
+
+        case DataType.BIGINTEGER:
+            job.setSortComparatorClass(PigBigIntegerWritableComparator.class);
+            job.setGroupingComparatorClass(PigGroupingBigIntegerWritableComparator.class);
+            break;
+
+        case DataType.BIGDECIMAL:
+            job.setSortComparatorClass(PigBigDecimalWritableComparator.class);
+            job.setGroupingComparatorClass(PigGroupingBigDecimalWritableComparator.class);
             break;
 
         case DataType.LONG:
