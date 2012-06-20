@@ -15,11 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 /**
  * Grammar file for Pig tree parser (for schema alias validation).
  *
- * NOTE: THIS FILE IS BASED ON QueryParser.g, SO IF YOU CHANGE THAT FILE, YOU WILL 
+ * NOTE: THIS FILE IS BASED ON QueryParser.g, SO IF YOU CHANGE THAT FILE, YOU WILL
  *       PROBABLY NEED TO MAKE CORRESPONDING CHANGES TO THIS FILE AS WELL.
  */
 
@@ -98,6 +98,8 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import java.util.Arrays;
+import java.math.BigInteger;
+import java.math.BigDecimal;
 }
 
 @members {
@@ -118,7 +120,7 @@ public Map<String, Operator> getOperators() {
 }
 
 @Override
-protected Object recoverFromMismatchedToken(IntStream input, int ttype, BitSet follow) 
+protected Object recoverFromMismatchedToken(IntStream input, int ttype, BitSet follow)
 throws RecognitionException {
     throw new MismatchedTokenException( ttype, input );
 }
@@ -173,7 +175,7 @@ split_statement : split_clause
 realias_statement : realias_clause
 ;
 
-general_statement 
+general_statement
 : ^( STATEMENT ( alias { $statement::alias = $alias.name; } )? oa = op_clause parallel_clause? )
   {
       Operator op = builder.lookupOperator( $oa.alias );
@@ -186,7 +188,7 @@ realias_clause
     {
 	    Operator op = builder.lookupOperator( $IDENTIFIER.text );
 	    if (op==null) {
-	        throw new UndefinedAliasException(input, 
+	        throw new UndefinedAliasException(input,
 	            new SourceLocation( (PigParserNode)$IDENTIFIER ), $IDENTIFIER.text);
 	    }
 	    builder.putOperator( $alias.name, (LogicalRelationalOperator)op );
@@ -203,8 +205,8 @@ parallel_clause
 alias returns[String name]: IDENTIFIER { $name = $IDENTIFIER.text; }
 ;
 
-op_clause returns[String alias] : 
-            define_clause 
+op_clause returns[String alias] :
+            define_clause
           | load_clause { $alias = $load_clause.alias; }
           | group_clause { $alias = $group_clause.alias; }
           | store_clause { $alias = $store_clause.alias; }
@@ -222,8 +224,8 @@ op_clause returns[String alias] :
           | cube_clause { $alias = $cube_clause.alias; }
 ;
 
-define_clause 
- : ^( DEFINE alias cmd[$alias.name] ) 
+define_clause
+ : ^( DEFINE alias cmd[$alias.name] )
    {
        builder.defineCommand( $alias.name, $cmd.command );
    }
@@ -297,13 +299,13 @@ error_clause returns[String dir, Integer limit]
 @init {
     $limit = StreamingCommand.MAX_TASKS;
 }
- : ^( STDERROR 
-      ( QUOTEDSTRING 
+ : ^( STDERROR
+      ( QUOTEDSTRING
         {
             $dir = builder.unquote( $QUOTEDSTRING.text );
         }
-        ( INTEGER 
-          { 
+        ( INTEGER
+          {
               $limit = Integer.parseInt( $INTEGER.text );
           }
         )?
@@ -325,16 +327,16 @@ filename returns[String filename]
 ;
 
 as_clause returns[LogicalSchema logicalSchema]
- : ^( AS field_def_list ) 
-   { 
+ : ^( AS field_def_list )
+   {
         LogicalPlanBuilder.setBytearrayForNULLType($field_def_list.schema);
-        $logicalSchema = $field_def_list.schema; 
+        $logicalSchema = $field_def_list.schema;
    }
 ;
 
 field_def[NumValCarrier nvc] returns[LogicalFieldSchema fieldSchema]
 @init {
-    byte datatype = DataType.NULL;          
+    byte datatype = DataType.NULL;
     if ($nvc==null) {
         $nvc=new NumValCarrier();
     }
@@ -386,14 +388,16 @@ simple_type returns[byte datatype]
  | LONG { $datatype = DataType.LONG; }
  | FLOAT { $datatype = DataType.FLOAT; }
  | DOUBLE { $datatype = DataType.DOUBLE; }
+ | BIGINTEGER { $datatype = DataType.BIGINTEGER; }
+ | BIGDECIMAL { $datatype = DataType.BIGDECIMAL; }
  | CHARARRAY { $datatype = DataType.CHARARRAY; }
  | BYTEARRAY { $datatype = DataType.BYTEARRAY; }
 ;
 
 tuple_type returns[LogicalSchema logicalSchema]
- : ^( TUPLE_TYPE 
+ : ^( TUPLE_TYPE
       ( field_def_list
-        { 
+        {
             LogicalPlanBuilder.setBytearrayForNULLType($field_def_list.schema);
             $logicalSchema = $field_def_list.schema;
         }
@@ -450,7 +454,7 @@ func_clause[byte ft] returns[FuncSpec funcSpec]
 ;
 
 func_name returns[String funcName]
-@init { StringBuilder buf = new StringBuilder(); } 
+@init { StringBuilder buf = new StringBuilder(); }
  : p1 = eid { buf.append( $p1.id ); }
       ( ( PERIOD { buf.append( $PERIOD.text ); } | DOLLAR { buf.append( $DOLLAR.text ); } )
       p2 = eid { buf.append( $p2.id ); } )*
@@ -461,7 +465,7 @@ func_name returns[String funcName]
 
 func_args returns[List<String> args]
 @init { $args = new ArrayList<String>(); }
-: ( QUOTEDSTRING { $args.add( builder.unquote( $QUOTEDSTRING.text ) ); } 
+: ( QUOTEDSTRING { $args.add( builder.unquote( $QUOTEDSTRING.text ) ); }
     | MULTILINE_QUOTEDSTRING { $args.add( builder.unquote( $MULTILINE_QUOTEDSTRING.text ) ); }
   )+
 ;
@@ -489,20 +493,20 @@ scope GScope;
  : ^( CUBE cube_item )
  {
   SourceLocation loc = new SourceLocation( (PigParserNode)$cube_clause.start );
-  $alias = builder.buildCubeOp( loc, $cube_clause::cubeOp, $statement::alias, 
+  $alias = builder.buildCubeOp( loc, $cube_clause::cubeOp, $statement::alias,
     $statement::inputAlias, $cube_clause::cubePlans );
  }
 ;
 
 cube_item
- : rel ( cube_by_clause 
-     { 
+ : rel ( cube_by_clause
+     {
             $cube_clause::cubePlans.put( $cube_clause::inputIndex, $cube_by_clause.plans );
      }
   )
   {
      $cube_clause::inputIndex++;
-     $statement::inputIndex++;  
+     $statement::inputIndex++;
   }
 ;
 
@@ -519,9 +523,9 @@ cube_by_expr returns[LogicalExpressionPlan plan]
 }
  : col_range[$plan]
  | expr[$plan]
- | STAR 
+ | STAR
    {
-       builder.buildProjectExpr( new SourceLocation( (PigParserNode)$STAR ), $plan, $GScope::currentOp, 
+       builder.buildProjectExpr( new SourceLocation( (PigParserNode)$STAR ), $plan, $GScope::currentOp,
            $statement::inputIndex, null, -1 );
    }
 ;
@@ -536,7 +540,7 @@ scope {
 }
 scope GScope;
 @init {
-    $GScope::currentOp = builder.createGroupOp(); 
+    $GScope::currentOp = builder.createGroupOp();
     $group_clause::groupPlans = new MultiMap<Integer, LogicalExpressionPlan>();
     $group_clause::inputAliases = new ArrayList<String>();
     $group_clause::innerFlags = new ArrayList<Boolean>();
@@ -547,13 +551,13 @@ scope GScope;
 @after { $statement::inputIndex = oldStatementIndex; }
  : ^( GROUP group_item+ ( group_type { groupType = $group_type.type; ((LOCogroup)$GScope::currentOp).pinOption(LOCogroup.OPTION_GROUPTYPE); } )? partition_clause? )
    {
-       $alias = builder.buildGroupOp( loc, (LOCogroup)$GScope::currentOp, $statement::alias, 
+       $alias = builder.buildGroupOp( loc, (LOCogroup)$GScope::currentOp, $statement::alias,
            $group_clause::inputAliases, $group_clause::groupPlans, groupType, $group_clause::innerFlags,
            $partition_clause.partitioner );
    }
  | ^( COGROUP group_item+ ( group_type { groupType = $group_type.type;((LOCogroup)$GScope::currentOp).pinOption(LOCogroup.OPTION_GROUPTYPE); } )? partition_clause? )
    {
-       $alias = builder.buildGroupOp( loc, (LOCogroup)$GScope::currentOp, $statement::alias, 
+       $alias = builder.buildGroupOp( loc, (LOCogroup)$GScope::currentOp, $statement::alias,
            $group_clause::inputAliases, $group_clause::groupPlans, groupType, $group_clause::innerFlags,
            $partition_clause.partitioner );
    }
@@ -563,16 +567,16 @@ group_type returns[GROUPTYPE type]
  : QUOTEDSTRING
    {
        $type =builder.parseGroupType( $QUOTEDSTRING.text, new SourceLocation( (PigParserNode)$QUOTEDSTRING ) );
-   } 
+   }
 ;
 
 group_item
 @init { boolean inner = false; }
- : rel ( join_group_by_clause 
-         { 
+ : rel ( join_group_by_clause
+         {
              $group_clause::groupPlans.put( $group_clause::inputIndex, $join_group_by_clause.plans );
          }
-         | ALL 
+         | ALL
          {
              LogicalExpressionPlan plan = new LogicalExpressionPlan();
              ConstantExpression ce = new ConstantExpression( plan, "all");
@@ -654,7 +658,7 @@ store_clause returns[String alias]
 
 filter_clause returns[String alias]
 scope GScope;
-@init { 
+@init {
     LogicalExpressionPlan exprPlan = new LogicalExpressionPlan();
     $GScope::currentOp = builder.createFilterOp();
 }
@@ -695,17 +699,17 @@ cond[LogicalExpressionPlan exprPlan] returns[LogicalExpression expr]
    {
        $expr = new EqualExpression( $exprPlan, $e1.expr, $e2.expr );
        $expr.setLocation( new SourceLocation( (PigParserNode)$rel_op_eq.start ) );
-   } 
+   }
  | ^( rel_op_ne e1 = expr[$exprPlan] e2 = expr[$exprPlan] )
    {
        $expr = new NotEqualExpression( $exprPlan, $e1.expr, $e2.expr );
        $expr.setLocation( new SourceLocation( (PigParserNode)$rel_op_ne.start ) );
-   } 
+   }
  | ^( rel_op_lt e1 = expr[$exprPlan] e2 = expr[$exprPlan] )
    {
        $expr = new LessThanExpression( $exprPlan, $e1.expr, $e2.expr );
        $expr.setLocation( new SourceLocation( (PigParserNode)$rel_op_lt.start ) );
-   } 
+   }
  | ^( rel_op_lte e1 = expr[$exprPlan] e2 = expr[$exprPlan] )
    {
        $expr = new LessThanEqualExpression( $exprPlan, $e1.expr, $e2.expr );
@@ -715,7 +719,7 @@ cond[LogicalExpressionPlan exprPlan] returns[LogicalExpression expr]
    {
        $expr = new GreaterThanExpression( $exprPlan, $e1.expr, $e2.expr );
        $expr.setLocation( new SourceLocation( (PigParserNode)$rel_op_gt.start ) );
-   } 
+   }
  | ^( rel_op_gte e1 = expr[$exprPlan] e2 = expr[$exprPlan] )
    {
        $expr = new GreaterThanEqualExpression( $exprPlan, $e1.expr, $e2.expr );
@@ -734,12 +738,12 @@ cond[LogicalExpressionPlan exprPlan] returns[LogicalExpression expr]
    {
    	   $expr = $e1.expr;
        $expr.setLocation( new SourceLocation( (PigParserNode)$BOOL_COND ) );
-   }   
+   }
 ;
 
 
 func_eval[LogicalExpressionPlan plan] returns[LogicalExpression expr]
-@init { 
+@init {
     List<LogicalExpression> args = new ArrayList<LogicalExpression>();
 }
  : ^( FUNC_EVAL func_name ( real_arg[$plan] { args.add( $real_arg.expr ); } )* )
@@ -753,7 +757,7 @@ real_arg [LogicalExpressionPlan plan] returns[LogicalExpression expr]
  : e = expr[$plan] { $expr = $e.expr; }
  | STAR
    {
-       $expr = builder.buildProjectExpr( new SourceLocation( (PigParserNode)$STAR ), $plan, $GScope::currentOp, 
+       $expr = builder.buildProjectExpr( new SourceLocation( (PigParserNode)$STAR ), $plan, $GScope::currentOp,
            $statement::inputIndex, null, -1 );
    }
  | cr = col_range[$plan] { $expr = $cr.expr;}
@@ -791,7 +795,7 @@ expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
    }
  | var_expr[$plan]
    {
-       $expr = $var_expr.expr; 
+       $expr = $var_expr.expr;
    }
  | ^( NEG e = expr[$plan] )
    {
@@ -840,7 +844,7 @@ bag_type_cast returns[LogicalSchema logicalSchema]
     $logicalSchema = new LogicalSchema();
 }
  : ^( BAG_TYPE_CAST tuple_type_cast? )
-   { 
+   {
        $logicalSchema.addField( new LogicalFieldSchema( null, $tuple_type_cast.logicalSchema, DataType.TUPLE ) );
    }
 ;
@@ -851,7 +855,7 @@ var_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
     SourceLocation loc = new SourceLocation( (PigParserNode)$var_expr.start );
 }
  : projectable_expr[$plan] { $expr = $projectable_expr.expr; }
-   ( dot_proj 
+   ( dot_proj
      {
          columns = $dot_proj.cols;
          boolean processScalar = false;
@@ -865,15 +869,15 @@ var_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
                  processScalar = true;
              }
          }
-         
+
          if( processScalar ) {
              // This is a scalar projection.
              ScalarExpression scalarExpr = (ScalarExpression)$expr;
-             
+
              if( $dot_proj.cols.size() > 1 ) {
                  throw new InvalidScalarProjectionException( input, loc, scalarExpr );
              }
-             
+
              Object val = $dot_proj.cols.get( 0 );
              int pos = -1;
              LogicalRelationalOperator relOp = (LogicalRelationalOperator)scalarExpr.getImplicitReferencedOperator();
@@ -895,7 +899,7 @@ var_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
                      throw new InvalidScalarProjectionException( input, loc, scalarExpr );
                  }
              }
-             
+
              ConstantExpression constExpr = new ConstantExpression( $plan, pos);
              plan.connect( $expr, constExpr );
              constExpr = new ConstantExpression( $plan, "filename"); // place holder for file name.
@@ -966,11 +970,11 @@ col_range[LogicalExpressionPlan plan] returns[LogicalExpression expr]
         SourceLocation loc = new SourceLocation( (PigParserNode)$col_range.start );
         $expr = builder.buildRangeProjectExpr(
                     loc, plan, $GScope::currentOp,
-                    $statement::inputIndex, 
-                    $startExpr.expr, 
+                    $statement::inputIndex,
+                    $startExpr.expr,
                     $endExpr.expr
                 );
-    }  
+    }
 ;
 
 pound_proj returns[String key]
@@ -987,13 +991,13 @@ bin_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
 
 limit_clause returns[String alias]
 scope GScope;
-@init { 
+@init {
     $GScope::currentOp = builder.createLimitOp();
     LogicalExpressionPlan exprPlan = new LogicalExpressionPlan();
 }
  :  ^( LIMIT rel ( INTEGER
    {
-       $alias = builder.buildLimitOp( new SourceLocation( (PigParserNode)$LIMIT ), 
+       $alias = builder.buildLimitOp( new SourceLocation( (PigParserNode)$LIMIT ),
          $statement::alias, $statement::inputAlias, Long.valueOf( $INTEGER.text ) );
    }
  | LONGINTEGER
@@ -1011,7 +1015,7 @@ scope GScope;
 
 sample_clause returns[String alias]
 scope GScope;
-@init { 
+@init {
     $GScope::currentOp = builder.createSampleOp();
     LogicalExpressionPlan exprPlan = new LogicalExpressionPlan();
 }
@@ -1038,7 +1042,7 @@ scope GScope;
    {
        SourceLocation loc = new SourceLocation( (PigParserNode)$ORDER );
        $alias = builder.buildSortOp( loc, (LOSort)$GScope::currentOp, $statement::alias,
-           $statement::inputAlias, $order_by_clause.plans, 
+           $statement::inputAlias, $order_by_clause.plans,
            $order_by_clause.ascFlags, $func_clause.funcSpec );
    }
 ;
@@ -1063,12 +1067,12 @@ order_by_clause returns[List<LogicalExpressionPlan> plans, List<Boolean> ascFlag
 ;
 
 order_col returns[LogicalExpressionPlan plan, Boolean ascFlag]
-@init { 
+@init {
     $plan = new LogicalExpressionPlan();
     $ascFlag = true;
 }
  : col_range[$plan] (ASC | DESC { $ascFlag = false; } )?
- | col_ref[$plan] ( ASC | DESC { $ascFlag = false; } )?        
+ | col_ref[$plan] ( ASC | DESC { $ascFlag = false; } )?
 ;
 
 distinct_clause returns[String alias]
@@ -1134,11 +1138,11 @@ join_type returns[JOINTYPE type]
 ;
 
 join_sub_clause
- : join_item ( LEFT { $join_clause::innerFlags.add( true ); 
-                      $join_clause::innerFlags.add( false ); } 
-             | RIGHT { $join_clause::innerFlags.add( false ); 
+ : join_item ( LEFT { $join_clause::innerFlags.add( true );
+                      $join_clause::innerFlags.add( false ); }
+             | RIGHT { $join_clause::innerFlags.add( false );
                        $join_clause::innerFlags.add( true ); }
-             | FULL { $join_clause::innerFlags.add( false ); 
+             | FULL { $join_clause::innerFlags.add( false );
                       $join_clause::innerFlags.add( false ); } ) OUTER? join_item
    {
    }
@@ -1168,9 +1172,9 @@ join_group_by_expr returns[LogicalExpressionPlan plan]
 }
  : col_range[$plan]
  | expr[$plan]
- | STAR 
+ | STAR
    {
-       builder.buildProjectExpr( new SourceLocation( (PigParserNode)$STAR ), $plan, $GScope::currentOp, 
+       builder.buildProjectExpr( new SourceLocation( (PigParserNode)$STAR ), $plan, $GScope::currentOp,
            $statement::inputIndex, null, -1 );
    }
 ;
@@ -1181,7 +1185,7 @@ union_clause returns[String alias]
 }
  : ^( UNION ( ONSCHEMA { onSchema = true; } )? rel_list )
    {
-      $alias = builder.buildUnionOp( new SourceLocation( (PigParserNode)$UNION ), $statement::alias, 
+      $alias = builder.buildUnionOp( new SourceLocation( (PigParserNode)$UNION ), $statement::alias,
           $rel_list.aliasList, onSchema );
    }
 ;
@@ -1239,7 +1243,7 @@ nested_command
        $foreach_plan::operators.put( $IDENTIFIER.text, $nested_op.op );
        $foreach_plan::exprPlans.remove( $IDENTIFIER.text );
    }
- | 
+ |
    ^( NESTED_CMD_ASSI IDENTIFIER expr[exprPlan] )
    {
         $foreach_plan::exprPlans.put( $IDENTIFIER.text, exprPlan );
@@ -1270,7 +1274,7 @@ nested_proj[String alias] returns[Operator op]
       )+ )
    {
        SourceLocation loc = new SourceLocation( (PigParserNode)$cr0.start );
-       $op = builder.buildNestedProjectOp( loc, $foreach_plan::innerPlan, $foreach_clause::foreachOp, 
+       $op = builder.buildNestedProjectOp( loc, $foreach_plan::innerPlan, $foreach_clause::foreachOp,
            $foreach_plan::operators, $alias, (ProjectExpression)$cr0.expr, plans );
    }
 ;
@@ -1285,7 +1289,7 @@ scope GScope;
  : ^( FILTER nested_op_input cond[plan] )
    {
        SourceLocation loc = new SourceLocation( (PigParserNode)$FILTER );
-       $op = builder.buildNestedFilterOp( loc, (LOFilter)$GScope::currentOp, $foreach_plan::innerPlan, $alias, 
+       $op = builder.buildNestedFilterOp( loc, (LOFilter)$GScope::currentOp, $foreach_plan::innerPlan, $alias,
            $nested_op_input.op, plan );
    }
 ;
@@ -1300,7 +1304,7 @@ scope GScope;
    {
        SourceLocation loc = new SourceLocation( (PigParserNode)$ORDER );
        $op = builder.buildNestedSortOp( loc, (LOSort)$GScope::currentOp, $foreach_plan::innerPlan, $alias,
-           $nested_op_input.op, 
+           $nested_op_input.op,
            $order_by_clause.plans, $order_by_clause.ascFlags, $func_clause.funcSpec );
    }
 ;
@@ -1323,13 +1327,13 @@ scope GScope;
     LogicalExpressionPlan exprPlan = new LogicalExpressionPlan();
     $GScope::currentOp = builder.createNestedLimitOp( $foreach_plan::innerPlan );
 }
- : ^( LIMIT nested_op_input ( INTEGER 
+ : ^( LIMIT nested_op_input ( INTEGER
    {
        SourceLocation loc = new SourceLocation( (PigParserNode)$LIMIT );
-       $op = builder.buildNestedLimitOp( loc, $foreach_plan::innerPlan, $alias, $nested_op_input.op, 
+       $op = builder.buildNestedLimitOp( loc, $foreach_plan::innerPlan, $alias, $nested_op_input.op,
            Integer.valueOf( $INTEGER.text ) );
    }
- | expr[exprPlan] 
+ | expr[exprPlan]
    {
        SourceLocation loc = new SourceLocation( (PigParserNode)$LIMIT );
        $op = builder.buildNestedLimitOp( loc, (LOLimit)$GScope::currentOp, $foreach_plan::innerPlan, $alias,
@@ -1383,9 +1387,9 @@ scope GScope;
                  }
                )+
     )
-   {   
-       builder.buildGenerateOp( new SourceLocation( (PigParserNode)$GENERATE ), 
-       	   inNestedCommand ? $nested_foreach::foreachOp : $foreach_clause::foreachOp, 
+   {
+       builder.buildGenerateOp( new SourceLocation( (PigParserNode)$GENERATE ),
+       	   inNestedCommand ? $nested_foreach::foreachOp : $foreach_clause::foreachOp,
            (LOGenerate)$GScope::currentOp, $foreach_plan::operators,
            plans, flattenFlags, schemas );
    }
@@ -1402,7 +1406,7 @@ nested_op_input returns[Operator op]
            $foreach_clause::foreachOp, $foreach_plan::operators, $col_ref.expr );
    }
  | nested_proj[null]
-   { 
+   {
        $op = $nested_proj.op;
    }
 ;
@@ -1417,13 +1421,13 @@ stream_clause returns[String alias]
     StreamingCommand cmd = null;
     SourceLocation loc = new SourceLocation( (PigParserNode)$stream_clause.start );
 }
- : ^( STREAM rel ( EXECCOMMAND { cmd = builder.buildCommand( loc, builder.unquote( $EXECCOMMAND.text ) ); } 
-                 | IDENTIFIER 
-                   { 
+ : ^( STREAM rel ( EXECCOMMAND { cmd = builder.buildCommand( loc, builder.unquote( $EXECCOMMAND.text ) ); }
+                 | IDENTIFIER
+                   {
                        cmd = builder.lookupCommand( $IDENTIFIER.text );
                        if( cmd == null ) {
                            String msg = "Undefined command-alias [" + $IDENTIFIER.text + "]";
-                           throw new ParserValidationException( input, 
+                           throw new ParserValidationException( input,
                                new SourceLocation( (PigParserNode)$IDENTIFIER ), msg );
                        }
                    }
@@ -1440,24 +1444,24 @@ mr_clause returns[String alias]
     String alias = $statement::alias;
     SourceLocation loc = new SourceLocation( (PigParserNode)$mr_clause.start );
 }
- : ^( MAPREDUCE QUOTEDSTRING path_list[paths]? 
-     { $statement::alias = null; } store_clause 
+ : ^( MAPREDUCE QUOTEDSTRING path_list[paths]?
+     { $statement::alias = null; } store_clause
      { $statement::alias = alias; } load_clause
      EXECCOMMAND? )
    {
        $alias = builder.buildNativeOp( loc,
-           builder.unquote( $QUOTEDSTRING.text ), builder.unquote( $EXECCOMMAND.text ), 
+           builder.unquote( $QUOTEDSTRING.text ), builder.unquote( $EXECCOMMAND.text ),
            paths, $store_clause.alias, $load_clause.alias, input );
    }
 ;
 
 split_clause
  : ^( SPLIT
-      rel 
-      { 
+      rel
+      {
           SourceLocation loc = new SourceLocation( (PigParserNode)$SPLIT );
           $statement::inputAlias = builder.buildSplitOp( loc, $statement::inputAlias );
-      } 
+      }
       split_branch+ split_otherwise?
     )
 ;
@@ -1481,7 +1485,7 @@ scope GScope;
 @init {
     $GScope::currentOp = builder.createSplitOutputOp();
 }
- : ^( OTHERWISE alias ) 
+ : ^( OTHERWISE alias )
   {
        SourceLocation loc = new SourceLocation( (PigParserNode)$alias.start );
        builder.buildSplitOtherwiseOp( loc, (LOSplitOutput)$GScope::currentOp, $alias.name,
@@ -1495,14 +1499,14 @@ col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
 ;
 
 alias_col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
- : GROUP 
+ : GROUP
    {
-       $expr = builder.buildProjectExpr( new SourceLocation( (PigParserNode)$GROUP ), $plan, $GScope::currentOp, 
+       $expr = builder.buildProjectExpr( new SourceLocation( (PigParserNode)$GROUP ), $plan, $GScope::currentOp,
            $statement::inputIndex, $GROUP.text, 0 );
    }
- | CUBE 
+ | CUBE
    {
-       $expr = builder.buildProjectExpr( new SourceLocation( (PigParserNode)$CUBE ), $plan, $GScope::currentOp, 
+       $expr = builder.buildProjectExpr( new SourceLocation( (PigParserNode)$CUBE ), $plan, $GScope::currentOp,
            $statement::inputIndex, $CUBE.text, 0 );
    }
  | IDENTIFIER
@@ -1520,7 +1524,7 @@ alias_col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
        } catch (FrontendException e) {
            throw new PlanGenerationFailureException( input, loc, e );
        }
-       
+
        Operator op = builder.lookupOperator( alias );
        if( op != null && ( schema == null || schema.getFieldPosition( alias ) == -1 ) ) {
            $expr = new ScalarExpression( plan, op,
@@ -1528,10 +1532,10 @@ alias_col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
            $expr.setLocation( loc );
        } else {
            if( inForeachPlan ) {
-               $expr = builder.buildProjectExpr( loc, $plan, $GScope::currentOp, 
+               $expr = builder.buildProjectExpr( loc, $plan, $GScope::currentOp,
                    $foreach_plan::exprPlans, alias, 0 );
            } else {
-               $expr = builder.buildProjectExpr( loc, $plan, $GScope::currentOp, 
+               $expr = builder.buildProjectExpr( loc, $plan, $GScope::currentOp,
                    $statement::inputIndex, alias, 0 );
            }
        }
@@ -1542,7 +1546,7 @@ dollar_col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
  : DOLLARVAR
    {
        int col = builder.undollar( $DOLLARVAR.text );
-       $expr = builder.buildProjectExpr( new SourceLocation( (PigParserNode)$DOLLARVAR ), $plan, $GScope::currentOp, 
+       $expr = builder.buildProjectExpr( new SourceLocation( (PigParserNode)$DOLLARVAR ), $plan, $GScope::currentOp,
            $statement::inputIndex, null, col );
    }
 ;
@@ -1584,13 +1588,13 @@ scalar returns[Object value, byte type]
        $type = $num_scalar.type;
        $value = $num_scalar.value;
    }
- | QUOTEDSTRING 
-   { 
+ | QUOTEDSTRING
+   {
        $type = DataType.CHARARRAY;
        $value = builder.unquote( $QUOTEDSTRING.text );
    }
  | NULL
-   { 
+   {
        $type = DataType.NULL;
    }
  | TRUE
@@ -1611,24 +1615,40 @@ num_scalar returns[Object value, byte type]
 }
  : ( MINUS { sign = -1; } ) ?
    ( INTEGER
-     { 
+     {
          $type = DataType.INTEGER;
          $value = sign * Integer.valueOf( $INTEGER.text );
      }
-   | LONGINTEGER 
-     { 
+   | LONGINTEGER
+     {
          $type = DataType.LONG;
          $value = sign * builder.parseLong( $LONGINTEGER.text );
      }
-   | FLOATNUMBER 
-     { 
+   | FLOATNUMBER
+     {
          $type = DataType.FLOAT;
          $value = sign * Float.valueOf( $FLOATNUMBER.text );
      }
-   | DOUBLENUMBER 
-     { 
+   | DOUBLENUMBER
+     {
          $type = DataType.DOUBLE;
          $value = sign * Double.valueOf( $DOUBLENUMBER.text );
+     }
+   | BIGINTEGERNUMBER
+     {
+         $type = DataType.BIGINTEGER;
+         $value = builder.parseBigInteger( $BIGINTEGERNUMBER.text );
+         if ( sign == -1 ) {
+             $value = ((BigInteger)$value).negate();
+         }
+     }
+   | BIGDECIMALNUMBER
+     {
+         $type = DataType.BIGDECIMAL;
+         $value = builder.parseBigDecimal( $BIGDECIMALNUMBER.text );
+         if ( sign == -1 ) {
+             $value = ((BigDecimal)$value).negate();
+         }
      }
    )
 ;
@@ -1709,6 +1729,8 @@ eid returns[String id] : rel_str_op { $id = $rel_str_op.id; }
     | LONG { $id = $LONG.text; }
     | FLOAT { $id = $FLOAT.text; }
     | DOUBLE { $id = $DOUBLE.text; }
+    | BIGINTEGER { $id = $BIGINTEGER.text; }
+    | BIGDECIMAL { $id = $BIGDECIMAL.text; }
     | CHARARRAY { $id = $CHARARRAY.text; }
     | BYTEARRAY { $id = $BYTEARRAY.text; }
     | BAG { $id = $BAG.text; }

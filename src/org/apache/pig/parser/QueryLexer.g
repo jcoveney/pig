@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 /**
  * Lexer file for Pig Parser
  */
@@ -31,8 +31,8 @@ package org.apache.pig.parser;
 @Override
 public void reportError(RecognitionException e) {
     super.reportError( e );
-    
-    // The method of this signature doesn't permit checked exception. Here we have to 
+
+    // The method of this signature doesn't permit checked exception. Here we have to
     // throw a unchecked execption in order to stop at the first error.
     // For more information, visit http://www.antlr.org/wiki/pages/viewpage.action?pageId=5341217.
     StringBuilder sb = new StringBuilder();
@@ -174,6 +174,12 @@ LONG : 'LONG'
 FLOAT : 'FLOAT'
 ;
 
+BIGDECIMAL : 'BIGDECIMAL'
+;
+
+BIGINTEGER : 'BIGINTEGER'
+;
+
 DOUBLE : 'DOUBLE'
 ;
 
@@ -269,7 +275,7 @@ TRUE : 'TRUE'
 
 FALSE : 'FALSE'
 ;
-    
+
 NUM_OP_EQ : '=='
 ;
 
@@ -282,18 +288,18 @@ NUM_OP_LTE : '<='
 NUM_OP_GT : '>'
 ;
 
-NUM_OP_GTE : '>=' 
+NUM_OP_GTE : '>='
 ;
 
 NUM_OP_NE : '!='
 ;
-    
+
 fragment DIGIT : '0'..'9'
 ;
 
 fragment LETTER : 'A'..'Z'
 ;
-    
+
 fragment SPECIALCHAR : '_'
 ;
 
@@ -307,9 +313,9 @@ IDENTIFIER_L : ( ID DCOLON ) => ( ID DCOLON IDENTIFIER_L )
            | ID
 ;
 
-fragment FLOATINGPOINT : INTEGER ( PERIOD INTEGER )? | PERIOD INTEGER 
+fragment FLOATINGPOINT : INTEGER ( PERIOD INTEGER )? | PERIOD INTEGER
 ;
-    
+
 INTEGER: ( DIGIT )+
 ;
 
@@ -318,10 +324,16 @@ LONGINTEGER: INTEGER ( 'L' )?
 
 DOLLARVAR : DOLLAR INTEGER
 ;
-    
+
 DOUBLENUMBER : FLOATINGPOINT ( 'E' ( MINUS | PLUS )? INTEGER )?
 ;
-    
+
+BIGDECIMALNUMBER : DOUBLENUMBER ( 'D' )?
+;
+
+BIGINTEGERNUMBER : INTEGER ( 'I' )?
+;
+
 FLOATNUMBER : DOUBLENUMBER ( 'F' )?
 ;
 
@@ -347,7 +359,7 @@ MULTILINE_QUOTEDSTRING :  '\'' (   ( ~ ( '\'' | '\\' ) )
 
 EXECCOMMAND : '`' ( ~( '`' ) )* '`'
 ;
-    
+
 STAR : '*'
 ;
 
@@ -356,10 +368,10 @@ COLON : ':'
 
 DOLLAR : '$'
 ;
-            
+
 WS  :  ( ' ' | '\r' | '\t' | '\u000C' | '\n' ) { $channel = HIDDEN; }
 ;
-    
+
 SL_COMMENT : '--' ( ~( '\r' | '\n' ) )* { $channel = HIDDEN; }
 ;
 
@@ -368,10 +380,10 @@ ML_COMMENT : '/*' ( options { greedy=false; } : . )* '*/' { $channel = HIDDEN; }
 
 SEMI_COLON : ';'
 ;
-    
+
 LEFT_PAREN : '('
 ;
-    
+
 RIGHT_PAREN : ')'
 ;
 
@@ -383,7 +395,7 @@ RIGHT_CURLY : '}'
 
 LEFT_BRACKET : '['
 ;
-    
+
 RIGHT_BRACKET : ']'
 ;
 

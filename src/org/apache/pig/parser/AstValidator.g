@@ -15,11 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 /**
  * Grammar file for Pig tree parser (visitor for default data type insertion).
  *
- * NOTE: THIS FILE IS BASED ON QueryParser.g, SO IF YOU CHANGE THAT FILE, YOU WILL 
+ * NOTE: THIS FILE IS BASED ON QueryParser.g, SO IF YOU CHANGE THAT FILE, YOU WILL
  *       PROBABLY NEED TO MAKE CORRESPONDING CHANGES TO THIS FILE AS WELL.
  */
 
@@ -50,7 +50,7 @@ import org.apache.commons.logging.LogFactory;
 private static Log log = LogFactory.getLog( AstValidator.class );
 
 @Override
-protected Object recoverFromMismatchedToken(IntStream input, int ttype, BitSet follow) 
+protected Object recoverFromMismatchedToken(IntStream input, int ttype, BitSet follow)
 throws RecognitionException {
     throw new MismatchedTokenException( ttype, input );
 }
@@ -64,7 +64,7 @@ throws RecognitionException {
 private void validateSchemaAliasName(Set<String> fieldNames, CommonTree node, String name)
 throws DuplicatedSchemaAliasException {
     if( fieldNames.contains( name ) ) {
-        throw new DuplicatedSchemaAliasException( input, 
+        throw new DuplicatedSchemaAliasException( input,
             new SourceLocation( (PigParserNode)node ), name );
     } else {
         fieldNames.add( name );
@@ -123,13 +123,13 @@ parallel_clause : ^( PARALLEL INTEGER )
 
 alias returns[String name, CommonTree node]
  : IDENTIFIER
-   { 
+   {
        $name = $IDENTIFIER.text;
        $node = $IDENTIFIER;
    }
 ;
 
-op_clause : define_clause 
+op_clause : define_clause
           | load_clause
           | group_clause
           | store_clause
@@ -161,8 +161,8 @@ cmd
 }
  : ^( EXECCOMMAND ( ship_clause { checkDuplication( ++ship, $ship_clause.start ); }
                   | cache_clause { checkDuplication( ++cache, $cache_clause.start ); }
-                  | input_clause { checkDuplication( ++in, $input_clause.start ); } 
-                  | output_clause { checkDuplication( ++out, $output_clause.start ); } 
+                  | input_clause { checkDuplication( ++in, $input_clause.start ); }
+                  | output_clause { checkDuplication( ++out, $output_clause.start ); }
                   | error_clause { checkDuplication( ++error, $error_clause.start ); }
                   )*
    )
@@ -230,6 +230,8 @@ simple_type returns [byte typev]
   | LONG { $typev = DataType.LONG; }
   | FLOAT { $typev = DataType.FLOAT; }
   | DOUBLE { $typev = DataType.DOUBLE; }
+  | BIGINTEGER { $typev = DataType.BIGINTEGER; }
+  | BIGDECIMAL { $typev = DataType.BIGDECIMAL; }
   | CHARARRAY { $typev = DataType.CHARARRAY; }
   | BYTEARRAY { $typev = DataType.BYTEARRAY; }
 ;
@@ -268,8 +270,8 @@ cube_by_clause
     : ^( BY cube_by_expr+ )
 ;
 
-cube_by_expr 
-    : col_range | expr | STAR 
+cube_by_expr
+    : col_range | expr | STAR
 ;
 
 group_clause
@@ -282,7 +284,7 @@ scope {
  : ^( ( GROUP | COGROUP ) group_item+ group_type? partition_clause? )
 ;
 
-group_type : QUOTEDSTRING 
+group_type : QUOTEDSTRING
 ;
 
 group_item
@@ -320,7 +322,7 @@ cond : ^( OR cond cond )
      | ^( NULL expr NOT? )
      | ^( rel_op expr expr )
      | func_eval
-     | ^( BOOL_COND expr )     
+     | ^( BOOL_COND expr )
 ;
 
 func_eval: ^( FUNC_EVAL func_name real_arg* )
@@ -556,7 +558,7 @@ literal : scalar | map | bag | tuple
 scalar : num_scalar | QUOTEDSTRING | NULL | TRUE | FALSE
 ;
 
-num_scalar : MINUS? ( INTEGER | LONGINTEGER | FLOATNUMBER | DOUBLENUMBER )
+num_scalar : MINUS? ( INTEGER | LONGINTEGER | FLOATNUMBER | DOUBLENUMBER | BIGINTEGERNUMBER | BIGDECIMALNUMBER )
 ;
 
 map : ^( MAP_VAL keyvalue* )
@@ -615,6 +617,8 @@ eid : rel_str_op
     | LONG
     | FLOAT
     | DOUBLE
+    | BIGINTEGER
+    | BIGDECIMAL
     | CHARARRAY
     | BYTEARRAY
     | BAG
