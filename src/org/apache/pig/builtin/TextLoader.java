@@ -18,6 +18,8 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Map;
 
 import org.apache.hadoop.io.Text;
@@ -55,7 +57,7 @@ public class TextLoader extends LoadFunc implements LoadCaster {
             boolean notDone = in.nextKeyValue();
             if (!notDone) {
                 return null;
-            }                                                                                           
+            }
             Text value = (Text) in.getCurrentValue();
             byte[] ba = value.getBytes();
             // make a copy of the bytes representing the input since
@@ -122,7 +124,7 @@ public class TextLoader extends LoadFunc implements LoadCaster {
     }
 
     /**
-     * Cast data from bytes to chararray value.  
+     * Cast data from bytes to chararray value.
      * @param b byte array to be cast.
      * @return String value.
      * @throws IOException if the value cannot be cast.
@@ -136,7 +138,7 @@ public class TextLoader extends LoadFunc implements LoadCaster {
     public Map<String, Object> bytesToMap(byte[] b) throws IOException {
         return bytesToMap(b, null);
     }
-    
+
     /**
      * TextLoader does not support conversion to Map
      * @throws IOException if the value cannot be cast.
@@ -222,6 +224,20 @@ public class TextLoader extends LoadFunc implements LoadCaster {
     }
 
     @Override
+    public BigInteger bytesToBigInteger(byte[] b) throws IOException {
+        int errCode = 2109;
+        String msg = "TextLoader does not support conversion from BigInteger.";
+        throw new ExecException(msg, errCode, PigException.BUG);
+    }
+
+    @Override
+    public BigDecimal bytesToBigDecimal(byte[] b) throws IOException {
+        int errCode = 2109;
+        String msg = "TextLoader does not support conversion from BigDecimal.";
+        throw new ExecException(msg, errCode, PigException.BUG);
+    }
+
+    @Override
     public InputFormat getInputFormat() {
         if(loadLocation.endsWith(".bz2") || loadLocation.endsWith(".bz")) {
             return new Bzip2TextInputFormat();
@@ -234,10 +250,10 @@ public class TextLoader extends LoadFunc implements LoadCaster {
     public LoadCaster getLoadCaster() {
         return this;
     }
-    
+
     @Override
     public void prepareToRead(RecordReader reader, PigSplit split) {
-        in = reader;        
+        in = reader;
     }
 
     @Override
@@ -245,5 +261,4 @@ public class TextLoader extends LoadFunc implements LoadCaster {
         loadLocation = location;
         FileInputFormat.setInputPaths(job, location);
     }
-
 }

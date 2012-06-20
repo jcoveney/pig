@@ -17,13 +17,11 @@
  */
 package org.apache.pig.builtin;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
@@ -45,11 +43,10 @@ import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadMetadata;
 import org.apache.pig.PigException;
-import org.apache.pig.PigWarning;
 import org.apache.pig.ResourceSchema;
-import org.apache.pig.StoreFunc;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.ResourceStatistics;
+import org.apache.pig.StoreFunc;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
@@ -64,7 +61,6 @@ import org.apache.pig.impl.io.BinStorageRecordReader;
 import org.apache.pig.impl.io.BinStorageRecordWriter;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.Utils;
 
 /**
@@ -72,7 +68,7 @@ import org.apache.pig.impl.util.Utils;
  * data between MapReduce jobs.  Use of this function for storing user data is
  * supported.
  */
-public class BinStorage extends FileInputLoadFunc 
+public class BinStorage extends FileInputLoadFunc
 implements StoreFuncInterface, LoadMetadata {
 
     static class UnImplementedLoadCaster implements LoadCaster {
@@ -118,7 +114,7 @@ implements StoreFuncInterface, LoadMetadata {
         public Map<String, Object> bytesToMap(byte[] b) throws IOException {
             return bytesToMap(b, null);
         }
-        
+
         @Override
         public Map<String, Object> bytesToMap(byte[] b, ResourceFieldSchema fieldSchema) throws IOException {
             throw new ExecException(unImplementedErrorMessage, 1118);
@@ -129,24 +125,34 @@ implements StoreFuncInterface, LoadMetadata {
                 throws IOException {
             throw new ExecException(unImplementedErrorMessage, 1118);
         }
+
+        @Override
+        public BigInteger bytesToBigInteger(byte[] b) throws IOException {
+            throw new ExecException(unImplementedErrorMessage, 1118);
+        }
+
+        @Override
+        public BigDecimal bytesToBigDecimal(byte[] b) throws IOException {
+            throw new ExecException(unImplementedErrorMessage, 1118);
+        }
     }
 
     Iterator<Tuple>     i              = null;
     private static final Log mLog = LogFactory.getLog(BinStorage.class);
     protected long                end            = Long.MAX_VALUE;
-    
+
     static String casterString = null;
     static LoadCaster caster = null;
-    
+
     private BinStorageRecordReader recReader = null;
     private BinStorageRecordWriter recWriter = null;
-    
+
     public BinStorage() {
     }
-    
+
     // If user knows how to cast the bytes for BinStorage, provide
     // the class name for the caster. When we later want to convert
-    // bytes to other types, BinStorage knows how. This provides a way 
+    // bytes to other types, BinStorage knows how. This provides a way
     // for user to store intermediate data without having to explicitly
     // list all the fields and figure out their parts.
     public BinStorage(String casterString) {
@@ -248,7 +254,7 @@ implements StoreFuncInterface, LoadMetadata {
         }
         return baos.toByteArray();
     }
-    
+
     public byte[] toBytes(Boolean b) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(baos);
@@ -287,7 +293,7 @@ implements StoreFuncInterface, LoadMetadata {
         }
         return baos.toByteArray();
     }
-    
+
     @Override
     public InputFormat getInputFormat() {
         return new BinStorageInputFormat();
@@ -295,7 +301,7 @@ implements StoreFuncInterface, LoadMetadata {
 
     @Override
     public int hashCode() {
-        return 42; 
+        return 42;
     }
 
     @SuppressWarnings("unchecked")
@@ -315,7 +321,7 @@ implements StoreFuncInterface, LoadMetadata {
                         // Try casterString as in builtin
                         casterClass = (Class<LoadCaster>)cl.loadClass("org.apache.pig.builtin." + casterString);
                     } catch (ClassNotFoundException e) {
-                        throw new FrontendException("Cannot find LoadCaster class " + casterString, 1119, e); 
+                        throw new FrontendException("Cannot find LoadCaster class " + casterString, 1119, e);
                     }
                 }
                 try {
@@ -348,7 +354,7 @@ implements StoreFuncInterface, LoadMetadata {
 
     @Override
     public void prepareToWrite(RecordWriter writer) {
-        this.recWriter = (BinStorageRecordWriter) writer;        
+        this.recWriter = (BinStorageRecordWriter) writer;
     }
 
     @Override
@@ -358,7 +364,7 @@ implements StoreFuncInterface, LoadMetadata {
 
     @Override
     public void checkSchema(ResourceSchema s) throws IOException {
-        
+
     }
 
     @Override
@@ -379,7 +385,7 @@ implements StoreFuncInterface, LoadMetadata {
             throws IOException {
         Configuration conf = job.getConfiguration();
         Properties props = ConfigurationUtil.toProperties(conf);
-        
+
         // At compile time in batch mode, the file may not exist
         // (such as intermediate file). Just return null - the
         // same way as we would if we did not get a valid record
@@ -412,7 +418,7 @@ implements StoreFuncInterface, LoadMetadata {
     public void setPartitionFilter(Expression plan) throws IOException {
         throw new UnsupportedOperationException();
     }
-    
+
     @Override
     public void setStoreFuncUDFContextSignature(String signature) {
     }

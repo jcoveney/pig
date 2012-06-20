@@ -21,17 +21,18 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PushbackInputStream;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
-import java.util.EmptyStackException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.LoadStoreCaster;
 import org.apache.pig.PigWarning;
-import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -45,7 +46,7 @@ import org.apache.pig.impl.util.LogUtils;
 /**
  * This abstract class provides standard conversions between utf8 encoded data
  * and pig data types.  It is intended to be extended by load and store
- * functions (such as {@link PigStorage}). 
+ * functions (such as {@link PigStorage}).
  */
 public class Utf8StorageConverter implements LoadStoreCaster {
 
@@ -58,7 +59,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
     private static final Long mMaxLong = Long.valueOf(Long.MAX_VALUE);
     private static final Long mMinLong = Long.valueOf(Long.MIN_VALUE);
     private static final int BUFFER_SIZE = 1024;
-        
+
     public Utf8StorageConverter() {
     }
 
@@ -70,7 +71,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
         default: throw new IOException("Unknown start character");
         }
     }
-    
+
     private DataBag consumeBag(PushbackInputStream in, ResourceFieldSchema fieldSchema) throws IOException {
         if (fieldSchema==null) {
             throw new IOException("Schema is null");
@@ -101,14 +102,14 @@ public class Utf8StorageConverter implements LoadStoreCaster {
         }
         return db;
     }
-    
+
     private Tuple consumeTuple(PushbackInputStream in, ResourceFieldSchema fieldSchema) throws IOException {
         if (fieldSchema==null) {
             throw new IOException("Schema is null");
         }
         int buf;
         ByteArrayOutputStream mOut;
-        
+
         while ((buf=in.read())!='('||buf=='}') {
             if (buf==-1) {
                 throw new IOException("Unexpect end of tuple");
@@ -128,7 +129,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
                 int delimit = ',';
                 if (i==fss.length-1)
                     delimit = ')';
-                
+
                 if (DataType.isComplex(fs.getType())) {
                     field = consumeComplexType(in, fs);
                     while ((buf=in.read())!=delimit) {
@@ -191,10 +192,10 @@ public class Utf8StorageConverter implements LoadStoreCaster {
         }
         return t;
     }
-    
+
     private Map<String, Object> consumeMap(PushbackInputStream in, ResourceFieldSchema fieldSchema) throws IOException {
         int buf;
-        
+
         while ((buf=in.read())!='[') {
             if (buf==-1) {
                 throw new IOException("Unexpect end of map");
@@ -213,7 +214,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
             String key = bytesToCharArray(mOut.toByteArray());
             if (key.length()==0)
                 throw new IOException("Map key can not be null");
-            
+
             // Read value
             mOut.reset();
             Stack<Character> level = new Stack<Character>(); // keep track of nested tuple/bag/map. We do not interpret, save them as bytearray
@@ -253,7 +254,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
         }
         return m;
     }
-    
+
     private Object bytesToObject(byte[] b, ResourceFieldSchema fs) throws IOException {
         Object field;
         if (DataType.isComplex(fs.getType())) {
@@ -266,7 +267,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
         }
         return field;
     }
-    
+
     private Object consumeComplexType(PushbackInputStream in, ResourceFieldSchema complexFieldSchema) throws IOException {
         Object field;
         switch (complexFieldSchema.getType()) {
@@ -284,7 +285,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
         }
         return field;
     }
-    
+
     private Object parseSimpleType(byte[] b, ResourceFieldSchema simpleFieldSchema) throws IOException {
         Object field;
         switch (simpleFieldSchema.getType()) {
@@ -309,6 +310,12 @@ public class Utf8StorageConverter implements LoadStoreCaster {
         case DataType.BOOLEAN:
             field = bytesToBoolean(b);
             break;
+        case DataType.BIGINTEGER:
+            field = bytesToBigInteger(b);
+            break;
+        case DataType.BIGDECIMAL:
+            field = bytesToBigDecimal(b);
+            break;
         default:
             throw new IOException("Unknown simple data type");
         }
@@ -327,7 +334,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
         } catch (IOException e) {
             LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                     "converted to type bag, caught ParseException <" +
-                    e.getMessage() + "> field discarded", 
+                    e.getMessage() + "> field discarded",
                     PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
             return null;
         }
@@ -350,12 +357,12 @@ public class Utf8StorageConverter implements LoadStoreCaster {
         } catch (NumberFormatException nfe) {
             LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                     "converted to double, caught NumberFormatException <" +
-                    nfe.getMessage() + "> field discarded", 
+                    nfe.getMessage() + "> field discarded",
                     PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
             return null;
         }
     }
-    
+
     @Override
     public Float bytesToFloat(byte[] b) throws IOException {
         if(b == null)
@@ -372,12 +379,12 @@ public class Utf8StorageConverter implements LoadStoreCaster {
         } catch (NumberFormatException nfe) {
             LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                     "converted to float, caught NumberFormatException <" +
-                    nfe.getMessage() + "> field discarded", 
+                    nfe.getMessage() + "> field discarded",
                     PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
             return null;
         }
     }
-    
+
 
     @Override
     public Boolean bytesToBoolean(byte[] b) throws IOException {
@@ -410,7 +417,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
                 // Need to check for an overflow error
                 if (Double.compare(d.doubleValue(), mMaxInt.doubleValue() + 1) >= 0 ||
                         Double.compare(d.doubleValue(), mMinInt.doubleValue() - 1) <= 0) {
-                    LogUtils.warn(this, "Value " + d + " too large for integer", 
+                    LogUtils.warn(this, "Value " + d + " too large for integer",
                             PigWarning.TOO_LARGE_FOR_INT, mLog);
                     return null;
                 }
@@ -418,13 +425,13 @@ public class Utf8StorageConverter implements LoadStoreCaster {
             } catch (NumberFormatException nfe2) {
                 LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                         "converted to int, caught NumberFormatException <" +
-                        nfe.getMessage() + "> field discarded", 
+                        nfe.getMessage() + "> field discarded",
                         PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
                 return null;
             }
         }
     }
-    
+
     @Override
     public Long bytesToLong(byte[] b) throws IOException {
         if (b == null)
@@ -435,7 +442,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
         } else {
             s = new String(b);
         }
-        
+
         try {
             return Long.valueOf(s);
         } catch (NumberFormatException nfe) {
@@ -448,7 +455,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
                 // Need to check for an overflow error
                 if (Double.compare(d.doubleValue(), mMaxLong.doubleValue() + 1) > 0 ||
                         Double.compare(d.doubleValue(), mMinLong.doubleValue() - 1) < 0) {
-                	LogUtils.warn(this, "Value " + d + " too large for long", 
+                	LogUtils.warn(this, "Value " + d + " too large for long",
                 	            PigWarning.TOO_LARGE_FOR_INT, mLog);
                     return null;
                 }
@@ -456,7 +463,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
             } catch (NumberFormatException nfe2) {
                 LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                             "converted to long, caught NumberFormatException <" +
-                            nfe.getMessage() + "> field discarded", 
+                            nfe.getMessage() + "> field discarded",
                             PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
                 return null;
             }
@@ -477,13 +484,13 @@ public class Utf8StorageConverter implements LoadStoreCaster {
         catch (IOException e) {
             LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                     "converted to type map, caught ParseException <" +
-                    e.getMessage() + "> field discarded", 
+                    e.getMessage() + "> field discarded",
                     PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
-            return null;       
+            return null;
         }
         return map;
     }
-    
+
     @Override
     public Map<String, Object> bytesToMap(byte[] b) throws IOException {
         return bytesToMap(b, null);
@@ -494,21 +501,37 @@ public class Utf8StorageConverter implements LoadStoreCaster {
         if(b == null)
             return null;
         Tuple t;
-        
+
         try {
             ByteArrayInputStream bis = new ByteArrayInputStream(b);
             PushbackInputStream in = new PushbackInputStream(bis);
             t = consumeTuple(in, fieldSchema);
-        } 
+        }
         catch (IOException e) {
             LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                     "converted to type tuple, caught ParseException <" +
-                    e.getMessage() + "> field discarded", 
+                    e.getMessage() + "> field discarded",
                     PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
-            return null;       
+            return null;
         }
 
         return t;
+    }
+
+    @Override
+    public BigInteger bytesToBigInteger(byte[] b) throws IOException {
+        if (b == null) {
+            return null;
+        }
+        return new BigInteger(new String(b));
+    }
+
+    @Override
+    public BigDecimal bytesToBigDecimal(byte[] b) throws IOException {
+        if (b == null) {
+            return null;
+        }
+        return new BigDecimal(new String(b));
     }
 
     @Override
@@ -559,6 +582,16 @@ public class Utf8StorageConverter implements LoadStoreCaster {
     @Override
     public byte[] toBytes(DataByteArray a) throws IOException {
         return a.get();
+    }
+
+    @Override
+    public byte[] toBytes(BigInteger bi) throws IOException {
+        return bi.toString().getBytes();
+    }
+
+    @Override
+    public byte[] toBytes(BigDecimal bd) throws IOException {
+        return bd.toString().getBytes();
     }
 
 }

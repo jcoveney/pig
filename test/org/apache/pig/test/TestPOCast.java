@@ -18,6 +18,8 @@
 package org.apache.pig.test;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -66,7 +68,7 @@ public class TestPOCast extends TestCase {
 	Tuple dummyTuple = null;
 	Map<Object,Object> dummyMap = null;
 	DataBag dummyBag = null;
-	
+
 	@Test
 	public void testBooleanToOther() throws IOException {
 	    //Create data
@@ -76,7 +78,7 @@ public class TestPOCast extends TestCase {
             t.append(r.nextBoolean());
             bag.add(t);
         }
-        
+
         POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
         LoadFunc load = new TestLoader();
         op.setFuncSpec(new FuncSpec(load.getClass().getName()));
@@ -85,14 +87,14 @@ public class TestPOCast extends TestCase {
         plan.add(prj);
         plan.add(op);
         plan.connect(prj, op);
-        
+
         prj.setResultType(DataType.BOOLEAN);
-        
+
         // Plan to test when result type is ByteArray and casting is requested
         // for example casting of values coming out of map lookup.
         POCast opWithInputTypeAsBA = new POCast(new OperatorKey("", r.nextLong()), -1);
         PhysicalPlan planToTestBACasts = constructPlan(opWithInputTypeAsBA);
-        
+
         for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
             Tuple t = it.next();
             plan.attachInput(t);
@@ -107,7 +109,7 @@ public class TestPOCast extends TestCase {
                 assertEquals(b, res.result);
             }
         }
-        
+
         for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
             Tuple t = it.next();
             plan.attachInput(t);
@@ -122,7 +124,7 @@ public class TestPOCast extends TestCase {
                 assertEquals(i, res.result);
             }
         }
-        
+
         for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
             Tuple t = it.next();
             plan.attachInput(t);
@@ -137,7 +139,7 @@ public class TestPOCast extends TestCase {
                 assertEquals(l, res.result);
             }
         }
-        
+
         for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
             Tuple t = it.next();
             plan.attachInput(t);
@@ -152,7 +154,7 @@ public class TestPOCast extends TestCase {
                 assertEquals(f, res.result);
             }
         }
-        
+
         for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
             Tuple t = it.next();
             plan.attachInput(t);
@@ -167,7 +169,7 @@ public class TestPOCast extends TestCase {
                 assertEquals(d, res.result);
             }
         }
-        
+
         for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
             Tuple t = it.next();
             plan.attachInput(t);
@@ -182,7 +184,7 @@ public class TestPOCast extends TestCase {
                 assertEquals(str, res.result);
             }
         }
-        
+
         for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
             Tuple t = it.next();
             plan.attachInput(t);
@@ -197,7 +199,7 @@ public class TestPOCast extends TestCase {
                 assertEquals(dba, res.result);
             }
         }
-        
+
         for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
             Tuple t = it.next();
             plan.attachInput(t);
@@ -205,14 +207,14 @@ public class TestPOCast extends TestCase {
             Result res = op.getNext(map);
             assertEquals(POStatus.STATUS_ERR, res.returnStatus);
         }
-        
+
         for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
             Tuple t = it.next();
             plan.attachInput(t);
             Result res = op.getNext(t);
             assertEquals(POStatus.STATUS_ERR, res.returnStatus);
         }
-        
+
         for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
             Tuple t = it.next();
             plan.attachInput(t);
@@ -245,7 +247,7 @@ public class TestPOCast extends TestCase {
             }
         }
 	}
-	
+
 	@Test
 	public void testIntegerToOther() throws IOException {
 		//Create data
@@ -255,7 +257,7 @@ public class TestPOCast extends TestCase {
 			t.append(i == 0 ? 0 : r.nextInt());
 			bag.add(t);
 		}
-		
+
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		LoadFunc load = new TestLoader();
 		op.setFuncSpec(new FuncSpec(load.getClass().getName()));
@@ -264,7 +266,7 @@ public class TestPOCast extends TestCase {
 		plan.add(prj);
 		plan.add(op);
 		plan.connect(prj, op);
-		
+
 		prj.setResultType(DataType.INTEGER);
 		// Plan to test when result type is ByteArray and casting is requested
 		// for example casting of values coming out of map lookup.
@@ -300,7 +302,7 @@ public class TestPOCast extends TestCase {
 				assertEquals(i, res.result);
 			}
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -315,7 +317,7 @@ public class TestPOCast extends TestCase {
 				assertEquals(f, res.result);
 			}
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -330,7 +332,7 @@ public class TestPOCast extends TestCase {
 				assertEquals(l, res.result);
 			}
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -345,7 +347,7 @@ public class TestPOCast extends TestCase {
 				assertEquals(d, res.result);
 			}
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -360,7 +362,7 @@ public class TestPOCast extends TestCase {
 				assertEquals(str, res.result);
 			}
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -375,7 +377,7 @@ public class TestPOCast extends TestCase {
 				assertEquals(dba, res.result);
 			}
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -383,14 +385,14 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(map);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Result res = op.getNext(t);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -423,7 +425,7 @@ public class TestPOCast extends TestCase {
             }
         }
 	}
-	
+
 	@Test
 	public void testLongToOther() throws IOException {
 		//Create data
@@ -433,7 +435,7 @@ public class TestPOCast extends TestCase {
 			t.append(i == 0 ? 0L : r.nextLong());
 			bag.add(t);
 		}
-		
+
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		LoadFunc load = new TestLoader();
 		op.setFuncSpec(new FuncSpec(load.getClass().getName()));
@@ -442,9 +444,9 @@ public class TestPOCast extends TestCase {
 		plan.add(prj);
 		plan.add(op);
 		plan.connect(prj, op);
-		
+
 		prj.setResultType(DataType.LONG);
-		
+
 		// Plan to test when result type is ByteArray and casting is requested
 		// for example casting of values coming out of map lookup.
 		POCast opWithInputTypeAsBA = new POCast(new OperatorKey("", r.nextLong()), -1);
@@ -476,14 +478,14 @@ public class TestPOCast extends TestCase {
 				//System.out.println(res.result + " : " + i);
 				assertEquals(i, res.result);
 			}
-			
+
 			planToTestBACasts.attachInput(t);
 			res = opWithInputTypeAsBA.getNext(i);
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(i, res.result);
-			
+
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -493,13 +495,13 @@ public class TestPOCast extends TestCase {
 //			   System.out.println(res.result + " : " + f);
 				assertEquals(f, res.result);
 			}
-			
+
 			planToTestBACasts.attachInput(t);
 			res = opWithInputTypeAsBA.getNext(f);
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(f, res.result);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -509,13 +511,13 @@ public class TestPOCast extends TestCase {
 				//System.out.println(res.result + " : " + l);
 				assertEquals(l, res.result);
 			}
-			
+
 			planToTestBACasts.attachInput(t);
 			res = opWithInputTypeAsBA.getNext(l);
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(l, res.result);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -525,13 +527,13 @@ public class TestPOCast extends TestCase {
 				//System.out.println(res.result + " : " + d);
 				assertEquals(d, res.result);
 			}
-			
+
 			planToTestBACasts.attachInput(t);
 			res = opWithInputTypeAsBA.getNext(d);
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(d, res.result);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -541,13 +543,13 @@ public class TestPOCast extends TestCase {
 				//System.out.println(res.result + " : " + str);
 				assertEquals(str, res.result);
 			}
-			
+
 			planToTestBACasts.attachInput(t);
 			res = opWithInputTypeAsBA.getNext(str);
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(str, res.result);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -557,13 +559,13 @@ public class TestPOCast extends TestCase {
 				//System.out.println(res.result + " : " + dba);
 				assertEquals(dba, res.result);
 			}
-			
+
 			planToTestBACasts.attachInput(t);
 			res = opWithInputTypeAsBA.getNext(dba);
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(dba, res.result);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -571,14 +573,14 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(map);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Result res = op.getNext(t);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -611,7 +613,7 @@ public class TestPOCast extends TestCase {
             }
         }
 	}
-	
+
 	@Test
 	public void testFloatToOther() throws IOException {
 		//Create data
@@ -621,7 +623,7 @@ public class TestPOCast extends TestCase {
 			t.append(i == 0 ? 0.0F : r.nextFloat());
 			bag.add(t);
 		}
-		
+
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		LoadFunc load = new TestLoader();
 		op.setFuncSpec(new FuncSpec(load.getClass().getName()));
@@ -630,14 +632,14 @@ public class TestPOCast extends TestCase {
 		plan.add(prj);
 		plan.add(op);
 		plan.connect(prj, op);
-		
+
 		prj.setResultType(DataType.FLOAT);
-		
+
 		// Plan to test when result type is ByteArray and casting is requested
 		// for example casting of values coming out of map lookup.
 		POCast opWithInputTypeAsBA = new POCast(new OperatorKey("", r.nextLong()), -1);
 		PhysicalPlan planToTestBACasts = constructPlan(opWithInputTypeAsBA);
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
             Tuple t = it.next();
             plan.attachInput(t);
@@ -652,7 +654,7 @@ public class TestPOCast extends TestCase {
             if(res.returnStatus == POStatus.STATUS_OK)
                 assertEquals(b, res.result);
         }
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -667,7 +669,7 @@ public class TestPOCast extends TestCase {
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(i, res.result);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -682,7 +684,7 @@ public class TestPOCast extends TestCase {
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(f, res.result);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -697,7 +699,7 @@ public class TestPOCast extends TestCase {
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(l, res.result);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -712,7 +714,7 @@ public class TestPOCast extends TestCase {
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(d, res.result);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -727,7 +729,7 @@ public class TestPOCast extends TestCase {
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(str, res.result);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -742,12 +744,12 @@ public class TestPOCast extends TestCase {
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(dba, res.result);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			if(t.get(0) == null) {
-			
+
 					  Float result = (Float) op.getNext((Float) null).result;
 				assertEquals( null, result);
 
@@ -761,14 +763,14 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(map);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Result res = op.getNext(t);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -801,7 +803,7 @@ public class TestPOCast extends TestCase {
             }
         }
 	}
-	
+
 	@Test
 	public void testDoubleToOther() throws IOException {
 		//Create data
@@ -811,7 +813,7 @@ public class TestPOCast extends TestCase {
 			t.append(i == 0 ? 0.0D : r.nextDouble());
 			bag.add(t);
 		}
-		
+
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		LoadFunc load = new TestLoader();
 		op.setFuncSpec(new FuncSpec(load.getClass().getName()));
@@ -820,9 +822,9 @@ public class TestPOCast extends TestCase {
 		plan.add(prj);
 		plan.add(op);
 		plan.connect(prj, op);
-		
+
 		prj.setResultType(DataType.DOUBLE);
-		
+
 		// Plan to test when result type is ByteArray and casting is requested
 		// for example casting of values coming out of map lookup.
 		POCast opWithInputTypeAsBA = new POCast(new OperatorKey("", r.nextLong()), -1);
@@ -857,7 +859,7 @@ public class TestPOCast extends TestCase {
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(i, res.result);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -872,7 +874,7 @@ public class TestPOCast extends TestCase {
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(f, res.result);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -887,7 +889,7 @@ public class TestPOCast extends TestCase {
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(l, res.result);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -902,7 +904,7 @@ public class TestPOCast extends TestCase {
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(d, res.result);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -932,7 +934,7 @@ public class TestPOCast extends TestCase {
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(dba, res.result);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -940,14 +942,14 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(map);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Result res = op.getNext(t);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
@@ -980,7 +982,7 @@ public class TestPOCast extends TestCase {
             }
         }
 	}
-	
+
 	@Test
 	public void testStringToOther() throws IOException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
@@ -991,16 +993,16 @@ public class TestPOCast extends TestCase {
 		plan.add(prj);
 		plan.add(op);
 		plan.connect(prj, op);
-		
+
 		prj.setResultType(DataType.CHARARRAY);
 
 		// Plan to test when result type is ByteArray and casting is requested
 		// for example casting of values coming out of map lookup.
 		POCast opWithInputTypeAsBA = new POCast(new OperatorKey("", r.nextLong()), -1);
 		PhysicalPlan planToTestBACasts = constructPlan(opWithInputTypeAsBA);
-		
+
 		TupleFactory tf = TupleFactory.getInstance();
-		
+
         {
             Tuple t = tf.newTuple();
             t.append((new Boolean(r.nextBoolean())).toString());
@@ -1035,7 +1037,7 @@ public class TestPOCast extends TestCase {
             if (res.returnStatus == POStatus.STATUS_OK)
                 assertEquals(null, res.result);
         }
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append((new Integer(r.nextInt())).toString());
@@ -1051,7 +1053,7 @@ public class TestPOCast extends TestCase {
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(i, res.result);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append((new Float(r.nextFloat())).toString());
@@ -1067,7 +1069,7 @@ public class TestPOCast extends TestCase {
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(i, res.result);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append((new Long(r.nextLong())).toString());
@@ -1083,7 +1085,7 @@ public class TestPOCast extends TestCase {
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(i, res.result);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append((new Double(r.nextDouble())).toString());
@@ -1099,7 +1101,7 @@ public class TestPOCast extends TestCase {
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(i, res.result);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandString(r));
@@ -1115,11 +1117,11 @@ public class TestPOCast extends TestCase {
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(str, res.result);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandString(r));
-		
+
 			plan.attachInput(t);
 			DataByteArray dba = new DataByteArray(((String)t.get(0)).getBytes());
 			Result res = op.getNext(dba);
@@ -1127,13 +1129,13 @@ public class TestPOCast extends TestCase {
 				//System.out.println(res.result + " : " + dba);
 				assertEquals(dba, res.result);
 			}
-			
+
 			planToTestBACasts.attachInput(t);
 			res = opWithInputTypeAsBA.getNext(dba);
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(dba, res.result);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandString(r));
@@ -1142,7 +1144,7 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(map);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandString(r));
@@ -1183,18 +1185,18 @@ public class TestPOCast extends TestCase {
             }
         }
 	}
-	
+
 	public static class TestLoader extends LoadFunc implements LoadCaster{
-	    
+
         public void bindTo(String fileName, BufferedPositionedInputStream is, long offset, long end) throws IOException {
-            
+
         }
-        
+
         @Override
         public Tuple getNext() throws IOException {
             return null;
         }
-        
+
         public DataBag bytesToBag(byte[] b, ResourceFieldSchema s) throws IOException {
             return null;
         }
@@ -1215,20 +1217,20 @@ public class TestPOCast extends TestCase {
                 return null;
             }
         }
-        
+
         public String bytesToCharArray(byte[] b) throws IOException {
             DataByteArray dba = new DataByteArray(b);
             return dba.toString();
         }
-        
+
         public Double bytesToDouble(byte[] b) throws IOException {
             return new Double(Double.valueOf(new DataByteArray(b).toString()));
         }
-        
+
         public Float bytesToFloat(byte[] b) throws IOException {
             return new Float(Float.valueOf(new DataByteArray(b).toString()));
         }
-        
+
         public Integer bytesToInteger(byte[] b) throws IOException {
             return new Integer(Integer.valueOf(new DataByteArray(b).toString()));
         }
@@ -1240,7 +1242,7 @@ public class TestPOCast extends TestCase {
         public Map<String, Object> bytesToMap(byte[] b) throws IOException {
           return null;
         }
-        
+
         public Map<String, Object> bytesToMap(byte[] b, ResourceFieldSchema s) throws IOException {
             return null;
         }
@@ -1249,26 +1251,34 @@ public class TestPOCast extends TestCase {
             return null;
         }
 
+        public BigInteger bytesToBigInteger(byte[] b) throws IOException {
+            return new BigInteger(new DataByteArray(b).toString());
+        }
+
+        public BigDecimal bytesToBigDecimal(byte[] b) throws IOException {
+            return new BigDecimal(new DataByteArray(b).toString());
+        }
+
         public byte[] toBytes(DataBag bag) throws IOException {
             return null;
         }
-	
+
         public byte[] toBytes(String s) throws IOException {
             return s.getBytes();
         }
-        
+
         public byte[] toBytes(Double d) throws IOException {
             return d.toString().getBytes();
         }
-        
+
         public byte[] toBytes(Float f) throws IOException {
             return f.toString().getBytes();
         }
-        
+
         public byte[] toBytes(Integer i) throws IOException {
             return i.toString().getBytes();
         }
-        
+
         public byte[] toBytes(Long l) throws IOException {
             return l.toString().getBytes();
         }
@@ -1276,13 +1286,21 @@ public class TestPOCast extends TestCase {
         public byte[] toBytes(Boolean b) throws IOException {
             return b.toString().getBytes();
         }
-        
+
 	    public byte[] toBytes(Map<String, Object> m) throws IOException {
 	        return null;
 	    }
-	
+
         public byte[] toBytes(Tuple t) throws IOException {
             return null;
+        }
+
+        public byte[] toBytes(BigInteger bi) throws IOException {
+            return bi.toString().getBytes();
+        }
+
+        public byte[] toBytes(BigDecimal bd) throws IOException {
+            return bd.toString().getBytes();
         }
 
         @Override
@@ -1309,11 +1327,11 @@ public class TestPOCast extends TestCase {
 
         @Override
         public void setLocation(String location, Job job) throws IOException {
- 
+
         }
-        
+
 	}
-	
+
 	@Test
 	public void testByteArrayToOther() throws IOException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
@@ -1324,11 +1342,11 @@ public class TestPOCast extends TestCase {
 		plan.add(prj);
 		plan.add(op);
 		plan.connect(prj, op);
-		
+
 		prj.setResultType(DataType.BYTEARRAY);
-		
+
 		TupleFactory tf = TupleFactory.getInstance();
-		
+
 		// Plan to test when result type is ByteArray and casting is requested
 		// for example casting of values coming out of map lookup.
 		POCast opWithInputTypeAsBA = new POCast(new OperatorKey("", r.nextLong()), -1);
@@ -1368,7 +1386,7 @@ public class TestPOCast extends TestCase {
 				//System.out.println(res.result + " : " + i);
 				assertEquals(i, res.result);
 			}
-			
+
 			planToTestBACasts.attachInput(t);
 			res = opWithInputTypeAsBA.getNext(i);
 			if(res.returnStatus == POStatus.STATUS_OK)
@@ -1391,7 +1409,7 @@ public class TestPOCast extends TestCase {
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(i, res.result);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(new DataByteArray((new Long(r.nextLong())).toString().getBytes()));
@@ -1407,7 +1425,7 @@ public class TestPOCast extends TestCase {
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(i, res.result);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(new DataByteArray((new Double(r.nextDouble())).toString().getBytes()));
@@ -1423,7 +1441,7 @@ public class TestPOCast extends TestCase {
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(i, res.result);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(new DataByteArray(GenRandomData.genRandString(r).getBytes()));
@@ -1439,22 +1457,22 @@ public class TestPOCast extends TestCase {
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(str, res.result);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(new DataByteArray(GenRandomData.genRandString(r).getBytes()));
-			
+
 			plan.attachInput(t);
 			DataByteArray dba = (DataByteArray) t.get(0);
 			Result res = op.getNext(dba);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
-			
+
 			planToTestBACasts.attachInput(t);
 			res = opWithInputTypeAsBA.getNext(dba);
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(new DataByteArray(GenRandomData.genRandString(r).getBytes()));
@@ -1464,13 +1482,13 @@ public class TestPOCast extends TestCase {
 			//assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 			assertEquals(POStatus.STATUS_OK, res.returnStatus);
 			assertEquals(null, res.result);
-			
+
 			planToTestBACasts.attachInput(t);
 			res = opWithInputTypeAsBA.getNext(map);
 			assertEquals(POStatus.STATUS_OK, res.returnStatus);
 			assertEquals(null, res.result);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(new DataByteArray(GenRandomData.genRandString(r).getBytes()));
@@ -1479,13 +1497,13 @@ public class TestPOCast extends TestCase {
 			//assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 			assertEquals(POStatus.STATUS_OK, res.returnStatus);
 			assertEquals(null, res.result);
-			
+
 			planToTestBACasts.attachInput(t);
 			res = opWithInputTypeAsBA.getNext(t);
 			assertEquals(POStatus.STATUS_OK, res.returnStatus);
 			assertEquals(null, res.result);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(new DataByteArray(GenRandomData.genRandString(r).getBytes()));
@@ -1495,14 +1513,14 @@ public class TestPOCast extends TestCase {
 			//assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 			assertEquals(POStatus.STATUS_OK, res.returnStatus);
 			assertEquals(null, res.result);
-			
+
 			planToTestBACasts.attachInput(t);
 			res = opWithInputTypeAsBA.getNext(b);
 			assertEquals(POStatus.STATUS_OK, res.returnStatus);
 			assertEquals(null, res.result);
 		}
 	}
-	
+
 	private PhysicalPlan constructPlan(POCast op) throws IOException {
         LoadFunc load = new TestLoader();
         op.setFuncSpec(new FuncSpec(load.getClass().getName()));
@@ -1514,17 +1532,17 @@ public class TestPOCast extends TestCase {
         prj.setResultType(DataType.BYTEARRAY);
         return plan;
 	}
-	
-	/* 
-     * Test that if the input type is actually same 
+
+	/*
+     * Test that if the input type is actually same
      * as output type and we think that the input type is a
      * bytearray we still can handle it. This can happen in the
      * following situation:
-     * If a map in pig (say returned from a UDF) has a key with 
+     * If a map in pig (say returned from a UDF) has a key with
      * the value being a string, then a lookup of that key being used
      * in a context which expects a string will cause an implicit cast
-     * to a string. This is because the Pig frontend (logical layer) 
-     * thinks of all map "values" as bytearrays and hence introduces 
+     * to a string. This is because the Pig frontend (logical layer)
+     * thinks of all map "values" as bytearrays and hence introduces
      * a Cast to convert the bytearray to string. Though in reality
      * the input to the cast is already a string
      */
@@ -1533,9 +1551,9 @@ public class TestPOCast extends TestCase {
         POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
         PhysicalPlan plan = constructPlan(op);
         TupleFactory tf = TupleFactory.getInstance();
-        
+
         {
-            // create a new POCast each time since we 
+            // create a new POCast each time since we
             // maintain a state variable per POCast object
             // indicating if cast is really required
             POCast newOp = new POCast(new OperatorKey("", r.nextLong()), -1);
@@ -1549,7 +1567,7 @@ public class TestPOCast extends TestCase {
                 //System.out.println(res.result + " : " + i);
                 assertEquals(input, res.result);
             }
-            
+
             t = tf.newTuple();
             t.append("neither true nor false");
             plan.attachInput(t);
@@ -1559,10 +1577,10 @@ public class TestPOCast extends TestCase {
                 assertEquals(null, res.result);
             }
         }
-        
+
         {
             Tuple t = tf.newTuple();
-            Integer input = new Integer(r.nextInt()); 
+            Integer input = new Integer(r.nextInt());
             t.append(input);
             plan.attachInput(t);
             Result res = op.getNext(new Integer(0));
@@ -1571,9 +1589,9 @@ public class TestPOCast extends TestCase {
                 assertEquals(input, res.result);
             }
         }
-        
+
         {
-            // create a new POCast each time since we 
+            // create a new POCast each time since we
             // maintain a state variable per POCast object
             // indicating if cast is really required
             POCast newOp = new POCast(new OperatorKey("", r.nextLong()), -1);
@@ -1588,9 +1606,9 @@ public class TestPOCast extends TestCase {
                 assertEquals(input, res.result);
             }
         }
-        
+
         {
-            // create a new POCast each time since we 
+            // create a new POCast each time since we
             // maintain a state variable per POCast object
             // indicating if cast is really required
             POCast newOp = new POCast(new OperatorKey("", r.nextLong()), -1);
@@ -1605,9 +1623,9 @@ public class TestPOCast extends TestCase {
                 assertEquals(input, res.result);
             }
         }
-        
+
         {
-            // create a new POCast each time since we 
+            // create a new POCast each time since we
             // maintain a state variable per POCast object
             // indicating if cast is really required
             POCast newOp = new POCast(new OperatorKey("", r.nextLong()), -1);
@@ -1622,9 +1640,9 @@ public class TestPOCast extends TestCase {
                 assertEquals(input, res.result);
             }
         }
-        
+
         {
-            // create a new POCast each time since we 
+            // create a new POCast each time since we
             // maintain a state variable per POCast object
             // indicating if cast is really required
             POCast newOp = new POCast(new OperatorKey("", r.nextLong()), -1);
@@ -1639,9 +1657,9 @@ public class TestPOCast extends TestCase {
                 assertEquals(input, res.result);
             }
         }
-        
+
         {
-            // create a new POCast each time since we 
+            // create a new POCast each time since we
             // maintain a state variable per POCast object
             // indicating if cast is really required
             POCast newOp = new POCast(new OperatorKey("", r.nextLong()), -1);
@@ -1656,9 +1674,9 @@ public class TestPOCast extends TestCase {
                 assertEquals(input, res.result);
             }
         }
-        
+
         {
-            // create a new POCast each time since we 
+            // create a new POCast each time since we
             // maintain a state variable per POCast object
             // indicating if cast is really required
             POCast newOp = new POCast(new OperatorKey("", r.nextLong()), -1);
@@ -1675,9 +1693,9 @@ public class TestPOCast extends TestCase {
                 assertEquals(input, res.result);
             }
         }
-        
+
 	}
-	
+
 	@Test
 	public void testTupleToOther() throws IOException, ParserException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
@@ -1687,16 +1705,16 @@ public class TestPOCast extends TestCase {
 		plan.add(prj);
 		plan.add(op);
 		plan.connect(prj, op);
-		
+
 		prj.setResultType(DataType.TUPLE);
-		
+
 		TupleFactory tf = TupleFactory.getInstance();
-		
+
 		//Plan to test when result type is ByteArray and casting is requested
 		//for example casting of values coming out of map lookup.
 		POCast opWithInputTypeAsBA = new POCast(new OperatorKey("", r.nextLong()), -1);
 		PhysicalPlan planToTestBACasts = constructPlan(opWithInputTypeAsBA);
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandString(r));
@@ -1707,7 +1725,7 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(map);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandString(r));
@@ -1717,12 +1735,12 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(t);
 			//System.out.println(res.result + " : " + t);
 			assertEquals(t, res.result);
-			
+
 			planToTestBACasts.attachInput(tNew);
 			res = opWithInputTypeAsBA.getNext(t);
 			assertEquals(t, res.result);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandString(r));
@@ -1733,7 +1751,7 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(b);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandString(r));
@@ -1744,7 +1762,7 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandString(r));
@@ -1755,7 +1773,7 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandString(r));
@@ -1766,7 +1784,7 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandString(r));
@@ -1777,7 +1795,7 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-	      
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandString(r));
@@ -1788,7 +1806,7 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandString(r));
@@ -1798,13 +1816,13 @@ public class TestPOCast extends TestCase {
 			DataByteArray i = null;
 			Result res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
-			
+
 			op.setFuncSpec(new FuncSpec(BinStorage.class.getName()));
 			plan.attachInput(tNew);
 			res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
         {
             Tuple t = tf.newTuple();
             Tuple wrappedTuple = tf.newTuple();
@@ -1816,10 +1834,10 @@ public class TestPOCast extends TestCase {
             plan.attachInput(t);
             Tuple tup = null;
             Result res = op.getNext(tup);
-            
+
             assertTrue(res.result==null);
         }
-        
+
         {
             //positive test case
             Tuple t = tf.newTuple();
@@ -1849,13 +1867,13 @@ public class TestPOCast extends TestCase {
             Result res = op.getNext(tup);
             verifyResult(res, POStatus.STATUS_OK, wrappedTuple);
         }
-	
-	
+
+
 	}
-	
+
 	private void verifyResult(Result res, byte status, Object result) {
         assertEquals("result status", status, res.returnStatus);
-        assertEquals("result value", result, res.result);        
+        assertEquals("result value", result, res.result);
     }
 
     @Test
@@ -1867,11 +1885,11 @@ public class TestPOCast extends TestCase {
 		plan.add(prj);
 		plan.add(op);
 		plan.connect(prj, op);
-		
+
 		prj.setResultType(DataType.BAG);
-		
+
 		TupleFactory tf = TupleFactory.getInstance();
-		
+
 		//Plan to test when result type is ByteArray and casting is requested
 		//for example casting of values coming out of map lookup.
 		POCast opWithInputTypeAsBA = new POCast(new OperatorKey("", r.nextLong()), -1);
@@ -1884,7 +1902,7 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(map);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandSmallTupDataBag(r, 1, 100));
@@ -1892,7 +1910,7 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(t);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandSmallTupDataBag(r, 1, 100));
@@ -1901,12 +1919,12 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(b);
 			//System.out.println(res.result + " : " + t);
 			assertEquals(b, res.result);
-			
+
 			planToTestBACasts.attachInput(t);
 			res = opWithInputTypeAsBA.getNext(b);
 			assertEquals(b, res.result);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandSmallTupDataBag(r, 1, 100));
@@ -1915,7 +1933,7 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandSmallTupDataBag(r, 1, 100));
@@ -1924,16 +1942,16 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
-			t.append(GenRandomData.genRandSmallTupDataBag(r, 1, 100));       
+			t.append(GenRandomData.genRandSmallTupDataBag(r, 1, 100));
 			plan.attachInput(t);
 			Float i = null;
 			Result res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandSmallTupDataBag(r, 1, 100));
@@ -1942,7 +1960,7 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandSmallTupDataBag(r, 1, 100));
@@ -1951,7 +1969,7 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandSmallTupDataBag(r, 1, 100));
@@ -1959,13 +1977,13 @@ public class TestPOCast extends TestCase {
 			DataByteArray i = null;
 			Result res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
-			
+
 			op.setFuncSpec(new FuncSpec(BinStorage.class.getName()));
 			plan.attachInput(t);
 			res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
         {
             Tuple t = tf.newTuple();
             t.append(GenRandomData.genRandSmallTupDataBagWithNulls(r, 20, 100));
@@ -1976,7 +1994,7 @@ public class TestPOCast extends TestCase {
             Result res = op.getNext(db);
             Iterator<Tuple> expectedBagIterator = ((DataBag)(t.get(0))).iterator();
             Iterator<Tuple> convertedBagIterator = ((DataBag)(res.result)).iterator();
-            
+
             while(expectedBagIterator.hasNext()) {
                 Tuple expectedBagTuple = expectedBagIterator.next();
                 Tuple convertedBagTuple = convertedBagIterator.next();
@@ -1988,11 +2006,11 @@ public class TestPOCast extends TestCase {
                     assertTrue(convertedBagTuple.get(1) instanceof Float);
                     assertTrue(((Float)(expectedBagTuple.get(1))).floatValue()==(Float)(convertedBagTuple.get(1)));
                 }
-                
+
 
             }
         }
-        
+
         {
             Tuple t = tf.newTuple();
             t.append(GenRandomData.genRandSmallTupDataBagWithNulls(r, 20, 100));
@@ -2003,16 +2021,16 @@ public class TestPOCast extends TestCase {
             Result res = op.getNext(db);
             Iterator<Tuple> expectedBagIterator = ((DataBag)(t.get(0))).iterator();
             Iterator<Tuple> convertedBagIterator = ((DataBag)(res.result)).iterator();
-            
+
             while(expectedBagIterator.hasNext()) {
                 Tuple expectedBagTuple = expectedBagIterator.next();
                 Tuple convertedBagTuple = convertedBagIterator.next();
-                
+
                 if(expectedBagTuple.get(0) != null){
                     assertTrue(convertedBagTuple.get(0) instanceof String);
                     assertTrue(expectedBagTuple.get(0).equals(convertedBagTuple.get(0)));
                 }
-                
+
                 if(expectedBagTuple.get(1) != null){
                     assertTrue(convertedBagTuple.get(1) instanceof Integer);
                     assertTrue(((Integer)(expectedBagTuple.get(1)))==(Integer)(convertedBagTuple.get(1)));
@@ -2021,7 +2039,7 @@ public class TestPOCast extends TestCase {
             }
         }
 	}
-	
+
 	@Test
 	public void testMapToOther() throws IOException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
@@ -2032,7 +2050,7 @@ public class TestPOCast extends TestCase {
 		plan.add(op);
 		plan.connect(prj, op);
 		prj.setResultType(DataType.MAP);
-		
+
 		// Plan to test when result type is ByteArray and casting is requested
 		// for example casting of values coming out of map lookup.
 		POCast opWithInputTypeAsBA = new POCast(new OperatorKey("", r.nextLong()), -1);
@@ -2046,21 +2064,21 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(map);
 			//System.out.println(res.result + " : " + t);
 			assertEquals(map, res.result);
-		     
+
 			planToTestBACasts.attachInput(t);
 			res = opWithInputTypeAsBA.getNext(map);
 			assertEquals(map, res.result);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandMap(r, 10));
 			plan.attachInput(t);
 			Result res = op.getNext(t);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
-			
+
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandMap(r, 10));
@@ -2068,9 +2086,9 @@ public class TestPOCast extends TestCase {
 			DataBag b = null;
 			Result res = op.getNext(b);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
-			
+
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandMap(r, 10));
@@ -2078,15 +2096,15 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
-		{     
+
+		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandMap(r, 10));
 			Long i = null;
 			Result res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandMap(r, 10));
@@ -2094,7 +2112,7 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandMap(r, 10));
@@ -2102,7 +2120,7 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandMap(r, 10));
@@ -2110,7 +2128,7 @@ public class TestPOCast extends TestCase {
 			Result res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandMap(r, 10));
@@ -2125,7 +2143,7 @@ public class TestPOCast extends TestCase {
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 	}
-	
+
 	@Test
 	public void testNullToOther() throws PlanException, ExecException {
 		//Create data
@@ -2139,16 +2157,16 @@ public class TestPOCast extends TestCase {
 				t.append(null);
 				bag.add(t);
 			}
-			
+
 		}
-		
+
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
-		PhysicalPlan plan = new PhysicalPlan();       
+		PhysicalPlan plan = new PhysicalPlan();
 		plan.add(prj);
 		plan.add(op);
 		plan.connect(prj, op);
-		
+
         prj.setResultType(DataType.BOOLEAN);
 
         for (Iterator<Tuple> it = bag.iterator(); it.hasNext();) {
@@ -2163,80 +2181,80 @@ public class TestPOCast extends TestCase {
 
         }
 
-        prj.setResultType(DataType.INTEGER); 
-		
+        prj.setResultType(DataType.INTEGER);
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			if(t.get(0) == null) {
-				
+
 				Integer result  = (Integer)op.getNext((Integer)null).result;
 				assertEquals( null, result);
 
-			} 
-			
+			}
+
 		}
-		
+
 		prj.setResultType(DataType.FLOAT);
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			if(t.get(0) == null) {
-				
+
 				Integer result  = (Integer)op.getNext((Integer)null).result;
 				assertEquals( null, result);
 
-			} 
-			
+			}
+
 		}
-		
+
 		prj.setResultType(DataType.DOUBLE);
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			if(t.get(0) == null) {
-				
+
 				Double result = (Double) op.getNext((Double) null).result;
 			assertEquals(null, result);
 
 			}
 		}
-		
+
 		prj.setResultType(DataType.CHARARRAY);
-		
+
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			if(t.get(0) == null) {
-				
+
 				String result  = (String)op.getNext((String)null).result;
 				assertEquals( null, result);
 
-			} 
-			
+			}
+
 		}
-		
+
 		prj.setResultType(DataType.BYTEARRAY);
-		
+
 		TupleFactory tf = TupleFactory.getInstance();
-		
+
 		{
 			Tuple t = tf.newTuple();
 			t.append(new DataByteArray((new Integer(r.nextInt())).toString().getBytes()));
 			plan.attachInput(t);
 			if(t.get(0) == null) {
-				
+
 				DataByteArray result = (DataByteArray) op.getNext((String) null).result;
 				assertEquals(null, result);
-				
+
 			}
-			
+
 		}
-		
+
 	}
-	
+
 	@Test
 	public void testValueTypesChanged() throws IOException {
 

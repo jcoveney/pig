@@ -27,12 +27,11 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.hadoop.io.WritableComparable;
-
-import org.apache.pig.classification.InterfaceAudience;
-import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
@@ -55,16 +54,18 @@ public class DataType {
     // order unlike datatypes.  Don't change this ordering.
     // Spaced unevenly to leave room for new entries without changing
     // values or creating order issues.
-    public static final byte UNKNOWN   =   0;
-    public static final byte NULL      =   1;
-    public static final byte BOOLEAN   =   5;
-    public static final byte BYTE      =   6; // internal use only
-    public static final byte INTEGER   =  10;
-    public static final byte LONG      =  15;
-    public static final byte FLOAT     =  20;
-    public static final byte DOUBLE    =  25;
-    public static final byte BYTEARRAY =  50;
-    public static final byte CHARARRAY =  55;
+    public static final byte UNKNOWN    =   0;
+    public static final byte NULL       =   1;
+    public static final byte BOOLEAN    =   5;
+    public static final byte BYTE       =   6; // internal use only
+    public static final byte INTEGER    =  10;
+    public static final byte LONG       =  15;
+    public static final byte FLOAT      =  20;
+    public static final byte DOUBLE     =  25;
+    public static final byte BYTEARRAY  =  50;
+    public static final byte CHARARRAY  =  55;
+    public static final byte BIGINTEGER =  65;
+    public static final byte BIGDECIMAL =  70;
     /**
      * Internal use only.
      */
@@ -531,7 +532,7 @@ public class DataType {
      * cannot be forced to a Boolean. This isn't particularly efficient, so if
      * you already <b>know</b> that the object you have is a Boolean you should
      * just cast it.
-     * 
+     *
      * @param o
      *            object to cast
      * @param type
@@ -598,7 +599,7 @@ public class DataType {
             throw new ExecException(msg, errCode, PigException.BUG);
         }
     }
-    
+
     public static Boolean toBoolean(Object o) throws ExecException {
         return toBoolean(o, findType(o));
     }
@@ -1196,7 +1197,7 @@ public class DataType {
         // else return false
         return false;
     }
-    
+
     /**
      * Merge types if possible.  Merging types means finding a type that one
      * or both types can be upcast to.

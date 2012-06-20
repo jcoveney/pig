@@ -19,6 +19,8 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOp
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -76,7 +78,7 @@ public class POCast extends ExpressionOperator {
 
     private void instantiateFunc() throws IOException {
         if (caster != null) return;
-           
+
         if (funcSpec != null) {
             Object obj = PigContext
                     .instantiateFuncFromSpec(funcSpec);
@@ -88,7 +90,7 @@ public class POCast extends ExpressionOperator {
                 throw new IOException("Invalid class type "
                         + funcSpec.getClassName());
             }
-        }        
+        }
     }
 
     public void setFuncSpec(FuncSpec lf) throws IOException {
@@ -139,7 +141,7 @@ public class POCast extends ExpressionOperator {
             res.returnStatus = POStatus.STATUS_ERR;
             return res;
         }
-        
+
         case DataType.BYTEARRAY: {
             DataByteArray dba = null;
             Result res = in.getNext(dba);
@@ -185,12 +187,12 @@ public class POCast extends ExpressionOperator {
             }
             return res;
         }
-        
+
         case DataType.BOOLEAN: {
             Result res = in.getNext(b);
             return res;
         }
-        
+
         case DataType.INTEGER: {
             Integer i = null;
             Result res = in.getNext(i);
@@ -226,8 +228,27 @@ public class POCast extends ExpressionOperator {
             }
             return res;
         }
+
+        case DataType.BIGINTEGER: {
+            BigInteger bi = null;
+            Result res = in.getNext(bi);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = Boolean.valueOf(BigInteger.ZERO.equals((BigInteger)res.result));
+            }
+            return res;
         }
-        
+
+        case DataType.BIGDECIMAL: {
+            BigDecimal bd = null;
+            Result res = in.getNext(bd);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = Boolean.valueOf(BigDecimal.ZERO.equals((BigDecimal)res.result));
+            }
+            return res;
+        }
+
+        }
+
         Result res = new Result();
         res.returnStatus = POStatus.STATUS_ERR;
         return res;
@@ -345,6 +366,22 @@ public class POCast extends ExpressionOperator {
                 res.result = CastUtils.stringToInteger((String)res.result);
             }
             return res;
+        }
+
+        case DataType.BIGINTEGER: {
+            BigInteger bi = null;
+            Result res = in.getNext(bi);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = Integer.valueOf(((BigInteger)res.result).intValue());
+            }
+        }
+
+        case DataType.BIGDECIMAL: {
+            BigDecimal bd = null;
+            Result res = in.getNext(bd);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = Integer.valueOf(((BigDecimal)res.result).intValue());
+            }
         }
 
         }
@@ -469,6 +506,22 @@ public class POCast extends ExpressionOperator {
             return res;
         }
 
+        case DataType.BIGINTEGER: {
+            BigInteger bi = null;
+            Result res = in.getNext(bi);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = Long.valueOf(((BigInteger)res.result).longValue());
+            }
+        }
+
+        case DataType.BIGDECIMAL: {
+            BigDecimal bd = null;
+            Result res = in.getNext(bd);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = Long.valueOf(((BigDecimal)res.result).longValue());
+            }
+        }
+
         }
 
         Result res = new Result();
@@ -588,6 +641,22 @@ public class POCast extends ExpressionOperator {
                 res.result = CastUtils.stringToDouble((String)res.result);
             }
             return res;
+        }
+
+        case DataType.BIGINTEGER: {
+            BigInteger bi = null;
+            Result res = in.getNext(bi);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = Double.valueOf(((BigInteger)res.result).doubleValue());
+            }
+        }
+
+        case DataType.BIGDECIMAL: {
+            BigDecimal bd = null;
+            Result res = in.getNext(bd);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = Double.valueOf(((BigDecimal)res.result).doubleValue());
+            }
         }
 
         }
@@ -711,6 +780,22 @@ public class POCast extends ExpressionOperator {
                 res.result = CastUtils.stringToFloat((String)res.result);
             }
             return res;
+        }
+
+        case DataType.BIGINTEGER: {
+            BigInteger bi = null;
+            Result res = in.getNext(bi);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = Float.valueOf(((BigInteger)res.result).floatValue());
+            }
+        }
+
+        case DataType.BIGDECIMAL: {
+            BigDecimal bd = null;
+            Result res = in.getNext(bd);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = Float.valueOf(((BigDecimal)res.result).floatValue());
+            }
         }
 
         }
@@ -838,6 +923,22 @@ public class POCast extends ExpressionOperator {
             return res;
         }
 
+        case DataType.BIGINTEGER: {
+            BigInteger bi = null;
+            Result res = in.getNext(bi);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = ((BigInteger)res.result).toString();
+            }
+        }
+
+        case DataType.BIGDECIMAL: {
+            BigDecimal bd = null;
+            Result res = in.getNext(bd);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = ((BigDecimal)res.result).toString();
+            }
+        }
+
         }
 
         Result res = new Result();
@@ -860,7 +961,7 @@ public class POCast extends ExpressionOperator {
                 } catch (IOException e) {
                     LogUtils.warn(this, "Unable to interpret value " + res.result + " in field being " +
                             "converted to type tuple, caught ParseException <" +
-                            e.getMessage() + "> field discarded", 
+                            e.getMessage() + "> field discarded",
                             PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, log);
                     res.result = null;
                 }
@@ -931,7 +1032,11 @@ public class POCast extends ExpressionOperator {
 
         case DataType.CHARARRAY:
 
-        case DataType.BOOLEAN: {
+        case DataType.BOOLEAN:
+
+        case DataType.BIGINTEGER:
+
+        case DataType.BIGDECIMAL:{
             Result res = new Result();
             res.returnStatus = POStatus.STATUS_ERR;
             return res;
@@ -947,7 +1052,7 @@ public class POCast extends ExpressionOperator {
     @SuppressWarnings({ "unchecked", "deprecation" })
     private Object convertWithSchema(Object obj, ResourceFieldSchema fs) throws IOException {
         Object result = null;
-        
+
         if (fs == null) {
             return obj;
         }
@@ -956,7 +1061,7 @@ public class POCast extends ExpressionOperator {
             // handle DataType.NULL
             return null;
         }
-        
+
         switch (fs.getType()) {
         case DataType.BAG:
             if (obj instanceof DataBag) {
@@ -965,7 +1070,7 @@ public class POCast extends ExpressionOperator {
                 if (fs.getSchema()!=null) {
                     ResourceFieldSchema tupleFs = fs.getSchema().getFields()[0];
                     Iterator<Tuple> iter = db.iterator();
-                    
+
                     while (iter.hasNext()) {
                         Tuple t = iter.next();
                         convertWithSchema(t, tupleFs);
@@ -979,7 +1084,7 @@ public class POCast extends ExpressionOperator {
                     int errCode = 1075;
                     String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to bag.";
                     throw new ExecException(msg, errCode, PigException.INPUT);
-                }                
+                }
             } else {
                 throw new ExecException("Cannot cast " + obj + " to bag.", 1120, PigException.INPUT);
             }
@@ -1076,6 +1181,12 @@ public class POCast extends ExpressionOperator {
             case DataType.CHARARRAY:
                 result = CastUtils.stringToBoolean((String)obj);
                 break;
+            case DataType.BIGINTEGER:
+                result = Boolean.valueOf(BigInteger.ZERO.equals((BigInteger)obj));
+                break;
+            case DataType.BIGDECIMAL:
+                result = Boolean.valueOf(BigDecimal.ZERO.equals((BigDecimal)obj));
+                break;
             default:
                 throw new ExecException("Cannot convert "+ obj + " to " + fs, 1120, PigException.INPUT);
             }
@@ -1111,6 +1222,12 @@ public class POCast extends ExpressionOperator {
                 break;
             case DataType.CHARARRAY:
                 result = CastUtils.stringToInteger((String)obj);
+                break;
+            case DataType.BIGINTEGER:
+                result = Integer.valueOf(((BigInteger)obj).intValue());
+                break;
+            case DataType.BIGDECIMAL:
+                result = Integer.valueOf(((BigDecimal)obj).intValue());
                 break;
             default:
                 throw new ExecException("Cannot convert "+ obj + " to " + fs, 1120, PigException.INPUT);
@@ -1148,6 +1265,12 @@ public class POCast extends ExpressionOperator {
             case DataType.CHARARRAY:
                 result = CastUtils.stringToDouble((String)obj);
                 break;
+            case DataType.BIGINTEGER:
+                result = Double.valueOf(((BigInteger)obj).doubleValue());
+                break;
+            case DataType.BIGDECIMAL:
+                result = Double.valueOf(((BigDecimal)obj).doubleValue());
+                break;
             default:
                 throw new ExecException("Cannot convert "+ obj + " to " + fs, 1120, PigException.INPUT);
             }
@@ -1184,6 +1307,12 @@ public class POCast extends ExpressionOperator {
             case DataType.CHARARRAY:
                 result = CastUtils.stringToLong((String)obj);
                 break;
+            case DataType.BIGINTEGER:
+                result = Long.valueOf(((BigInteger)obj).longValue());
+                break;
+            case DataType.BIGDECIMAL:
+                result = Long.valueOf(((BigDecimal)obj).longValue());
+                break;
             default:
                 throw new ExecException("Cannot convert "+ obj + " to " + fs, 1120, PigException.INPUT);
             }
@@ -1219,6 +1348,12 @@ public class POCast extends ExpressionOperator {
                 break;
             case DataType.CHARARRAY:
                 result = CastUtils.stringToFloat((String)obj);
+                break;
+            case DataType.BIGINTEGER:
+                result = Float.valueOf(((BigInteger)obj).floatValue());
+                break;
+            case DataType.BIGDECIMAL:
+                result = Float.valueOf(((BigDecimal)obj).floatValue());
                 break;
             default:
                 throw new ExecException("Cannot convert "+ obj + " to " + fs, 1120, PigException.INPUT);
@@ -1258,16 +1393,104 @@ public class POCast extends ExpressionOperator {
             case DataType.CHARARRAY:
                 result = obj;
                 break;
+            case DataType.BIGINTEGER:
+                result = ((BigInteger)obj).toString();
+                break;
+            case DataType.BIGDECIMAL:
+                result = ((BigDecimal)obj).toString();
+                break;
             default:
                 throw new ExecException("Cannot convert "+ obj + " to " + fs, 1120, PigException.INPUT);
             }
             break;
+        case DataType.BIGINTEGER:
+            switch (DataType.findType(obj)) {
+            case DataType.BYTEARRAY:
+                if (null != caster) {
+                    result = caster.bytesToBigInteger(((DataByteArray)obj).get());
+                } else {
+                    int errCode = 1075;
+                    String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to BigInteger.";
+                    throw new ExecException(msg, errCode, PigException.INPUT);
+                }
+                break;
+            case DataType.BOOLEAN:
+                if (((Boolean) obj) == true)
+                    result = BigInteger.ONE;
+                else
+                    result = BigInteger.ZERO;
+                break;
+            case DataType.INTEGER:
+                result = BigInteger.valueOf(((Integer)obj).longValue());
+                break;
+            case DataType.DOUBLE:
+                result = BigInteger.valueOf(((Double)obj).longValue());
+                break;
+            case DataType.LONG:
+                result = BigInteger.valueOf(((Long)obj).longValue());
+                break;
+            case DataType.FLOAT:
+                result = BigInteger.valueOf(((Float)obj).longValue());
+                break;
+            case DataType.CHARARRAY:
+                result = new BigInteger((String)obj);
+                break;
+            case DataType.BIGINTEGER:
+                result = (BigInteger)obj;
+                break;
+            case DataType.BIGDECIMAL:
+                result = ((BigDecimal)obj).toBigInteger();
+                break;
+            default:
+                throw new ExecException("Cannot convert "+ obj + " to " + fs, 1120, PigException.INPUT);
+            }
+        case DataType.BIGDECIMAL:
+            switch (DataType.findType(obj)) {
+            case DataType.BYTEARRAY:
+                if (null != caster) {
+                    result = caster.bytesToBigDecimal(((DataByteArray)obj).get());
+                } else {
+                    int errCode = 1075;
+                    String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to BigDecimal.";
+                    throw new ExecException(msg, errCode, PigException.INPUT);
+                }
+                break;
+            case DataType.BOOLEAN:
+                if (((Boolean) obj) == true)
+                    result = BigDecimal.ONE;
+                else
+                    result = BigDecimal.ZERO;
+                break;
+            case DataType.INTEGER:
+                result = BigDecimal.valueOf(((Integer)obj).longValue());
+                break;
+            case DataType.DOUBLE:
+                result = BigDecimal.valueOf(((Double)obj).doubleValue());
+                break;
+            case DataType.LONG:
+                result = BigDecimal.valueOf(((Long)obj).longValue());
+                break;
+            case DataType.FLOAT:
+                result = BigDecimal.valueOf(((Float)obj).doubleValue());
+                break;
+            case DataType.CHARARRAY:
+                result = new BigDecimal((String)obj);
+                break;
+            case DataType.BIGINTEGER:
+                result = new BigDecimal((BigInteger)obj);
+                break;
+            case DataType.BIGDECIMAL:
+                result = (BigDecimal)obj;
+                break;
+            default:
+                throw new ExecException("Cannot convert "+ obj + " to " + fs, 1120, PigException.INPUT);
+            }
         default:
             throw new ExecException("Don't know how to convert "+ obj + " to " + fs, 1120, PigException.INPUT);
         }
         return result;
     }
-    
+
     @Override
     public Result getNext(DataBag bag) throws ExecException {
         PhysicalOperator in = inputs.get(0);
@@ -1283,7 +1506,7 @@ public class POCast extends ExpressionOperator {
                 } catch (IOException e) {
                     LogUtils.warn(this, "Unable to interpret value " + res.result + " in field being " +
                             "converted to type bag, caught ParseException <" +
-                            e.getMessage() + "> field discarded", 
+                            e.getMessage() + "> field discarded",
                             PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, log);
                     res.result = null;
                 }
@@ -1354,7 +1577,11 @@ public class POCast extends ExpressionOperator {
 
         case DataType.CHARARRAY:
 
-        case DataType.BOOLEAN: {
+        case DataType.BOOLEAN:
+
+        case DataType.BIGINTEGER:
+
+        case DataType.BIGDECIMAL: {
             Result res = new Result();
             res.returnStatus = POStatus.STATUS_ERR;
             return res;
@@ -1383,7 +1610,7 @@ public class POCast extends ExpressionOperator {
                 } catch (IOException e) {
                     LogUtils.warn(this, "Unable to interpret value " + res.result + " in field being " +
                             "converted to type map, caught ParseException <" +
-                            e.getMessage() + "> field discarded", 
+                            e.getMessage() + "> field discarded",
                             PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, log);
                     res.result = null;
                 }
@@ -1461,7 +1688,11 @@ public class POCast extends ExpressionOperator {
 
         case DataType.CHARARRAY:
 
-        case DataType.BOOLEAN: {
+        case DataType.BOOLEAN:
+
+        case DataType.BIGINTEGER:
+
+        case DataType.BIGDECIMAL: {
             Result res = new Result();
             res.returnStatus = POStatus.STATUS_ERR;
             return res;
@@ -1480,7 +1711,7 @@ public class POCast extends ExpressionOperator {
         res.returnStatus = POStatus.STATUS_ERR;
         return res;
     }
-    
+
     private void readObject(ObjectInputStream is) throws IOException,
             ClassNotFoundException {
         is.defaultReadObject();
@@ -1512,17 +1743,17 @@ public class POCast extends ExpressionOperator {
         if (child == null) {
             child = new ArrayList<ExpressionOperator>();
             if (inputs.get(0) instanceof ExpressionOperator) {
-                child.add( (ExpressionOperator)inputs.get(0));		
+                child.add( (ExpressionOperator)inputs.get(0));
             }
         }
-        
-        return child;				
+
+        return child;
     }
-    
+
     public void setFieldSchema(ResourceFieldSchema s) {
         fieldSchema = s;
     }
-    
+
     public FuncSpec getFuncSpec() {
         return funcSpec;
     }
