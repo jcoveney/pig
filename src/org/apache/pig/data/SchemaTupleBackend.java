@@ -57,6 +57,7 @@ public class SchemaTupleBackend {
     private File codeDir;
 
     private boolean isLocal;
+    private boolean abort = false;
 
     /**
      * This key must be set to true by the user for code generation to be used.
@@ -79,6 +80,12 @@ public class SchemaTupleBackend {
      */
     private SchemaTupleBackend(Configuration jConf, boolean isLocal) {
         if (isLocal) {
+            String localCodeDir = jConf.get(SchemaTupleFrontend.LOCAL_CODE_DIR);
+            if (localCodeDir == null) {
+                LOG.debug("No local code dir set in local mode. Aborting code gen resolution.");
+                abort = true;
+                return;
+            }
             codeDir = new File(jConf.get(SchemaTupleFrontend.LOCAL_CODE_DIR));
         } else {
             codeDir = Files.createTempDir();
@@ -146,6 +153,10 @@ public class SchemaTupleBackend {
      * @throws  IOException
      */
     private void copyAndResolve() throws IOException {
+        if (abort) {
+            LOG.debug("Nothing to resolve on the backend.");
+            return;
+        }
         // Step one is to see if there are any classes in the distributed cache
         String shouldGenerate = jConf.get(SchemaTupleBackend.SHOULD_GENERATE_KEY);
         if (shouldGenerate == null || !Boolean.parseBoolean(shouldGenerate)) {

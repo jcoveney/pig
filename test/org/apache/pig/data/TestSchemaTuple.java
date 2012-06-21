@@ -149,7 +149,7 @@ public class TestSchemaTuple {
         TupleFactory tf = SchemaTupleFactory.getInstance(udfSchema, isAppendable, context);
         putThroughPaces(tf, udfSchema, isAppendable);
 
-        context = GenContext.JOIN;
+        context = GenContext.MERGE_JOIN;
         tf = SchemaTupleFactory.getInstance(udfSchema, isAppendable, context);
         assertNull(tf);
 

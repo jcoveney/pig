@@ -1101,10 +1101,10 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                 Schema rightSchema = Schema.getPigSchema(new ResourceSchema(((LogicalRelationalOperator)inputs.get(1)).getSchema()));
                 Schema mergedSchema = null;
                 if (leftSchema != null) {
-                    SchemaTupleFrontend.registerToGenerateIfPossible(leftSchema, false, GenContext.JOIN);
+                    SchemaTupleFrontend.registerToGenerateIfPossible(leftSchema, false, GenContext.MERGE_JOIN);
                 }
                 if (rightSchema != null) {
-                    SchemaTupleFrontend.registerToGenerateIfPossible(rightSchema, false, GenContext.JOIN);
+                    SchemaTupleFrontend.registerToGenerateIfPossible(rightSchema, false, GenContext.MERGE_JOIN);
                 }
                 if (leftSchema != null && rightSchema != null) {
                     try {
@@ -1124,7 +1124,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                     }
 
                     if (mergedSchema != null) {
-                        SchemaTupleFrontend.registerToGenerateIfPossible(mergedSchema, false, GenContext.JOIN);
+                        SchemaTupleFrontend.registerToGenerateIfPossible(mergedSchema, false, GenContext.MERGE_JOIN);
                     }
                 }
 

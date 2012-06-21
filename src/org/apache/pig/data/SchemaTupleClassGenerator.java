@@ -59,6 +59,7 @@ public class SchemaTupleClassGenerator {
         UDF ("pig.schematuple.udf", true, GenerateUdf.class),
         LOAD ("pig.schematuple.load", true, GenerateLoad.class),
         JOIN ("pig.schematuple.join", true, GenerateJoin.class),
+        MERGE_JOIN ("pig.schematuple.merge_join", true, GenerateMergeJoin.class),
         FORCE_LOAD ("pig.schematuple.force", true, GenerateForceLoad.class);
 
         @Retention(RetentionPolicy.RUNTIME)
@@ -72,6 +73,10 @@ public class SchemaTupleClassGenerator {
         @Retention(RetentionPolicy.RUNTIME)
         @Target(ElementType.TYPE)
         public @interface GenerateJoin {}
+
+        @Retention(RetentionPolicy.RUNTIME)
+        @Target(ElementType.TYPE)
+        public @interface GenerateMergeJoin {}
 
         @Retention(RetentionPolicy.RUNTIME)
         @Target(ElementType.TYPE)

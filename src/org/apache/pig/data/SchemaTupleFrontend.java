@@ -239,6 +239,10 @@ public class SchemaTupleFrontend {
      * @param conf
      */
     public static void copyAllGeneratedToDistributedCache(PigContext pigContext, Configuration conf) {
+        if (stf == null) {
+            LOG.debug("Nothing registered to generate.");
+            return;
+        }
         SchemaTupleFrontendGenHelper stfgh = new SchemaTupleFrontendGenHelper(pigContext, conf);
         stfgh.generateAll(stf.getSchemasToGenerate());
         stfgh.internalCopyAllGeneratedToDistributedCache();

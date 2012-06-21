@@ -187,7 +187,7 @@ public class POMergeJoin extends PhysicalOperator {
         mTupleFactory = TupleFactory.getInstance();
 
         if (leftInputSchema != null) {
-            leftTupleFactory = SchemaTupleBackend.newSchemaTupleFactory(leftInputSchema, false, GenContext.JOIN);
+            leftTupleFactory = SchemaTupleBackend.newSchemaTupleFactory(leftInputSchema, false, GenContext.MERGE_JOIN);
         }
         if (leftTupleFactory == null) {
             log.debug("No SchemaTupleFactory available for combined left merge join schema: " + leftInputSchema);
@@ -196,7 +196,7 @@ public class POMergeJoin extends PhysicalOperator {
         }
 
         if (mergedInputSchema != null) {
-            mergedTupleFactory = SchemaTupleBackend.newSchemaTupleFactory(mergedInputSchema, false, GenContext.JOIN);
+            mergedTupleFactory = SchemaTupleBackend.newSchemaTupleFactory(mergedInputSchema, false, GenContext.MERGE_JOIN);
         }
         if (mergedTupleFactory == null) {
             log.debug("No SchemaTupleFactory available for combined left/right merge join schema: " + mergedInputSchema);
