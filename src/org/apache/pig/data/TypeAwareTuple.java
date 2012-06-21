@@ -1,7 +1,9 @@
 package org.apache.pig.data;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.Tuple;
 
 public interface TypeAwareTuple extends Tuple {
 
@@ -11,6 +13,8 @@ public interface TypeAwareTuple extends Tuple {
     public void setLong(int idx, long val) throws ExecException;
     public void setString(int idx, String val) throws ExecException;
     public void setBoolean(int idx, boolean val) throws ExecException;
+    public void setBigInteger(int idx, boolean val) throws ExecException;
+    public void setBigDecimal(int idx, boolean val) throws ExecException;
 
     public Integer getInteger(int idx) throws ExecException;
     public Float getFloat(int idx) throws ExecException;
@@ -18,6 +22,8 @@ public interface TypeAwareTuple extends Tuple {
     public Long getLong(int idx) throws ExecException;
     public String getString(int idx) throws ExecException;
     public Boolean getBoolean(int idx) throws ExecException;
+    public BigInteger getBigInteger(int idx) throws ExecException;
+    public BigDecimal getBigDecimal(int idx) throws ExecException;
 
 
 }
