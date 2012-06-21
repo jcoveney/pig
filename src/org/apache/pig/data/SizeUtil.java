@@ -89,6 +89,10 @@ public class SizeUtil {
             // boolean takes 1 byte , +7 to round it to 8
             return 1 + 8 + 7;
 
+        case DataType.BIGINTEGER:
+        case DataType.BIGDECIMAL:
+            return 56; //TODO need to give a REAL value here!
+
         case DataType.NULL:
             return 0;
 
@@ -111,7 +115,7 @@ public class SizeUtil {
 
     /**
      * Memory size of objects are rounded to multiple of 8 bytes
-     * 
+     *
      * @param i
      * @return i rounded to a equal of higher multiple of 8
      */

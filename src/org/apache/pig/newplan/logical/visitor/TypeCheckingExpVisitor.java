@@ -182,32 +182,42 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
 
         byte lhsType = lhs.getType() ;
         byte rhsType = rhs.getType() ;
+        boolean error = false;
 
-        if ( (lhsType == DataType.INTEGER) &&
-             (rhsType == DataType.INTEGER)
-           ) {
-           //do nothing
-        }
-        else if ( (lhsType == DataType.LONG) &&
-                  ( (rhsType == DataType.INTEGER) || (rhsType == DataType.LONG) )
-                ) {
+        if (lhsType == DataType.INTEGER) {
+            if (rhsType == DataType.INTEGER) {
+                //do nothing
+            } else if (rhsType == DataType.LONG) {
+                insertCast(binOp, DataType.LONG, binOp.getLhs());
+            } else if (rhsType == DataType.BIGINTEGER) {
+                insertCast(binOp, DataType.BIGINTEGER, binOp.getLhs());
+            } else {
+                error = true;
+            }
+        } else if (lhsType == DataType.LONG) {
             if (rhsType == DataType.INTEGER) {
                 insertCast(binOp, DataType.LONG, binOp.getRhs());
+            } else if (rhsType == DataType.LONG) {
+                //do nothing
+            } else if (rhsType == DataType.BIGINTEGER) {
+                insertCast(binOp, DataType.BIGINTEGER, binOp.getLhs());
+            } else {
+                error = true;
             }
-        }
-        else if ( (rhsType == DataType.LONG) &&
-                  ( (lhsType == DataType.INTEGER) || (lhsType == DataType.LONG) )
-                ) {
-            if (lhsType == DataType.INTEGER) {
-                insertCast(binOp, DataType.LONG, binOp.getLhs());
+        } else if (lhsType == DataType.BIGINTEGER) {
+            if (rhsType == DataType.INTEGER) {
+                insertCast(binOp, DataType.BIGINTEGER, binOp.getRhs());
+            } else if (rhsType == DataType.LONG) {
+                insertCast(binOp, DataType.BIGINTEGER, binOp.getRhs());
+            } else if (rhsType == DataType.BIGINTEGER) {
+                //do nothing
+            } else {
+                error = true;
             }
+        } else {
+            error = true;
         }
-        else if ( (lhsType == DataType.BYTEARRAY) &&
-                  ( (rhsType == DataType.INTEGER) || (rhsType == DataType.LONG) )
-                ) {
-            insertCast(binOp, rhsType, binOp.getLhs());
-        }
-        else {
+        if (error) {
             int errCode = 1039;
             String msg = generateIncompatibleTypesMessage(binOp);
             msgCollector.collect(msg, MessageType.Error);

@@ -17,15 +17,15 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-
-import junit.framework.TestCase;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
@@ -49,11 +49,11 @@ public class TestBestFitCast {
     private static MiniCluster cluster = MiniCluster.buildCluster();
     String inputFile, inputFile2;
     int LOOP_SIZE = 20;
-    
+
     public TestBestFitCast() throws ExecException, IOException{
 
     }
-    
+
     @Before
     public void setUp() throws Exception {
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -63,14 +63,14 @@ public class TestBestFitCast {
         for(int i = 1; i <= LOOP_SIZE; i++) {
             input[i-1] = (l + "\t" + i);
         }
-        Util.createInputFile(cluster, inputFile, input);        
-        
+        Util.createInputFile(cluster, inputFile, input);
+
         inputFile2 = "TestBestFitCast-input2.txt";
         l = 0;
         for(int i = 1; i <= LOOP_SIZE; i++) {
             input[i-1] = (l + "\t" + i + "\t" + i);
         }
-        Util.createInputFile(cluster, inputFile2, input);   
+        Util.createInputFile(cluster, inputFile2, input);
     }
 
     @After
@@ -78,12 +78,12 @@ public class TestBestFitCast {
         Util.deleteFile(cluster, inputFile);
         Util.deleteFile(cluster, inputFile2);
     }
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     public static class UDF1 extends EvalFunc<Tuple>{
         /**
          * java level API
@@ -98,7 +98,7 @@ public class TestBestFitCast {
         /* (non-Javadoc)
          * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
          */
-        @Override
+        @Override //TODO add BigInteger and BigDecimal
         public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
             List<FuncSpec> funcList = new ArrayList<FuncSpec>();
             funcList.add(new FuncSpec(this.getClass().getName(), new Schema(Arrays.asList(new Schema.FieldSchema(null, DataType.FLOAT),new Schema.FieldSchema(null, DataType.FLOAT)))));
@@ -112,10 +112,10 @@ public class TestBestFitCast {
             funcList.add(new FuncSpec(LongMax.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.LONG)));
             funcList.add(new FuncSpec(StringMax.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.CHARARRAY)));*/
             return funcList;
-        }    
+        }
 
     }
-    
+
     public static class UDF2 extends EvalFunc<String>{
         /**
          * java level API
@@ -140,15 +140,15 @@ public class TestBestFitCast {
             List<FuncSpec> funcList = new ArrayList<FuncSpec>();
             funcList.add(new FuncSpec(this.getClass().getName(), new Schema(new Schema.FieldSchema(null, DataType.CHARARRAY))));
             return funcList;
-        }    
+        }
 
     }
-    
+
     /**
      * For testing with input schemas which have byte arrays
      */
     public static class UDF3 extends EvalFunc<Tuple>{
-        
+
         /**
          * a UDF which simply returns its input as output
          */
@@ -163,29 +163,29 @@ public class TestBestFitCast {
         @Override
         public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
             List<FuncSpec> funcList = new ArrayList<FuncSpec>();
-            
+
             // the following schema should match when the input is
             // just a {bytearray} - exact match
-            funcList.add(new FuncSpec(this.getClass().getName(), 
+            funcList.add(new FuncSpec(this.getClass().getName(),
                     new Schema(new Schema.FieldSchema(null, DataType.BYTEARRAY))));
             // the following schema should match when the input is
             // just a {int} - exact match
-            funcList.add(new FuncSpec(this.getClass().getName(), 
+            funcList.add(new FuncSpec(this.getClass().getName(),
                     new Schema(new Schema.FieldSchema(null, DataType.INTEGER))));
-            
+
             // The following two schemas will cause conflict when input schema
             // is {float, bytearray} since bytearray can be casted either to long
             // or double. However when input schema is {bytearray, int}, it should work
             // since bytearray should get casted to float and int to long. Likewise if
             // input schema is {bytearray, long} or {bytearray, double} it should work
-            funcList.add(new FuncSpec(this.getClass().getName(), 
+            funcList.add(new FuncSpec(this.getClass().getName(),
                     new Schema(Arrays.asList(new Schema.FieldSchema(null, DataType.FLOAT),
                             new Schema.FieldSchema(null, DataType.DOUBLE)))));
-            funcList.add(new FuncSpec(this.getClass().getName(), 
+            funcList.add(new FuncSpec(this.getClass().getName(),
                     new Schema(Arrays.asList(new Schema.FieldSchema(null, DataType.FLOAT),
                             new Schema.FieldSchema(null, DataType.LONG)))));
-            
-            
+
+
             // The following two schemas will cause conflict when input schema is
             // {bytearray, int, int} since the two ints could be casted to long, double
             // or double, long. Likewise input schema of either {bytearray, long, long}
@@ -194,21 +194,21 @@ public class TestBestFitCast {
             // conflict since only the bytearray needs to be casted to float. Input schema
             // of {float, bytearray, long} or {float, long, bytearray} should also
             // work since only the bytearray needs to be casted. Input schema of
-            // {float, bytearray, int} will cause conflict since we could cast int to 
+            // {float, bytearray, int} will cause conflict since we could cast int to
             // long or double and bytearray to long or double. Input schema of
-            // {bytearray, long, int} should work and should match the first schema below for 
+            // {bytearray, long, int} should work and should match the first schema below for
             // matching wherein the bytearray is cast to float and the int to double.
-            funcList.add(new FuncSpec(this.getClass().getName(), 
+            funcList.add(new FuncSpec(this.getClass().getName(),
                     new Schema(Arrays.asList(new Schema.FieldSchema(null, DataType.FLOAT),
                             new Schema.FieldSchema(null, DataType.DOUBLE),
                             new Schema.FieldSchema(null, DataType.LONG)))));
-            funcList.add(new FuncSpec(this.getClass().getName(), 
+            funcList.add(new FuncSpec(this.getClass().getName(),
                     new Schema(Arrays.asList(new Schema.FieldSchema(null, DataType.FLOAT),
                             new Schema.FieldSchema(null, DataType.LONG),
                             new Schema.FieldSchema(null, DataType.DOUBLE)))));
-            
+
             return funcList;
-        }    
+        }
 
     }
 
@@ -230,7 +230,7 @@ public class TestBestFitCast {
         }
         assertTrue(exceptionCaused);
     }
-    
+
     @Test
     public void testByteArrayCast2() throws IOException, ExecException {
         // Passing (bytearray, int)
@@ -252,7 +252,7 @@ public class TestBestFitCast {
         }
         assertEquals(LOOP_SIZE, cnt);
     }
-    
+
     @Test
     public void testByteArrayCast3() throws IOException, ExecException {
         // Passing (bytearray, long)
@@ -273,7 +273,7 @@ public class TestBestFitCast {
         }
         assertEquals(LOOP_SIZE, cnt);
     }
-    
+
     @Test
     public void testByteArrayCast4() throws IOException, ExecException {
         // Passing (bytearray, double)
@@ -315,7 +315,7 @@ public class TestBestFitCast {
         }
         assertTrue(exceptionCaused);
     }
-    
+
     @Test
     public void testByteArrayCast6() throws IOException, ExecException {
         // Passing (bytearray, long, long )
@@ -336,12 +336,12 @@ public class TestBestFitCast {
         }
         assertTrue(exceptionCaused);
     }
-    
+
     @Test
     public void testByteArrayCast7() throws IOException, ExecException {
         // Passing (bytearray, double, double )
         // Ambiguous matches: (float, long, double) , (float, double, long)
-        // bytearray can be casted to float but the two doubles cannot be 
+        // bytearray can be casted to float but the two doubles cannot be
         // casted with a permissible cast
         boolean exceptionCaused = false;
         try {
@@ -356,7 +356,7 @@ public class TestBestFitCast {
         }
         assertTrue(exceptionCaused);
     }
-    
+
     @Test
     public void testByteArrayCast8() throws IOException, ExecException {
         // Passing (bytearray, long, double)
@@ -379,7 +379,7 @@ public class TestBestFitCast {
         }
         assertEquals(LOOP_SIZE, cnt);
     }
-    
+
     @Test
     public void testByteArrayCast9() throws IOException, ExecException {
         // Passing (bytearray, double, long)
@@ -402,7 +402,7 @@ public class TestBestFitCast {
         }
         assertEquals(LOOP_SIZE, cnt);
     }
-    
+
     @Test
     public void testByteArrayCast10() throws IOException, ExecException {
         // Passing (float, long, bytearray)
@@ -425,7 +425,7 @@ public class TestBestFitCast {
         }
         assertEquals(LOOP_SIZE, cnt);
     }
-    
+
     @Test
     public void testByteArrayCast11() throws IOException, ExecException {
         // Passing (float, bytearray, long)
@@ -448,12 +448,12 @@ public class TestBestFitCast {
         }
         assertEquals(LOOP_SIZE, cnt);
     }
-    
+
     @Test
     public void testByteArrayCast12() throws IOException, ExecException {
         // Passing (float, bytearray, int )
         // Ambiguous matches: (float, long, double) , (float, double, long)
-        // will cause conflict since we could cast int to 
+        // will cause conflict since we could cast int to
         // long or double and bytearray to long or double.
         boolean exceptionCaused = false;
         try {
@@ -469,12 +469,12 @@ public class TestBestFitCast {
         }
         assertTrue(exceptionCaused);
     }
-    
+
     @Test
     public void testByteArrayCast13() throws IOException, ExecException {
         // Passing (bytearray, long, int)
         // Possible matches: (float, long, double) , (float, double, long)
-        // Chooses (float, long, double) since for the bytearray there is a 
+        // Chooses (float, long, double) since for the bytearray there is a
         // single unambiguous cast to float. For the other two args, it is
         // less "costlier" to cast the last int to double than cast the long
         // to double and int to long
@@ -495,7 +495,7 @@ public class TestBestFitCast {
         }
         assertEquals(LOOP_SIZE, cnt);
     }
-    
+
     @Test
     public void testByteArrayCast14() throws IOException, ExecException {
         // Passing (bag{(bytearray)})
@@ -509,7 +509,7 @@ public class TestBestFitCast {
         assertTrue(t.get(0) instanceof Double);
         assertEquals(new Double(210), (Double)t.get(0));
     }
-    
+
     @Test
     public void testByteArrayCast15() throws IOException, ExecException {
         // Passing (bytearray)
@@ -533,7 +533,7 @@ public class TestBestFitCast {
         }
         assertEquals(LOOP_SIZE, cnt);
     }
-    
+
     @Test
     public void testByteArrayCast16() throws IOException, ExecException {
         // Passing (int)
@@ -552,7 +552,7 @@ public class TestBestFitCast {
         }
         assertEquals(LOOP_SIZE, cnt);
     }
-    
+
     @Test
     public void testIntSum() throws IOException, ExecException {
         // Passing (bag{(int)})
@@ -566,7 +566,7 @@ public class TestBestFitCast {
         assertTrue(t.get(0) instanceof Long);
         assertEquals(new Long(210), (Long)t.get(0));
     }
-    
+
     @Test
     public void testLongSum() throws IOException, ExecException {
         // Passing (bag{(long)})
@@ -580,7 +580,7 @@ public class TestBestFitCast {
         assertTrue(t.get(0) instanceof Long);
         assertEquals(new Long(210), (Long)t.get(0));
     }
-    
+
     @Test
     public void testFloatSum() throws IOException, ExecException {
         // Passing (bag{(float)})
@@ -594,7 +594,7 @@ public class TestBestFitCast {
         assertTrue(t.get(0) instanceof Double);
         assertEquals(new Double(210), (Double)t.get(0));
     }
-    
+
     @Test
     public void testDoubleSum() throws IOException, ExecException {
         // Passing (bag{(double)})
@@ -608,7 +608,7 @@ public class TestBestFitCast {
         assertTrue(t.get(0) instanceof Double);
         assertEquals(new Double(210), (Double)t.get(0));
     }
-    
+
     @Test
     public void test1() throws Exception{
         //Passing (long, int)
@@ -627,7 +627,7 @@ public class TestBestFitCast {
         }
         assertEquals(20, cnt);
     }
-    
+
     @Test
     public void test2() throws Exception{
         //Passing (int, int)
@@ -642,9 +642,9 @@ public class TestBestFitCast {
             String msg = (pe == null? e.getMessage(): pe.getMessage());
             assertEquals(true,msg.contains("as multiple or none of them fit"));
         }
-        
+
     }
-    
+
     @Test
     public void test3() throws Exception{
         //Passing (int, int)
@@ -663,7 +663,7 @@ public class TestBestFitCast {
         }
         assertEquals(20, cnt);
     }
-    
+
     @Test
     public void test4() throws Exception{
         //Passing (long)
@@ -681,7 +681,7 @@ public class TestBestFitCast {
         }
         assertEquals(20, cnt);
     }
-    
+
     @Test
     public void test5() throws Exception{
         //Passing bytearrays
@@ -696,12 +696,12 @@ public class TestBestFitCast {
             String msg = (pe == null? e.getMessage(): pe.getMessage());
             assertEquals(true,msg.contains("Multiple matching functions"));
         }
-        
+
     }
 
     @Test
     public void test6() throws Exception{
-        // test UDF with single mapping function 
+        // test UDF with single mapping function
         // where bytearray is passed in as input parameter
         Util.createInputFile(cluster, "test6", new String[] {"abc"});
         pigServer.registerQuery("A = LOAD 'test6';");

@@ -648,6 +648,7 @@ public class POCast extends ExpressionOperator {
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
                 res.result = Integer.valueOf(((BigInteger)res.result).intValue());
             }
+            return res;
         }
 
         case DataType.BIGDECIMAL: {
@@ -656,6 +657,7 @@ public class POCast extends ExpressionOperator {
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
                 res.result = Integer.valueOf(((BigDecimal)res.result).intValue());
             }
+            return res;
         }
 
         }
@@ -786,6 +788,7 @@ public class POCast extends ExpressionOperator {
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
                 res.result = Long.valueOf(((BigInteger)res.result).longValue());
             }
+            return res;
         }
 
         case DataType.BIGDECIMAL: {
@@ -794,6 +797,7 @@ public class POCast extends ExpressionOperator {
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
                 res.result = Long.valueOf(((BigDecimal)res.result).longValue());
             }
+            return res;
         }
 
         }
@@ -923,6 +927,7 @@ public class POCast extends ExpressionOperator {
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
                 res.result = Double.valueOf(((BigInteger)res.result).doubleValue());
             }
+            return res;
         }
 
         case DataType.BIGDECIMAL: {
@@ -931,6 +936,7 @@ public class POCast extends ExpressionOperator {
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
                 res.result = Double.valueOf(((BigDecimal)res.result).doubleValue());
             }
+            return res;
         }
 
         }
@@ -1062,6 +1068,7 @@ public class POCast extends ExpressionOperator {
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
                 res.result = Float.valueOf(((BigInteger)res.result).floatValue());
             }
+            return res;
         }
 
         case DataType.BIGDECIMAL: {
@@ -1070,6 +1077,7 @@ public class POCast extends ExpressionOperator {
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
                 res.result = Float.valueOf(((BigDecimal)res.result).floatValue());
             }
+            return res;
         }
 
         }
@@ -1203,6 +1211,7 @@ public class POCast extends ExpressionOperator {
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
                 res.result = ((BigInteger)res.result).toString();
             }
+            return res;
         }
 
         case DataType.BIGDECIMAL: {
@@ -1211,6 +1220,7 @@ public class POCast extends ExpressionOperator {
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
                 res.result = ((BigDecimal)res.result).toString();
             }
+            return res;
         }
 
         }
