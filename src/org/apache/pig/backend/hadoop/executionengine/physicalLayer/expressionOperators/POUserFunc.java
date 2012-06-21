@@ -21,6 +21,8 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOp
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -243,7 +245,7 @@ public class POUserFunc extends ExpressionOperator {
                             // so that udf gets called both when isAccumStarted
                             // is first true and then set to false, even
                             //when the input relation is empty.
-                            // so the STATUS_EOP has to be sent from POUserFunc, 
+                            // so the STATUS_EOP has to be sent from POUserFunc,
                             // after the results have been sent.
                             result.result = null;
                             result.returnStatus = POStatus.STATUS_EOP;
@@ -323,31 +325,36 @@ public class POUserFunc extends ExpressionOperator {
 
     @Override
     public Result getNext(Double d) throws ExecException {
+        return getNext();
+    }
 
+    @Override
+    public Result getNext(BigInteger bi) throws ExecException {
+        return getNext();
+    }
+
+    @Override
+    public Result getNext(BigDecimal bd) throws ExecException {
         return getNext();
     }
 
     @Override
     public Result getNext(Float f) throws ExecException {
-
         return getNext();
     }
 
     @Override
     public Result getNext(Long l) throws ExecException {
-
         return getNext();
     }
 
     @Override
     public Result getNext(Map m) throws ExecException {
-
         return getNext();
     }
 
     @Override
     public Result getNext(String s) throws ExecException {
-
         return getNext();
     }
 
@@ -507,16 +514,16 @@ public class POUserFunc extends ExpressionOperator {
     public void setResultType(byte resultType) {
         this.resultType = resultType;
     }
-    
+
     @Override
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
         return (Tuple) out;
     }
-    
+
     public EvalFunc getFunc() {
         return func;
     }
-    
+
     public void setSignature(String signature) {
         this.signature = signature;
         if (this.func!=null) {
