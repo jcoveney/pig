@@ -73,7 +73,7 @@ public class SchemaTupleFrontend {
         contexts.add(GenContext.FORCE_LOAD);
         contexts.add(type);
         schemasToGenerate.put(key, Pair.make(Integer.valueOf(id), contexts));
-        LOG.info("Registering "+(isAppendable ? "Appendable" : "")+"Schema for generation ["
+        LOG.debug("Registering "+(isAppendable ? "Appendable" : "")+"Schema for generation ["
                 + udfSchema + "] with id [" + id + "] and context: " + type);
         return id;
     }

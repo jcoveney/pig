@@ -72,6 +72,7 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
@@ -92,6 +93,8 @@ import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.visitor.UDFFinder;
 import org.apache.pig.parser.SourceLocation;
+
+import com.google.common.collect.Lists;
 
 public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
     private static final Log LOG = LogFactory.getLog(LogToPhyTranslationVisitor.class);
@@ -1030,6 +1033,27 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             logToPhyMap.put(loj, skj);
         }
         else if(loj.getJoinType() == LOJoin.JOINTYPE.REPLICATED) {
+            List<Schema> inputSchemas = Lists.newArrayListWithCapacity(inputs.size());
+            List<Schema> keySchemas = Lists.newArrayListWithCapacity(inputs.size());
+
+            outer: for (int i = 0; i < inputs.size(); i++) {
+                Schema toGen = Schema.getPigSchema(new ResourceSchema(((LogicalRelationalOperator)inputs.get(i)).getSchema()));
+                // This registers the value piece
+                SchemaTupleFrontend.registerToGenerateIfPossible(toGen, false, GenContext.FR_JOIN);
+                inputSchemas.add(toGen);
+
+                Schema keyToGen = new Schema();
+                for (Byte byt : keyTypes.get(i)) {
+                    // We cannot generate any nested code because that information is thrown away
+                    if (byt == null || DataType.isComplex(byt.byteValue())) {
+                        continue outer;
+                    }
+                    keyToGen.add(new FieldSchema(null, byt));
+                }
+
+                SchemaTupleFrontend.registerToGenerateIfPossible(toGen, false, GenContext.FR_JOIN);
+                keySchemas.add(keyToGen);
+            }
 
             int fragment = 0;
             POFRJoin pfrj;
@@ -1068,8 +1092,17 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                     }
                 }
 
-                pfrj = new POFRJoin(new OperatorKey(scope,nodeGen.getNextNodeId(scope)),parallel,
-                                            inp, ppLists, keyTypes, null, fragment, isLeftOuter, nullTuple);
+                pfrj = new POFRJoin(new OperatorKey(scope,nodeGen.getNextNodeId(scope)),
+                                        parallel,
+                                        inp,
+                                        ppLists,
+                                        keyTypes,
+                                        null,
+                                        fragment,
+                                        isLeftOuter,
+                                        nullTuple,
+                                        inputSchemas,
+                                        keySchemas);
                 pfrj.addOriginalLocation(alias, location);
             } catch (ExecException e1) {
                 int errCode = 2058;

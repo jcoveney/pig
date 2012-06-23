@@ -35,6 +35,7 @@ import javax.tools.JavaFileObject;
 import javax.tools.SimpleJavaFileObject;
 import javax.tools.ToolProvider;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -58,7 +59,7 @@ public class SchemaTupleClassGenerator {
     public static enum GenContext {
         UDF ("pig.schematuple.udf", true, GenerateUdf.class),
         LOAD ("pig.schematuple.load", true, GenerateLoad.class),
-        JOIN ("pig.schematuple.join", true, GenerateJoin.class),
+        FR_JOIN ("pig.schematuple.fr_join", true, GenerateFrJoin.class),
         MERGE_JOIN ("pig.schematuple.merge_join", true, GenerateMergeJoin.class),
         FORCE_LOAD ("pig.schematuple.force", true, GenerateForceLoad.class);
 
@@ -72,7 +73,7 @@ public class SchemaTupleClassGenerator {
 
         @Retention(RetentionPolicy.RUNTIME)
         @Target(ElementType.TYPE)
-        public @interface GenerateJoin {}
+        public @interface GenerateFrJoin {}
 
         @Retention(RetentionPolicy.RUNTIME)
         @Target(ElementType.TYPE)
@@ -324,6 +325,7 @@ public class SchemaTupleClassGenerator {
         public void prepare() {
             String s = schema.toString();
             s = s.substring(1, s.length() - 1);
+            s = Base64.encodeBase64URLSafeString(s.getBytes());
             add("private static Schema schema = staticSchemaGen(\"" + s + "\");");
         }
 
