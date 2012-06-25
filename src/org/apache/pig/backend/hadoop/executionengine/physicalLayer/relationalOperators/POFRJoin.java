@@ -38,6 +38,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin.TuplesToSchemaTupleList;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.NonSpillableDataBag;
@@ -297,7 +298,7 @@ public class POFRJoin extends PhysicalOperator {
                     continue;
                 }
                 Map<Tuple, List<Tuple>> replicate = replicates[i];
-                if (!replicate.containsKey(key)) {
+                if (replicate.get(key) == null) {
                     if (isLeftOuterJoin) {
                         ce.setValue(nullBag);
                     }
@@ -326,6 +327,40 @@ public class POFRJoin extends PhysicalOperator {
         }
     }
 
+    private static class TupleToMapKey extends HashMap<Tuple, List<Tuple>> {
+        static final long serialVersionUID = 1L;
+
+        private SchemaTupleFactory tf;
+
+        public TupleToMapKey(int ct, SchemaTupleFactory tf) {
+            super(ct);
+            this.tf = tf;
+        }
+
+        public List<Tuple> put(Tuple key, List<Tuple> val) {
+            SchemaTuple<?> st = (SchemaTuple<?>)tf.newTuple();
+            try {
+                st.set(key);
+            } catch (ExecException e) {
+                throw new RuntimeException("Unable to set SchemaTuple with schema ["
+                        + st.getSchemaString() + "] with given Tuple in merge join.");
+            }
+            return super.put(key, val);
+        }
+
+        @Override
+        public List<Tuple> get(Object key) {
+            SchemaTuple<?> st = (SchemaTuple<?>)tf.newTuple();
+            try {
+                st.set((Tuple)key);
+            } catch (ExecException e) {
+                throw new RuntimeException("Unable to set SchemaTuple with schema ["
+                        + st.getSchemaString() + "] with given Tuple in merge join.");
+            }
+            return super.get(st);
+        }
+    }
+
     /**
      * Builds the HashMaps by reading each replicated input from the DFS using a
      * Load operator
@@ -338,10 +373,12 @@ public class POFRJoin extends PhysicalOperator {
         for (int i = 0; i < inputSchemas.size(); i++) {
             Schema schema = inputSchemas.get(i);
             if (schema != null) {
+                log.debug("Using SchemaTuple for FR Join Schema: " + schema);
                 inputSchemaTupleFactories.add(SchemaTupleBackend.newSchemaTupleFactory(schema, false, GenContext.FR_JOIN));
             }
             schema = keySchemas.get(i);
             if (schema != null) {
+                log.debug("Using SchemaTuple for FR Join key Schema: " + schema);
                 keySchemaTupleFactories.add(SchemaTupleBackend.newSchemaTupleFactory(schema, false, GenContext.FR_JOIN));
             }
         }
@@ -373,8 +410,12 @@ public class POFRJoin extends PhysicalOperator {
             // same thing, so utilizing its functionality
             POLocalRearrange lr = LRs[i];
             lr.setInputs(Arrays.asList((PhysicalOperator) ld));
-            Map<Tuple, List<Tuple>> replicate = new HashMap<Tuple, List<Tuple>>(
-                    1000);
+
+            Map<Tuple, List<Tuple>> replicate = new HashMap<Tuple,List<Tuple>>(1000);
+            if (keySchemaTupleFactory != null) {
+                replicate = new TupleToMapKey(1000, keySchemaTupleFactory);
+            }
+
             log.debug("Completed setup. Trying to build replication hash table");
             int cnt = 0;
             for (Result res = lr.getNext(dummyTuple);res.returnStatus != POStatus.STATUS_EOP;res = lr.getNext(dummyTuple)) {
@@ -386,25 +427,18 @@ public class POFRJoin extends PhysicalOperator {
                 Tuple key = mTupleFactory.newTuple(1);
                 key.set(0, tuple.get(1));
                 Tuple value = getValueTuple(lr, tuple);
-                if (!replicate.containsKey(key))
-                    replicate.put(key, new ArrayList<Tuple>(1));
 
-                if (inputSchemaTupleFactory != null) {
-                    SchemaTuple<?> st = (SchemaTuple<?>) inputSchemaTupleFactory.newTuple();
-                    st.set(value);
-                    value = st;
-                }
-
-                if (keySchemaTupleFactory != null) {
-                    SchemaTuple<?> st = (SchemaTuple<?>) keySchemaTupleFactory.newTuple();
-                    st.set(key);
-                    key = st;
+                if (replicate.get(key) == null) {
+                    if (inputSchemaTupleFactory != null) {
+                        replicate.put(key, new TuplesToSchemaTupleList(1, inputSchemaTupleFactory));
+                    } else {
+                        replicate.put(key, new ArrayList<Tuple>(1));
+                    }
                 }
 
                 replicate.get(key).add(value);
             }
             replicates[i] = replicate;
-
         }
         long time2 = System.currentTimeMillis();
         log.debug("Hash Table built. Time taken: " + (time2 - time1));

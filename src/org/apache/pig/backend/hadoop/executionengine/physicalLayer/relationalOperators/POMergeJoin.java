@@ -224,7 +224,7 @@ public class POMergeJoin extends PhysicalOperator {
      * from Tuple to SchemaTuple. This is necessary because we are not getting SchemaTuples
      * from the source, though in the future that is what we would like to do.
      */
-    private static class TuplesToSchemaTupleList extends ArrayList<Tuple> {
+    protected static class TuplesToSchemaTupleList extends ArrayList<Tuple> {
         static final long serialVersionUID = 1L;
 
         private SchemaTupleFactory tf;

@@ -1051,7 +1051,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                     keyToGen.add(new FieldSchema(null, byt));
                 }
 
-                SchemaTupleFrontend.registerToGenerateIfPossible(toGen, false, GenContext.FR_JOIN);
+                SchemaTupleFrontend.registerToGenerateIfPossible(keyToGen, false, GenContext.FR_JOIN);
                 keySchemas.add(keyToGen);
             }
 
