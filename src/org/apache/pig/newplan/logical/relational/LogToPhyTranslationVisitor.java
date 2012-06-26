@@ -30,8 +30,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
-import org.apache.pig.SortColInfo;
-import org.apache.pig.SortColInfo.Order;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogicalToPhysicalTranslatorException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -91,7 +89,6 @@ import org.apache.pig.newplan.logical.Util;
 import org.apache.pig.newplan.logical.expression.ExpToPhyTranslationVisitor;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
-import org.apache.pig.newplan.logical.visitor.UDFFinder;
 import org.apache.pig.parser.SourceLocation;
 
 import com.google.common.collect.Lists;
@@ -871,75 +868,6 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         return true;
     }
 
-    private boolean validateMapSideMerge(List<Operator> preds, OperatorPlan lp)
-        throws LogicalToPhysicalTranslatorException{
-            int errCode = 1103;
-            String errMsg = "Merge join/Cogroup only supports Filter, Foreach, " +
-                "Ascending Sort, or Load as its predecessors. Found : ";
-            if(preds != null && !preds.isEmpty()){
-                for(Operator lo : preds){
-                    if (!(lo instanceof LOFilter || lo instanceof LOForEach
-                            || lo instanceof LOGenerate || lo instanceof LOInnerLoad
-                            || lo instanceof LOLoad || lo instanceof LOSplitOutput
-                            || lo instanceof LOSplit
-                            || isAcceptableSortOp(lo)
-                            || isAcceptableForEachOp(lo))) {
-                        throw new LogicalToPhysicalTranslatorException(errMsg, errCode);
-                    }
-
-                    // All is good at this level. Visit predecessors now.
-                    if (! (lo instanceof LOSort)) {
-                    validateMapSideMerge(lp.getPredecessors(lo),lp);
-                }
-            }
-            }
-            // We visited everything and all is good.
-            return true;
-    }
-
-    private boolean isAcceptableForEachOp(Operator lo) throws LogicalToPhysicalTranslatorException {
-        if (lo instanceof LOForEach) {
-            OperatorPlan innerPlan = ((LOForEach) lo).getInnerPlan();
-            validateMapSideMerge(innerPlan.getSinks(), innerPlan);
-            return !containsUDFs((LOForEach) lo);
-        } else {
-            return false;
-        }
-    }
-
-    private boolean containsUDFs(LOForEach fo) throws LogicalToPhysicalTranslatorException {
-        LogicalPlan logExpPlan = fo.getInnerPlan();
-        UDFFinder udfFinder;
-        try {
-            udfFinder = new UDFFinder(logExpPlan);
-            udfFinder.visit();
-            if (udfFinder.getUDFList().size() != 0) {
-                return true;
-            }
-        } catch (FrontendException e) {
-            throw new LogicalToPhysicalTranslatorException(e);
-        }
-        return false;
-    }
-
-    private boolean isAcceptableSortOp(Operator op) throws LogicalToPhysicalTranslatorException {
-        if (!(op instanceof LOSort)) {
-            return false;
-        }
-        LOSort sort = (LOSort) op;
-        try {
-            for (SortColInfo colInfo : sort.getSortInfo().getSortColInfoList()) {
-                // TODO: really, we should check that the sort is on the join keys, in the same order!
-                if (colInfo.getSortOrder() != Order.ASCENDING) {
-                    return false;
-                }
-            }
-        } catch (FrontendException e) {
-           throw new LogicalToPhysicalTranslatorException(e);
-        }
-        return true;
-    }
-
     @Override
     public void visit(LOJoin loj) throws FrontendException {
 
@@ -1122,7 +1050,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                 }
             }
             logToPhyMap.put(loj, pfrj);
-        } else if ( (loj.getJoinType() == LOJoin.JOINTYPE.MERGE || loj.getJoinType() == LOJoin.JOINTYPE.MERGESPARSE)
+        }  else if ( (loj.getJoinType() == LOJoin.JOINTYPE.MERGE || loj.getJoinType() == LOJoin.JOINTYPE.MERGESPARSE)
                 && (new MapSideMergeValidator().validateMapSideMerge(inputs,loj.getPlan()))) {
 
             PhysicalOperator smj;
@@ -1561,34 +1489,6 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
 
         CompilerUtils.addEmptyBagOuterJoin(fePlan, Util.translateSchema(inputSchema));
 
-    }
-
-    private boolean validateMergeJoin(LOJoin loj) throws FrontendException{
-
-        List<Operator> preds = plan.getPredecessors(loj);
-
-        int errCode = 1101;
-        String errMsg = "Merge Join must have exactly two inputs.";
-        if(preds.size() != 2)
-            throw new LogicalToPhysicalTranslatorException(errMsg+" Found: "+preds.size(),errCode);
-
-        return mergeJoinValidator(preds,loj.getPlan());
-    }
-
-    private boolean mergeJoinValidator(List<Operator> preds,OperatorPlan lp) throws FrontendException {
-
-        int errCode = 1103;
-        String errMsg = "Merge join only supports Filter, Foreach, filter and Load as its predecessor. Found : ";
-        if(preds != null && !preds.isEmpty()){
-            for(Operator lo : preds){
-                if (!(lo instanceof LOFilter || lo instanceof LOLoad || lo instanceof LOForEach))
-                    throw new LogicalToPhysicalTranslatorException(errMsg, errCode);
-                // All is good at this level. Visit predecessors now.
-                mergeJoinValidator(lp.getPredecessors(lo),lp);
-            }
-        }
-        // We visited everything and all is good.
-        return true;
     }
 
     private void translateSoftLinks(Operator op) throws FrontendException {

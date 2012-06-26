@@ -76,7 +76,7 @@ public class TestMergeJoin {
                 input[k++] = si + "\t" + j;
         }
         Util.createInputFile(cluster, INPUT_FILE, input);
-        
+
         Util.createInputFile(cluster, INPUT_FILE2, new String[]{"2"});
     }
 
@@ -119,7 +119,7 @@ public class TestMergeJoin {
         Assert.assertEquals(true, TestHelper.compareBags(dbMergeJoin, dbshj));
         Util.deleteFile(cluster,"foo/bar/test.dat");
     }
-    
+
     @Test
     public void testMergeJoinSimplest() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "';");
@@ -226,8 +226,8 @@ public class TestMergeJoin {
 
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "';");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "';");
-        pigServer.registerQuery("C = FILTER A by $1 > 1;"); 
-        pigServer.registerQuery("D = FILTER B by $1 > 1;"); 
+        pigServer.registerQuery("C = FILTER A by $1 > 1;");
+        pigServer.registerQuery("D = FILTER B by $1 > 1;");
         DataBag dbMergeJoin = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
             pigServer.registerQuery("E = join C by $0, D by $0 using 'merge';");
@@ -254,8 +254,8 @@ public class TestMergeJoin {
 
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (f1,f2);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "'as (f1,f2);");
-        pigServer.registerQuery("C = foreach A generate f1;"); 
-        pigServer.registerQuery("D = foreach B generate f1;"); 
+        pigServer.registerQuery("C = foreach A generate f1;");
+        pigServer.registerQuery("D = foreach B generate f1;");
         DataBag dbMergeJoin = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
             pigServer.registerQuery("E = join C by f1, D by f1 using 'merge';");
@@ -392,23 +392,47 @@ public class TestMergeJoin {
             return;
         }
         Assert.fail("Should throw exception, do not support 3 way join");
-    }       
+    }
 
     @Test
-    public void testMergeJoinFailure1() throws IOException{
-        pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (id, name, n);");
-        pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (id, name);");
-        pigServer.registerQuery("C = ORDER A by $0 parallel 5;");
-        pigServer.registerQuery("D = join A by id, C by id using 'merge';");
+    public void testMergeJoinWithOrderAndSplit() throws Exception{
+        String query = "A = LOAD '" + INPUT_FILE + "' as (id, name, n);\n" +
+                "B = LOAD '" + INPUT_FILE + "' as (id, name);\n" +
+                "C = ORDER A by $0 parallel 5;\n" +
+                "D = join A by id, C by id using 'merge';\n" +
+                "store D into '/dev/null/1';";
+        // verify that this passes parsing sanity checks.
+        Util.buildPp(pigServer, query);
+    }
+
+    @Test
+    public void testMergeJoinWithOrder() throws Exception{
+        String query = "A = LOAD '" + INPUT_FILE + "' as (id, name, n);\n" +
+                "B = LOAD '" + INPUT_FILE + "' as (id, name);\n" +
+                "C = ORDER B by $0 parallel 5;\n" +
+                "D = join A by id, C by id using 'merge';\n" +
+                "store D into '/dev/null/1';";
+        // verify that this passes parsing sanity checks.
+        Util.buildPp(pigServer, query);
+    }
+
+    @Test
+    public void testMergeFailWithOrderUDF() throws Exception{
+        String query = "A = LOAD '" + INPUT_FILE + "' as (id, name, n);\n" +
+                "B = LOAD '" + INPUT_FILE + "' as (id, name);\n" +
+                "A = FOREACH A GENERATE LOWER($0) as id;\n" +
+                "C = ORDER B by $0 parallel 5;\n" +
+                "D = join A by id, C by id using 'merge';\n" +
+                "store D into '/dev/null/1';";
+        // verify that this fails parsing sanity checks.
         try {
-            pigServer.openIterator("D");
-        }catch(Exception e) {
-            PigException pe = LogUtils.getPigException(e);
-            Assert.assertEquals(1103,pe.getErrorCode());
+            Util.buildPp(pigServer, query);
+        } catch (Throwable t) {
+            // expected to fail.
             return;
         }
-        Assert.fail("Should fail to compile");
-    }       
+        Assert.fail("Allowed a Merge Join despite a UDF");
+    }
 
     @Test
     public void testMergeJoinFailure2() throws IOException{
@@ -424,7 +448,7 @@ public class TestMergeJoin {
             return;
         }
         Assert.fail("Should fail to compile");
-    }       
+    }
 
     @Test
     public void testEmptyRightFile() throws IOException{
@@ -437,7 +461,7 @@ public class TestMergeJoin {
         {
             Iterator<Tuple> iter = pigServer.openIterator("C");
 
-            while(iter.hasNext()) 
+            while(iter.hasNext())
                 dbmrj.add(iter.next());
         }
         {
@@ -451,13 +475,13 @@ public class TestMergeJoin {
         Assert.assertEquals(dbmrj.size(), dbshj.size());
         Assert.assertEquals(true, TestHelper.compareBags(dbmrj, dbshj));
         Util.deleteFile(cluster, "temp_file");
-    }       
+    }
 
     @Test
     public void testParallelism() throws Exception{
         String query = "A = LOAD '" + INPUT_FILE + "';" +
                        "B = LOAD '" + INPUT_FILE + "';" +
-                       "C = join A by $0, B by $0 using 'merge' parallel 50;" + 
+                       "C = join A by $0, B by $0 using 'merge' parallel 50;" +
                        "store C into 'out';";
 	PigContext pc = new PigContext(ExecType.MAPREDUCE,cluster.getProperties());
     pc.connect();
@@ -495,7 +519,7 @@ public class TestMergeJoin {
         Assert.assertEquals(dbmrj.size(),dbshj.size());
         Assert.assertEquals(true, TestHelper.compareBags(dbmrj, dbshj));
     }
-    
+
     @Test
     public void testExpression() throws IOException{
         Util.createInputFile(cluster, "temp_file1", new String[]{"8", "9"});
@@ -528,7 +552,7 @@ public class TestMergeJoin {
         Assert.assertEquals(dbmrj.size(),dbshj.size());
         Assert.assertEquals(true, TestHelper.compareBags(dbmrj, dbshj));
     }
-    
+
     @Test
     public void testExpressionFail() throws IOException{
         pigServer.registerQuery("A = LOAD 'leftinput' as (a:int);");
@@ -547,7 +571,7 @@ public class TestMergeJoin {
         }
         Assert.assertEquals(true, exceptionThrown);
     }
-    
+
     @Test
     public void testMergeJoinSch1() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
@@ -571,7 +595,7 @@ public class TestMergeJoin {
         shjSch = pigServer.dumpSchema("C");
         Assert.assertTrue(shjSch == null);
     }
-    
+
     @Test
     public void testMergeJoinWithCommaSeparatedFilePaths() throws IOException{
 
@@ -580,17 +604,17 @@ public class TestMergeJoin {
                 DummyIndexableLoader.class.getName() + "();");
 
         pigServer.registerQuery("C = join A by $0, B by $0 using 'merge';");
-            
+
         Iterator<Tuple> iter = pigServer.openIterator("C");
         Assert.assertFalse(iter.hasNext());
     }
-    
+
     @Test
     public void testMergeJoinEmptyIndex() throws IOException{
         DataBag dbMergeJoin = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE2 + "';");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "';");
-        
+
         {
             pigServer.registerQuery("C = join A by $0, B by $0 using 'merge';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
@@ -598,7 +622,7 @@ public class TestMergeJoin {
                 dbMergeJoin.add(iter.next());
             }
         }
-        
+
         {
             pigServer.registerQuery("C = join A by $0, B by $0;");
             Iterator<Tuple> iter = pigServer.openIterator("C");
@@ -609,9 +633,9 @@ public class TestMergeJoin {
         }
 
         Assert.assertEquals(dbMergeJoin.size(), dbshj.size());
-        Assert.assertEquals(true, TestHelper.compareBags(dbMergeJoin, dbshj));        
+        Assert.assertEquals(true, TestHelper.compareBags(dbMergeJoin, dbshj));
     }
-    
+
     /**
      * A dummy loader which implements {@link IndexableLoadFunc} to test
      * that expressions are not allowed as merge join keys when the right input's
@@ -620,19 +644,19 @@ public class TestMergeJoin {
     public static class DummyIndexableLoader extends LoadFunc implements IndexableLoadFunc{
 
         /**
-         * 
+         *
          */
         public DummyIndexableLoader() {
         }
- 
+
         @Override
         public void close() throws IOException {
- 
+
         }
 
         @Override
         public void seekNear(Tuple keys) throws IOException {
- 
+
         }
 
         @Override
@@ -650,7 +674,7 @@ public class TestMergeJoin {
         }
 
         @Override
-        public LoadCaster getLoadCaster() throws IOException {            
+        public LoadCaster getLoadCaster() throws IOException {
             return null;
         }
 
@@ -664,6 +688,6 @@ public class TestMergeJoin {
         public void setLocation(String location, Job job) throws IOException {
 
         }
-        
+
     }
 }
