@@ -223,7 +223,24 @@ public class SchemaTupleFrontend {
         if (stf == null) {
             stf = new SchemaTupleFrontend();
         }
+
+        try {
+            udfSchema = udfSchema.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new RuntimeException("Unable to clone Schema: " + udfSchema, e);
+        }
+        stripAliases(udfSchema);
+
         return stf.internalRegisterToGenerateIfPossible(udfSchema, isAppendable, context);
+    }
+
+    private static void stripAliases(Schema s) {
+        for (Schema.FieldSchema fs : s.getFields()) {
+            fs.alias = null;
+            if (fs.schema != null) {
+                stripAliases(fs.schema);
+            }
+        }
     }
 
     /**

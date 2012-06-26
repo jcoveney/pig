@@ -45,6 +45,10 @@ public class StructuresHelper {
          */
         @Override
         public int hashCode() {
+            return hashCode(s);
+        }
+
+        public static int hashCode(Schema s) {
             if (s == null) {
                 return 0;
             }
@@ -57,8 +61,8 @@ public class StructuresHelper {
             return hashCode ;
         }
 
-        private int hashCode(FieldSchema fs) {
-            return (fs.type * 17) + ( (fs.schema == null? 0 : fs.schema.hashCode()) * 23 );
+        private static int hashCode(FieldSchema fs) {
+            return (fs.type * 17) + ( (fs.schema == null? 0 : hashCode(fs.schema)) * 23 );
         }
 
         @Override
