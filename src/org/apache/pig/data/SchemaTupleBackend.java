@@ -279,7 +279,10 @@ public class SchemaTupleBackend {
 
     public static SchemaTupleFactory newSchemaTupleFactory(Schema s, boolean isAppendable, GenContext context)  {
         if (stb == null) {
-            LOG.error("initialize was not called! Even when SchemaTuple feature is not set, it should be called.");
+            // It is possible (though ideally should be avoided) for this to be called on the frontend if
+            // the Tuple processing path of the POPlan is invoked (perhaps for optimization purposes)
+            LOG.warn("initialize was not called! Even when SchemaTuple feature is not set, it should be called.");
+            return null;
         }
         return stb.internalNewSchemaTupleFactory(s, isAppendable, context);
     }

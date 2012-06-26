@@ -132,26 +132,6 @@ public class POUserFunc extends ExpressionOperator {
         //is set up correctly with the reporter and pigLogger references
         this.func.setReporter(reporter);
         this.func.setPigLogger(pigLogger);
-
-        if (tmpS != null) {
-            //Currently, getInstanceForSchema returns null if no class was found. This works fine...
-            //if it is null, the default will be used. We pass the context because if it happens that
-            //the same Schema was generated elsewhere, we do not want to override user expectations
-            inputTupleFactory = SchemaTupleFactory.getInstance(tmpS, false, GenContext.UDF);
-            if (inputTupleFactory == null) {
-                LOG.debug("No SchemaTupleFactory found for Schema ["+tmpS+"], using default TupleFactory");
-                usingSchemaTupleFactory = false;
-            } else {
-                LOG.debug("Using SchemaTupleFactory for Schema: " + tmpS);
-                usingSchemaTupleFactory = true;
-            }
-
-            //In the future, we could optionally use SchemaTuples for output as well
-        }
-
-        if (inputTupleFactory == null) {
-            inputTupleFactory = TupleFactory.getInstance();
-        }
     }
 
     private transient TupleFactory inputTupleFactory;
@@ -167,6 +147,31 @@ public class POUserFunc extends ExpressionOperator {
         if(!initialized) {
             func.setReporter(reporter);
             func.setPigLogger(pigLogger);
+
+            // We initialize here instead of instantiateFunc because this is called
+            // when actual processing has begun, whereas a function can be instantiated
+            // on the frontend potentially (mainly for optimization)
+            Schema tmpS = func.getInputSchema();
+            if (tmpS != null) {
+                //Currently, getInstanceForSchema returns null if no class was found. This works fine...
+                //if it is null, the default will be used. We pass the context because if it happens that
+                //the same Schema was generated elsewhere, we do not want to override user expectations
+                inputTupleFactory = SchemaTupleFactory.getInstance(tmpS, false, GenContext.UDF);
+                if (inputTupleFactory == null) {
+                    LOG.debug("No SchemaTupleFactory found for Schema ["+tmpS+"], using default TupleFactory");
+                    usingSchemaTupleFactory = false;
+                } else {
+                    LOG.debug("Using SchemaTupleFactory for Schema: " + tmpS);
+                    usingSchemaTupleFactory = true;
+                }
+
+                //In the future, we could optionally use SchemaTuples for output as well
+            }
+
+            if (inputTupleFactory == null) {
+                inputTupleFactory = TupleFactory.getInstance();
+            }
+
             initialized = true;
         }
 

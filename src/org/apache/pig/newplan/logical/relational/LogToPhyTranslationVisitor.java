@@ -1130,8 +1130,16 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
 
             if(usePOMergeJoin){
                 // We register the merge join schema information for code generation
-                Schema leftSchema = Schema.getPigSchema(new ResourceSchema(((LogicalRelationalOperator)inputs.get(0)).getSchema()));
-                Schema rightSchema = Schema.getPigSchema(new ResourceSchema(((LogicalRelationalOperator)inputs.get(1)).getSchema()));
+                LogicalSchema logicalSchema = ((LogicalRelationalOperator)inputs.get(0)).getSchema();
+                Schema leftSchema = null;
+                if (logicalSchema != null) {
+                    leftSchema = Schema.getPigSchema(new ResourceSchema(logicalSchema));
+                }
+                logicalSchema = ((LogicalRelationalOperator)inputs.get(1)).getSchema();
+                Schema rightSchema = null;
+                if (logicalSchema != null) {
+                    rightSchema = Schema.getPigSchema(new ResourceSchema(logicalSchema));
+                }
                 Schema mergedSchema = null;
                 if (leftSchema != null) {
                     SchemaTupleFrontend.registerToGenerateIfPossible(leftSchema, false, GenContext.MERGE_JOIN);
