@@ -61,7 +61,6 @@ public class TestMergeJoin {
         props.setProperty("mapred.map.max.attempts", "1");
         props.setProperty("mapred.reduce.max.attempts", "1");
         pigServer = new PigServer(ExecType.MAPREDUCE, props);
-        //pigServer = new PigServer(ExecType.LOCAL, props);
     }
     /**
      * @throws java.lang.Exception

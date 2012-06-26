@@ -844,7 +844,8 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                     "supported for any relation on Merge Cogroup.");
         }
         List<Operator> inputs = cg.getPlan().getPredecessors(cg);
-        validateMapSideMerge(inputs, cg.getPlan());
+        MapSideMergeValidator validator = new MapSideMergeValidator();
+        validator.validateMapSideMerge(inputs, cg.getPlan());
         POMergeCogroup poCogrp = compileToMergeCogrp(cg, cg.getExpressionPlans());
         poCogrp.setResultType(DataType.TUPLE);
         poCogrp.addOriginalLocation(cg.getAlias(), cg.getLocation());
@@ -1121,9 +1122,8 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                 }
             }
             logToPhyMap.put(loj, pfrj);
-        }
-
-        else if ( (loj.getJoinType() == LOJoin.JOINTYPE.MERGE || loj.getJoinType() == LOJoin.JOINTYPE.MERGESPARSE) && validateMapSideMerge(inputs,loj.getPlan())) {
+        } else if ( (loj.getJoinType() == LOJoin.JOINTYPE.MERGE || loj.getJoinType() == LOJoin.JOINTYPE.MERGESPARSE)
+                && (new MapSideMergeValidator().validateMapSideMerge(inputs,loj.getPlan()))) {
 
             PhysicalOperator smj;
             boolean usePOMergeJoin = inputs.size() == 2 && innerFlags[0] && innerFlags[1] ;
@@ -1189,9 +1189,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                     throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
                 }
                 logToPhyMap.put(loj, smj);
-            }
-
-            else{
+            } else {
                 // in all other cases we fall back to POMergeCogroup + Flattening FEs
                 smj = compileToMergeCogrp(loj, loj.getExpressionPlans());
             }
