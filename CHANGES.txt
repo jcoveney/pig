@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2673: Allow Merge join to follow an ORDER statement (dvryaboy)
+
 PIG-2699: Reduce the number of instances of Load and Store Funcs down to 2+1 (julien)
 
 PIG-2166: UDFs to join a bag (hluu via daijy)
@@ -396,6 +398,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
+
+PIG-2761: With hadoop23 importing modules inside python script does not work (rohini via daijy)
 
 PIG-2759: Typo in document "Built In Functions" (daijy)
 
