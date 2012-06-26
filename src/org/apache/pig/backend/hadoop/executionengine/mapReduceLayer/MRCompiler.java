@@ -1529,9 +1529,9 @@ public class MRCompiler extends PhyPlanVisitor {
 
             MapReduceOper rightMROpr = null;
             if(curMROp.equals(compiledInputs[0]))
-              rightMROpr = compiledInputs[1];
+                rightMROpr = compiledInputs[1];
             else
-              rightMROpr = compiledInputs[0];
+                rightMROpr = compiledInputs[0];
 
             // We will first operate on right side which is indexer job.
             // First yank plan of the compiled right input and set that as an inner plan of right operator.
@@ -1627,14 +1627,14 @@ public class MRCompiler extends PhyPlanVisitor {
                     }
                 }
             } else {
-              LoadFunc loadFunc = rightLoader.getLoadFunc();
-              //Replacing POLoad with indexer is disabled for 'merge-sparse' joins.  While
-              //this feature would be useful, the current implementation of DefaultIndexableLoader
-              //is not designed to handle multiple calls to seekNear.  Specifically, it rereads the entire index
-              //for each call.  Some refactoring of this class is required - and then the check below could be removed.
-              if (joinOp.getJoinType() == LOJoin.JOINTYPE.MERGESPARSE) {
-                int errCode = 1104;
-                String errMsg = "Right input of merge-join must implement IndexableLoadFunc. " +
+                LoadFunc loadFunc = rightLoader.getLoadFunc();
+                //Replacing POLoad with indexer is disabled for 'merge-sparse' joins.  While
+                //this feature would be useful, the current implementation of DefaultIndexableLoader
+                //is not designed to handle multiple calls to seekNear.  Specifically, it rereads the entire index
+                //for each call.  Some refactoring of this class is required - and then the check below could be removed.
+		if (joinOp.getJoinType() == LOJoin.JOINTYPE.MERGESPARSE) {
+                    int errCode = 1104;
+                    String errMsg = "Right input of merge-join must implement IndexableLoadFunc. " +
                     "The specified loader " + loadFunc + " doesn't implement it";
                 throw new MRCompilerException(errMsg,errCode);
               }

@@ -1050,7 +1050,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                 }
             }
             logToPhyMap.put(loj, pfrj);
-        }  else if ( (loj.getJoinType() == LOJoin.JOINTYPE.MERGE || loj.getJoinType() == LOJoin.JOINTYPE.MERGESPARSE)
+        } else if ( (loj.getJoinType() == LOJoin.JOINTYPE.MERGE || loj.getJoinType() == LOJoin.JOINTYPE.MERGESPARSE)
                 && (new MapSideMergeValidator().validateMapSideMerge(inputs,loj.getPlan()))) {
 
             PhysicalOperator smj;
