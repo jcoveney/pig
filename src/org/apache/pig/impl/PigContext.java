@@ -245,7 +245,7 @@ public class PigContext implements Serializable {
      */
     public void addScriptFile(String path) {
         if (path != null) {
-            aliasedScriptFiles.put(path, new File(path));
+            aliasedScriptFiles.put(path.replaceFirst("^/", ""), new File(path));
         }
     }
 
@@ -257,7 +257,7 @@ public class PigContext implements Serializable {
      */
     public void addScriptFile(String name, String path) {
         if (path != null) {
-            aliasedScriptFiles.put(name, new File(path));
+            aliasedScriptFiles.put(name.replaceFirst("^/", ""), new File(path));
         }
     }
 
