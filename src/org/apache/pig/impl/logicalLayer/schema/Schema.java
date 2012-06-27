@@ -59,7 +59,7 @@ public class Schema implements Serializable, Cloneable {
 
     public static class FieldSchema implements Serializable, Cloneable {
         /**
-         * 
+         *
          */
         private static final long serialVersionUID = 2L;
 
@@ -94,12 +94,12 @@ public class Schema implements Serializable, Cloneable {
          * all field schema objects, the object is made static.
          */
         public static final CanonicalNamer canonicalNamer = new CanonicalNamer();
-        
+
         private static Log log = LogFactory.getLog(Schema.FieldSchema.class);
 
         /**
          * Constructor for any type.
-         * 
+         *
          * @param a
          *            Alias, if known. If unknown leave null.
          * @param t
@@ -109,13 +109,13 @@ public class Schema implements Serializable, Cloneable {
         public FieldSchema(String a, byte t) {
             alias = a;
             type = t;
-            schema = null;            
+            schema = null;
             canonicalName = CanonicalNamer.getNewName();
         }
 
         /**
          * Constructor for tuple fields.
-         * 
+         *
          * @param a
          *            Alias, if known. If unknown leave null.
          * @param s
@@ -130,7 +130,7 @@ public class Schema implements Serializable, Cloneable {
 
         /**
          * Constructor for tuple fields.
-         * 
+         *
          * @param a
          *            Alias, if known. If unknown leave null.
          * @param s
@@ -138,29 +138,29 @@ public class Schema implements Serializable, Cloneable {
          * @param t
          *            Type, using codes from
          *            {@link org.apache.pig.data.DataType}.
-         * 
+         *
          */
         public FieldSchema(String a, Schema s, byte t)  throws FrontendException {
             alias = a;
             schema = s;
             log.debug("t: " + t + " Bag: " + DataType.BAG + " tuple: " + DataType.TUPLE);
-            
+
             if ((null != s) && !(DataType.isSchemaType(t))) {
                 int errCode = 1020;
                 throw new FrontendException("Only a BAG, TUPLE or MAP can have schemas. Got "
                         + DataType.findTypeName(t), errCode, PigException.INPUT);
             }
-            
+
             type = t;
             canonicalName = CanonicalNamer.getNewName();
         }
 
         /**
          * Copy Constructor.
-         * 
+         *
          * @param fs
          *           Source FieldSchema
-         * 
+         *
          */
         public FieldSchema(FieldSchema fs)  {
             if(null != fs) {
@@ -207,7 +207,7 @@ public class Schema implements Serializable, Cloneable {
         }
 
         /**
-         * Recursively compare two schemas to check if the input schema 
+         * Recursively compare two schemas to check if the input schema
          * can be cast to the cast schema
          * @param castFs schema of the cast operator
          * @param  inputFs schema of the cast input
@@ -219,17 +219,17 @@ public class Schema implements Serializable, Cloneable {
             if(castFs == null && inputFs == null) {
                 return false;
             }
-            
+
             if (castFs == null) {
                 return false ;
             }
-    
+
             if (inputFs == null) {
                 return false ;
             }
             byte inputType = inputFs.type;
             byte castType = castFs.type;
-    
+
             if (DataType.isSchemaType(castFs.type)) {
                 if(inputType == DataType.BYTEARRAY) {
                     // good
@@ -237,7 +237,7 @@ public class Schema implements Serializable, Cloneable {
                     // Don't do the comparison if both embedded schemas are
                     // null.  That will cause Schema.equals to return false,
                     // even though we want to view that as true.
-                    if (!(castFs.schema == null && inputFs.schema == null)) { 
+                    if (!(castFs.schema == null && inputFs.schema == null)) {
                         // compare recursively using schema
                         if (!Schema.castable(castFs.schema, inputFs.schema)) {
                             return false ;
@@ -262,7 +262,7 @@ public class Schema implements Serializable, Cloneable {
                 else if (inputType == DataType.CHARARRAY && (castType == DataType.BYTEARRAY
                         || DataType.isNumberType(castType) || castType == DataType.BOOLEAN)) {
                     // good
-                } 
+                }
                 else if (inputType == DataType.BYTEARRAY) {
                     // good
                 }
@@ -270,7 +270,7 @@ public class Schema implements Serializable, Cloneable {
                     return false;
                 }
             }
-    
+
             return true ;
         }
 
@@ -404,7 +404,7 @@ public class Schema implements Serializable, Cloneable {
                                                  throws SchemaMergeException {
              return mergePrefixFieldSchema(otherFs, otherTakesAliasPrecedence, false);
          }
-         
+
         /***
         * Recursively prefix merge two schemas
         * @param otherFs the other field schema to be merged with
@@ -417,8 +417,8 @@ public class Schema implements Serializable, Cloneable {
         *   null or unknown, the result type will be the latter non null/unknown type
         *   2) If either type is bytearray, then result type will be the other (possibly non BYTEARRAY) type
         *   3) If current type can be cast to the other type, then the result type will be the
-        *   other type 
-        * @return the prefix merged field schema this can be null. 
+        *   other type
+        * @return the prefix merged field schema this can be null.
         *
         * @throws SchemaMergeException if they cannot be merged
         */
@@ -429,7 +429,7 @@ public class Schema implements Serializable, Cloneable {
             Schema.FieldSchema myFs = this;
             Schema.FieldSchema mergedFs = null;
             byte mergedType = DataType.NULL;
-    
+
             if(null == otherFs) {
                 return myFs;
             }
@@ -464,11 +464,11 @@ public class Schema implements Serializable, Cloneable {
                     throw new SchemaMergeException(msg, errCode, PigException.INPUT);
                 }
             }
-    
+
             String mergedAlias = mergeAlias(myFs.alias,
                                             otherFs.alias,
                                             otherTakesAliasPrecedence) ;
-    
+
             if (!DataType.isSchemaType(mergedType)) {
                 // just normal merge
                 mergedFs = new FieldSchema(mergedAlias, mergedType) ;
@@ -496,8 +496,8 @@ public class Schema implements Serializable, Cloneable {
         }
 
         /**
-         * Recursively set NULL type to the specifid type 
-         * @param fs the field schema whose NULL type has to be set 
+         * Recursively set NULL type to the specifid type
+         * @param fs the field schema whose NULL type has to be set
          * @param t the specified type
          */
         public static void setFieldSchemaDefaultType(Schema.FieldSchema fs, byte t) {
@@ -510,7 +510,7 @@ public class Schema implements Serializable, Cloneable {
             }
         }
 
-        
+
         private boolean isNullOrUnknownType(FieldSchema fs) {
             return (fs.type == DataType.NULL || fs.type == DataType.UNKNOWN);
         }
@@ -518,7 +518,7 @@ public class Schema implements Serializable, Cloneable {
         /**
          * Find a field schema instance in this FieldSchema hierarchy (including "this")
          * that matches the given canonical name.
-         * 
+         *
          * @param canonicalName canonical name
          * @return the FieldSchema instance found
          */
@@ -543,19 +543,19 @@ public class Schema implements Serializable, Cloneable {
     // tuple in the bag. This is currently true for two cases:
     // 1) bag constants - the schema of bag constant has a tuple
     // which internally has the actual elements
-    // 2) When bags are loaded from input data, if the user 
+    // 2) When bags are loaded from input data, if the user
     // specifies a schema with the "bag" type, he has to specify
-    // the bag as containing a tuple with the actual elements in 
+    // the bag as containing a tuple with the actual elements in
     // the schema declaration. However in both the cases above,
-    // the user can still say b.i where b is the bag and i is 
+    // the user can still say b.i where b is the bag and i is
     // an element in the bag's tuple schema. So in these cases,
-    // the access should translate to a lookup for "i" in the 
+    // the access should translate to a lookup for "i" in the
     // tuple schema present in the bag. To indicate this, the
-    // flag below is used. It is false by default because, 
-    // currently we use bag as the type for relations. However 
+    // flag below is used. It is false by default because,
+    // currently we use bag as the type for relations. However
     // the schema of a relation does NOT have a tuple fieldschema
-    // with items in it. Instead, the schema directly has the 
-    // field schema of the items. So for a relation "b", the 
+    // with items in it. Instead, the schema directly has the
+    // field schema of the items. So for a relation "b", the
     // above b.i access would be a direct single level access
     // of i in b's schema. This is treated as the "default" case
     private boolean twoLevelAccessRequired = false;
@@ -682,7 +682,7 @@ public class Schema implements Serializable, Cloneable {
                 if(set.size() == 1) {
                     return set.iterator().next();
                 }
-                
+
                 boolean hasNext = false;
                 StringBuilder sb = new StringBuilder("Found more than one match: ");
                 for (String key: aliasMatches.keySet()) {
@@ -701,11 +701,11 @@ public class Schema implements Serializable, Cloneable {
         }
     }
 
-    
+
     /**
-     * Given an alias name, find the associated FieldSchema. If exact name is 
+     * Given an alias name, find the associated FieldSchema. If exact name is
      * not found see if any field matches the part of the 'namespaced' alias.
-     * eg. if given alias is nm::a , and schema is (a,b). It will return 
+     * eg. if given alias is nm::a , and schema is (a,b). It will return
      * FieldSchema of a.
      * if given alias is nm::a and schema is (nm2::a, b), it will return null
      * @param alias Alias to look up.
@@ -748,9 +748,9 @@ public class Schema implements Serializable, Cloneable {
 
         return fs;
     }
-    
-    
-    
+
+
+
     /**
      * Given a field number, find the associated FieldSchema.
      *
@@ -794,7 +794,7 @@ public class Schema implements Serializable, Cloneable {
     public void reconcile(Schema other) throws FrontendException {
 
         if (other != null) {
-        
+
             if (other.size() != size()) {
                 int errCode = 1027;
             	String msg = "Cannot reconcile schemas with different "
@@ -943,6 +943,11 @@ public class Schema implements Serializable, Cloneable {
         return sb.toString();
     }
 
+    public static void stringifySchema(StringBuilder sb, Schema schema, byte type)
+            throws FrontendException {
+        stringifySchema(sb, schema, type, 0);
+    }
+
     // This is used for building up output string
     // type can only be BAG or TUPLE
     public static void stringifySchema(StringBuilder sb,
@@ -978,7 +983,7 @@ public class Schema implements Serializable, Cloneable {
                 if(fs == null) {
                     continue;
                 }
-                
+
                 if (fs.alias != null) {
                     sb.append(fs.alias);
                     sb.append(": ");
@@ -1065,8 +1070,8 @@ public class Schema implements Serializable, Cloneable {
     public int getPositionSubName(String alias) throws FrontendException{
         return getPosition(alias, true);
     }
-    
-    
+
+
     private int getPosition(String alias, boolean isSubNameMatch)
     throws FrontendException {
         if(isSubNameMatch && twoLevelAccessRequired){
@@ -1081,7 +1086,7 @@ public class Schema implements Serializable, Cloneable {
             // a bag which has just one tuple fieldschema which
             // in turn has a list of fieldschemas. The alias supplied
             // should be treated as an alias in the tuple's schema
-            
+
             // check that indeed we only have one field schema
             // which is that of a tuple
             if(mFields.size() != 1) {
@@ -1100,8 +1105,8 @@ public class Schema implements Serializable, Cloneable {
                         DataType.findTypeName(tupleFS.type);
                 throw new FrontendException(msg, errCode, PigException.INPUT);
             }
-            
-            // check if the alias supplied is that of the tuple 
+
+            // check if the alias supplied is that of the tuple
             // itself - then disallow it since we do not allow access
             // to the tuple itself - we only allow access to the fields
             // in the tuple
@@ -1112,23 +1117,23 @@ public class Schema implements Serializable, Cloneable {
                         "the tuple in the bag is allowed.";
                 throw new FrontendException(msg, errCode, PigException.INPUT);
             }
-            
+
             // all is good - get the position from the tuple's schema
             return tupleFS.schema.getPosition(alias);
         } else {
             FieldSchema fs = isSubNameMatch ? getFieldSubNameMatch(alias) : getField(alias);
-    
+
             if (null == fs) {
                 return -1;
             }
-    
+
             log.debug("fs: " + fs);
             int index = -1;
             for(int i = 0; i < mFields.size(); ++i) {
                 log.debug("mFields(" + i + "): " + mFields.get(i) + " alias: " + mFields.get(i).alias);
                 if(fs == mFields.get(i)) {index = i;}
             }
-    
+
             log.debug("index: " + index);
             return index;
             //return mFields.indexOf(fs);
@@ -1160,7 +1165,7 @@ public class Schema implements Serializable, Cloneable {
     }
 
     /**
-     * Recursively compare two schemas to check if the input schema 
+     * Recursively compare two schemas to check if the input schema
      * can be cast to the cast schema
      * @param cast schema of the cast operator
      * @param  input schema of the cast input
@@ -1228,7 +1233,7 @@ public class Schema implements Serializable, Cloneable {
         if (other == null) {
             return false ;
         }
-        
+
         /*
          * Need to check for bags with schemas and bags with tuples that in turn have schemas.
          * Retrieve the tuple schema of the bag if twoLevelAccessRequired
@@ -1243,7 +1248,7 @@ public class Schema implements Serializable, Cloneable {
                     return false;
                 }
             }
-            
+
             if(other.isTwoLevelAccessRequired()) {
                 try {
                     other = other.getField(0).schema;
@@ -1251,7 +1256,7 @@ public class Schema implements Serializable, Cloneable {
                     return false;
                 }
             }
-            
+
             return Schema.equals(schema, other, relaxInner, relaxAlias);
         }
 
@@ -1274,7 +1279,7 @@ public class Schema implements Serializable, Cloneable {
                      (otherFs.alias == null) ) {
                     return false ;
                 }
-                else if ( (myFs.alias == null) && 
+                else if ( (myFs.alias == null) &&
                      (otherFs.alias != null) ) {
                     return false ;
                 }
@@ -1462,7 +1467,7 @@ public class Schema implements Serializable, Cloneable {
 
         // Handle different schema size
         if (allowDifferentSizeMerge) {
-            
+
             // if the first schema has leftover, then append the rest
             for(int i=idx; i < mylist.size(); i++) {
 
@@ -1533,11 +1538,11 @@ public class Schema implements Serializable, Cloneable {
             return alias ;
         }
     }
-    
+
     /**
-     * Merges collection of schemas using their column aliases 
+     * Merges collection of schemas using their column aliases
      * (unlike mergeSchema(..) functions which merge using positions)
-     * Schema will not be merged if types are incompatible, 
+     * Schema will not be merged if types are incompatible,
      * as per DataType.mergeType(..)
      * For Tuples and Bags, SubSchemas have to be equal be considered compatible
      * @param schemas - list of schemas to be merged using their column alias
@@ -1560,10 +1565,10 @@ public class Schema implements Serializable, Cloneable {
                 mergedSchema = mergeSchemaByAlias(mergedSchema, sch);
                 mergedSchemas.add(sch);
             }catch(SchemaMergeException e){
-                String msg = "Error merging schema: ("  + sch + ") with " 
+                String msg = "Error merging schema: ("  + sch + ") with "
                 + "merged schema: (" + mergedSchema + ")" + " of schemas : "
                 + mergedSchemas;
-                SchemaMergeException sme = new SchemaMergeException(msg, 
+                SchemaMergeException sme = new SchemaMergeException(msg,
                         e.getErrorCode(), e);
                 sme.setMarkedAsShowToUser(true);
                 throw sme;
@@ -1571,11 +1576,11 @@ public class Schema implements Serializable, Cloneable {
         }
         return mergedSchema;
     }
-    
+
     /**
-     * Merges two schemas using their column aliases 
+     * Merges two schemas using their column aliases
      * (unlike mergeSchema(..) functions which merge using positions)
-     * Schema will not be merged if types are incompatible, 
+     * Schema will not be merged if types are incompatible,
      * as per DataType.mergeType(..)
      * For Tuples and Bags, SubSchemas have to be equal be considered compatible
      * @param schema1
@@ -1588,7 +1593,7 @@ public class Schema implements Serializable, Cloneable {
     throws SchemaMergeException{
         Schema mergedSchema = new Schema();
         HashSet<FieldSchema> schema2colsAdded = new HashSet<FieldSchema>();
-        // add/merge fields present in first schema 
+        // add/merge fields present in first schema
         for(FieldSchema fs1 : schema1.getFields()){
             checkNullAlias(fs1, schema1);
             FieldSchema fs2 = getFieldSubNameMatchThrowSchemaMergeException(schema2,fs1.alias);
@@ -1634,7 +1639,7 @@ public class Schema implements Serializable, Cloneable {
     }
 
     /**
-     * Schema will not be merged if types are incompatible, 
+     * Schema will not be merged if types are incompatible,
      * as per DataType.mergeType(..)
      * For Tuples and Bags, SubSchemas have to be equal be considered compatible
      * Aliases are assumed to be same for both
@@ -1644,7 +1649,7 @@ public class Schema implements Serializable, Cloneable {
      * @throws SchemaMergeException
      */
     private static FieldSchema mergeFieldSchemaFirstLevelSameAlias(FieldSchema fs1,
-            FieldSchema fs2) 
+            FieldSchema fs2)
     throws SchemaMergeException {
         if(fs1 == null)
             return fs2;
@@ -1652,9 +1657,9 @@ public class Schema implements Serializable, Cloneable {
             return fs1;
 
         Schema innerSchema = null;
-        
+
         String alias = mergeNameSpacedAlias(fs1.alias, fs2.alias);
-        
+
         byte mergedType = DataType.mergeType(fs1.type, fs2.type) ;
 
         // If the types cannot be merged
@@ -1678,7 +1683,7 @@ public class Schema implements Serializable, Cloneable {
                     int errCode = 1032;
                     String msg = "Incompatible types for merging inner schemas of " +
                     " Field schema type: " + fs1 + " Other field schema type: " + fs2;
-                    throw new SchemaMergeException(msg, errCode, PigException.INPUT) ;                
+                    throw new SchemaMergeException(msg, errCode, PigException.INPUT) ;
                 }
                 innerSchema = fs1.schema;
             }
@@ -1695,8 +1700,8 @@ public class Schema implements Serializable, Cloneable {
             );
         }
     }
-    
-    
+
+
     /**
      * If one of the aliases is of form 'nm::str1', and other is of the form
      * 'str1', this returns str1
@@ -1721,7 +1726,7 @@ public class Schema implements Serializable, Cloneable {
     }
 
     /**
-     * Utility function that calls schema.getFiled(alias), and converts 
+     * Utility function that calls schema.getFiled(alias), and converts
      * {@link FrontendException} to {@link SchemaMergeException}
      * @param schema
      * @param alias
@@ -1740,23 +1745,23 @@ public class Schema implements Serializable, Cloneable {
         }
         return fs;
     }
-    
-    
-    
+
+
+
     /**
-     * 
+     *
      * @param topLevelType DataType type of the top level element
      * @param innerTypes DataType types of the inner level element
      * @return nested schema representing type of top level element at first level and inner schema
 	 * representing types of inner element(s)
      */
     public static Schema generateNestedSchema(byte topLevelType, byte... innerTypes) throws FrontendException{
-        
+
         Schema innerSchema = new Schema();
         for (int i = 0; i < innerTypes.length; i++) {
             innerSchema.add(new Schema.FieldSchema(null, innerTypes[i]));
         }
-        
+
         Schema.FieldSchema outerSchema = new Schema.FieldSchema(null, innerSchema, topLevelType);
         return new Schema(outerSchema);
     }
@@ -1777,20 +1782,20 @@ public class Schema implements Serializable, Cloneable {
                                     throws SchemaMergeException {
         return mergePrefixSchema(other, otherTakesAliasPrecedence, false);
     }
-    
+
     /***
      * Recursively prefix merge two schemas
      * @param other the other schema to be merged with
      * @param otherTakesAliasPrecedence true if aliases from the other
      *                                  schema take precedence
      * @param allowMergeableTypes true if "mergeable" types should be allowed.
-     *   Two types are mergeable if any of the following conditions is true IN THE 
+     *   Two types are mergeable if any of the following conditions is true IN THE
      *   BELOW ORDER of checks:
      *   1) if either one has a type null or unknown and other has a type OTHER THAN
      *   null or unknown, the result type will be the latter non null/unknown type
      *   2) If either type is bytearray, then result type will be the other (possibly  non BYTEARRAY) type
      *   3) If current type can be cast to the other type, then the result type will be the
-     *   other type 
+     *   other type
      * @return the prefix merged schema this can be null if one schema is null and
      *         allowIncompatibleTypes is true
      *
@@ -1859,7 +1864,7 @@ public class Schema implements Serializable, Cloneable {
 
     /**
      * Recursively set NULL type to the specifid type in a schema
-     * @param s the schema whose NULL type has to be set 
+     * @param s the schema whose NULL type has to be set
      * @param t the specified type
      */
     public static void setSchemaDefaultType(Schema s, byte t) {
@@ -1886,18 +1891,18 @@ public class Schema implements Serializable, Cloneable {
     public void setTwoLevelAccessRequired(boolean twoLevelAccess) {
         this.twoLevelAccessRequired = twoLevelAccess;
     }
-    
-    public static Schema getPigSchema(ResourceSchema rSchema) 
+
+    public static Schema getPigSchema(ResourceSchema rSchema)
     throws FrontendException {
         if(rSchema == null) {
             return null;
         }
         List<FieldSchema> fsList = new ArrayList<FieldSchema>();
         for(ResourceFieldSchema rfs : rSchema.getFields()) {
-            FieldSchema fs = new FieldSchema(rfs.getName(), 
-                    rfs.getSchema() == null ? 
+            FieldSchema fs = new FieldSchema(rfs.getName(),
+                    rfs.getSchema() == null ?
                             null : getPigSchema(rfs.getSchema()), rfs.getType());
-            
+
             if(rfs.getType() == DataType.BAG) {
                 if (fs.schema != null) { // allow partial schema
                     if (fs.schema.size() == 1) {
@@ -1908,7 +1913,7 @@ public class Schema implements Serializable, Cloneable {
                     } else {
                         ResourceFieldSchema.throwInvalidSchemaException();
                     }
-                } 
+                }
             }
             fsList.add(fs);
         }
@@ -1932,7 +1937,7 @@ public class Schema implements Serializable, Cloneable {
 	    }
 	    return null;
     }
-    
+
 }
 
 
