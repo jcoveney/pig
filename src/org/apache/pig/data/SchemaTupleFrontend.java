@@ -224,6 +224,10 @@ public class SchemaTupleFrontend {
             stf = new SchemaTupleFrontend();
         }
 
+        if (udfSchema == null) {
+            return -1;
+        }
+
         try {
             udfSchema = udfSchema.clone();
         } catch (CloneNotSupportedException e) {

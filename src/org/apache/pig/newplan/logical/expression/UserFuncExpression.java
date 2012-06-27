@@ -169,9 +169,6 @@ public class UserFuncExpression extends LogicalExpression {
         ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(mFuncSpec);
     }
 
-    private int inputSchemaTupleId = -1; //TODO theoretically, these values could be threaded along
-    private int outputSchemaTupleId = -1; //TODO to the POUserFunc directly
-
     @Override
     public LogicalSchema.LogicalFieldSchema getFieldSchema() throws FrontendException {
         if (fieldSchema!=null)
@@ -207,8 +204,8 @@ public class UserFuncExpression extends LogicalExpression {
         Schema udfSchema = ef.outputSchema(translatedInputSchema);
 
         //TODO appendability should come from a setting
-        inputSchemaTupleId = SchemaTupleFrontend.registerToGenerateIfPossible(translatedInputSchema, false, GenContext.UDF);
-        outputSchemaTupleId = SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, false, GenContext.UDF);
+        SchemaTupleFrontend.registerToGenerateIfPossible(translatedInputSchema, false, GenContext.UDF);
+        SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, false, GenContext.UDF);
 
         if (udfSchema != null) {
             Schema.FieldSchema fs;
