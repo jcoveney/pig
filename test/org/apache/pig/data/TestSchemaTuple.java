@@ -62,7 +62,7 @@ public class TestSchemaTuple {
         isAppendable = true;
         SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, isAppendable, context);
 
-        udfSchema = Utils.getSchemaFromString("a:chararray,(a:chararray)}");
+        udfSchema = Utils.getSchemaFromString("a:chararray,(a:chararray)");
         isAppendable = false;
         context = GenContext.LOAD;
         SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, isAppendable, context);
@@ -135,6 +135,10 @@ public class TestSchemaTuple {
         SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, isAppendable, context);
 
         isAppendable = true;
+        SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, isAppendable, context);
+
+        isAppendable = false;
+        udfSchema = Utils.getSchemaFromString("int, b:bag{(int,int,int)}");
         SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, isAppendable, context);
 
         // this compiles and "ships"
@@ -249,6 +253,11 @@ public class TestSchemaTuple {
         isAppendable = true;
         tf = SchemaTupleFactory.getInstance(udfSchema, isAppendable, context);
         putThroughPaces(tf, udfSchema, isAppendable);
+
+        isAppendable = false;
+        udfSchema = Utils.getSchemaFromString("int, b:bag{(int,int,int)}");
+        tf = SchemaTupleFactory.getInstance(udfSchema, isAppendable, context);
+        putThroughPaces(tf, udfSchema, isAppendable);
     }
 
     private void putThroughPaces(TupleFactory tfPrime, Schema udfSchema, boolean isAppendable) throws IOException {
@@ -339,7 +348,7 @@ public class TestSchemaTuple {
 
     private Random r = new Random(100L);
 
-    private Object randData(FieldSchema fs) {
+    private Object randData(FieldSchema fs) throws ExecException {
         switch (fs.type) {
         case DataType.BOOLEAN: return r.nextBoolean();
         case DataType.BYTEARRAY: return new DataByteArray(new BigInteger(130, r).toByteArray());
@@ -348,6 +357,18 @@ public class TestSchemaTuple {
         case DataType.LONG: return r.nextLong();
         case DataType.FLOAT: return r.nextFloat();
         case DataType.DOUBLE: return r.nextDouble();
+        case DataType.BAG:
+            DataBag db = BagFactory.getInstance().newDefaultBag();
+            int sz = r.nextInt(100);
+            for (int i = 0; i < sz; i++) {
+                int tSz = r.nextInt(10);
+                Tuple t = TupleFactory.getInstance().newTuple(tSz);
+                for (int j = 0; j < tSz; j++) {
+                    t.set(j, r.nextInt());
+                }
+                db.add(t);
+            }
+            return db;
         default: throw new RuntimeException("Cannot generate data for given FieldSchema: " + fs);
         }
     }
@@ -372,6 +393,7 @@ public class TestSchemaTuple {
                 case DataType.FLOAT: st.getFloat(i); break;
                 case DataType.DOUBLE: st.getDouble(i); break;
                 case DataType.TUPLE: st.getTuple(i); break;
+                case DataType.BAG: st.getDataBag(i); break;
                 default: throw new RuntimeException("Unsupported FieldSchema in SchemaTuple: " + fs);
                 }
             } catch (FieldIsNullException e) {

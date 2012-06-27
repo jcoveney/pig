@@ -49,7 +49,9 @@ import com.google.common.collect.Lists;
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
 public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTuple implements TypeAwareTuple {
+
     private static final long serialVersionUID = 1L;
+    private static final BinInterSedes bis = new BinInterSedes();
 
     @NotImplemented
     @Override
@@ -146,6 +148,10 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         writeElements(out);
     }
 
+    protected static void write(DataOutput out, DataBag v) throws IOException {
+        bis.writeDatum(out, v, DataType.BAG);
+    }
+
     protected static void write(DataOutput out, int v) throws IOException {
         SedesHelper.Varint.writeSignedVarInt(v, out);
     }
@@ -172,6 +178,10 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
 
     protected static void write(DataOutput out, SchemaTuple<?> t) throws IOException {
         t.writeElements(out);
+    }
+
+    protected static DataBag read(DataInput in, DataBag v) throws IOException {
+        return (DataBag) bis.readDatum(in, DataType.BAG);
     }
 
     protected static int read(DataInput in, int v) throws IOException {
@@ -319,6 +329,10 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return (compareTo(other) == 0);
     }
 
+    protected DataBag unbox(Object v, DataBag t) {
+        return unbox((DataBag) t);
+    }
+
     protected byte[] unbox(Object v, byte[] t) {
         return unbox((DataByteArray)v);
     }
@@ -351,6 +365,10 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return (Tuple)v;
     }
 
+    protected DataBag unbox(DataBag v) {
+        return v;
+    }
+
     protected byte[] unbox(DataByteArray v) {
         if (v == null) {
             return null;
@@ -376,6 +394,10 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
 
     protected boolean unbox(Boolean v) {
         return v.booleanValue();
+    }
+
+    protected DataBag box(DataBag v) {
+        return v;
     }
 
     protected DataByteArray box(byte[] v) {
@@ -443,6 +465,10 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     }
 
     protected int hashCodePiece(int hash, Tuple v, boolean isNull) {
+        return isNull ? 0 : 31 * hash + v.hashCode();
+    }
+
+    protected int hashCodePiece(int hash, DataBag v, boolean isNull) {
         return isNull ? 0 : 31 * hash + v.hashCode();
     }
 
@@ -540,14 +566,17 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
 
     @Override
     public void setBytes(int fieldNum, byte[] val) throws ExecException {
-        if (fieldNum < schemaSize()) {
-            generatedCodeSetBytes(fieldNum, val);
-        } else {
-            setTypeAwareBase(fieldNum, val, "byte[]");
-        }
+        generatedCodeSetBytes(fieldNum, val);
     }
 
     protected abstract void generatedCodeSetBytes(int fieldNum, byte[] val) throws ExecException;
+
+    @Override
+    public void setDataBag(int fieldNum, DataBag val) throws ExecException {
+        generatedCodeSetDataBag(fieldNum, val);
+    }
+
+    protected abstract void generatedCodeSetDataBag(int fieldNum, DataBag val) throws ExecException;
 
     private void errorIfNull(boolean isNull, String type) throws FieldIsNullException {
         if (isNull) {
@@ -592,6 +621,11 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
 
     protected byte[] returnUnlessNull(boolean isNull, byte[] val) throws FieldIsNullException {
         errorIfNull(isNull, "byte");
+        return val;
+    }
+
+    protected DataBag returnUnlessNull(boolean isNull, DataBag val) throws FieldIsNullException {
+        errorIfNull(isNull, "DataBag");
         return val;
     }
 
@@ -682,6 +716,17 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
 
     protected Tuple unboxTuple(Object val) {
         return (Tuple)val;
+    }
+
+    @Override
+    public DataBag getDataBag(int fieldNum) throws ExecException {
+        return generatedCodeGetDataBag(fieldNum);
+    }
+
+    protected abstract DataBag generatedCodeGetDataBag(int fieldNum) throws ExecException;
+
+    protected DataBag unboxDataBag(Object val) {
+        return (DataBag)val;
     }
 
     protected static Schema staticSchemaGen(String s) {
@@ -957,6 +1002,33 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return compare(isNull, val, themNull, themVal);
     }
 
+    protected int compare(boolean usNull, DataBag usVal, boolean themNull, DataBag themVal) {
+        if (usNull && themNull) {
+            return 0;
+        } else if (themNull) {
+            return 1;
+        } else if (usNull) {
+            return -1;
+        }
+        return compare(usVal, themVal);
+    }
+
+    protected int compare(DataBag val, DataBag themVal) {
+        return val.compareTo(themVal);
+    }
+
+    protected int compareWithElementAtPos(boolean isNull, DataBag val, SchemaTuple<?> t, int pos) {
+        DataBag themVal;
+        boolean themNull;
+        try {
+            themVal = t.getDataBag(pos);
+            themNull = t.isNull(pos);
+        } catch (ExecException e) {
+            throw new RuntimeException("Unable to retrieve DataBag field " + pos + " in given Tuple: " + t, e);
+        }
+        return compare(isNull, val, themNull, themVal);
+    }
+
     protected int compareWithElementAtPos(boolean isNull, SchemaTuple<?> val, SchemaTuple<?> t, int pos) {
         Object themVal;
         boolean themNull;
@@ -993,17 +1065,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     }
 
     @NotImplemented
-    public DataBag getBag(int idx) throws ExecException {
-        throw MethodHelper.methodNotImplemented();
-    }
-
-    @NotImplemented
     public Map<String,Object> getMap(int idx) throws ExecException {
-        throw MethodHelper.methodNotImplemented();
-    }
-
-    @NotImplemented
-    public void setBag(int idx, DataBag val) throws ExecException {
         throw MethodHelper.methodNotImplemented();
     }
 

@@ -428,8 +428,9 @@ public class SchemaTupleClassGenerator {
         public void process(int fieldPos, Schema.FieldSchema fs) {
             if (!isTuple()) {
                 add("public void setPos_"+fieldPos+"("+typeName()+" v) {");
-                if (isPrimitive())
+                if (isPrimitive()) {
                     add("    setNull_"+fieldPos+"(false);");
+                }
 
                 if (!isBoolean()) {
                     add("    pos_"+fieldPos+" = v;");
@@ -756,6 +757,8 @@ public class SchemaTupleClassGenerator {
                 if (booleans++ % 8 == 0) {
                     size++; //accounts for the byte used to store boolean values
                 }
+            } else if (isBag()) {
+                //TODO IMPLEMENT
             } else {
                 s += "(pos_"+fieldPos+" == null ? 8 : pos_"+fieldPos+".getMemorySize()) + ";
             }
@@ -785,6 +788,7 @@ public class SchemaTupleClassGenerator {
             case (DataType.BYTEARRAY): add("    return (byte[])null;"); break;
             case (DataType.CHARARRAY): add("    return (String)null;"); break;
             case (DataType.TUPLE): add("    return (Tuple)null;"); break;
+            case (DataType.BAG): add("    return (DataBag)null;"); break;
             }
             add("}");
             addBreak();
@@ -1047,6 +1051,7 @@ public class SchemaTupleClassGenerator {
             listOfFutureMethods.add(new TypeAwareSetString(DataType.CHARARRAY));
             listOfFutureMethods.add(new TypeAwareSetString(DataType.BOOLEAN));
             listOfFutureMethods.add(new TypeAwareSetString(DataType.TUPLE));
+            listOfFutureMethods.add(new TypeAwareSetString(DataType.BAG));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.INTEGER));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.LONG));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.FLOAT));
@@ -1055,6 +1060,7 @@ public class SchemaTupleClassGenerator {
             listOfFutureMethods.add(new TypeAwareGetString(DataType.CHARARRAY));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.BOOLEAN));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.TUPLE));
+            listOfFutureMethods.add(new TypeAwareGetString(DataType.BAG));
             listOfFutureMethods.add(new ListSetString());
 
             for (TypeInFunctionStringOut t : listOfFutureMethods) {
@@ -1079,6 +1085,7 @@ public class SchemaTupleClassGenerator {
                     .append("import com.google.common.collect.Lists;\n")
                     .append("\n")
                     .append("import org.apache.pig.data.DataType;\n")
+                    .append("import org.apache.pig.data.DataBag;\n")
                     .append("import org.apache.pig.data.Tuple;\n")
                     .append("import org.apache.pig.data.SchemaTuple;\n")
                     .append("import org.apache.pig.data.AppendableSchemaTuple;\n")
@@ -1175,8 +1182,9 @@ public class SchemaTupleClassGenerator {
         public void prepareProcess(Schema.FieldSchema fs) {
             type = fs.type;
 
-            if (type==DataType.MAP || type==DataType.BAG)
-                throw new RuntimeException("Map and Bag currently not supported by SchemaTuple");
+            if (type==DataType.MAP) {
+                throw new RuntimeException("Map currently not supported by SchemaTuple");
+            }
 
             process(fieldPos, fs);
             fieldPos++;
@@ -1218,6 +1226,10 @@ public class SchemaTupleClassGenerator {
             return type == DataType.TUPLE;
         }
 
+        public boolean isBag() {
+            return type == DataType.BAG;
+        }
+
         public boolean isObject() {
             return !isPrimitive();
         }
@@ -1236,13 +1248,17 @@ public class SchemaTupleClassGenerator {
                 case (DataType.CHARARRAY): return "String";
                 case (DataType.BOOLEAN): return "boolean";
                 case (DataType.TUPLE): return "Tuple";
+                case (DataType.BAG): return "DataBag";
                 default: throw new RuntimeException("Can't return String for given type " + DataType.findTypeName(type));
             }
         }
 
         public String proper(byte type) {
             String s = typeName(type);
-            return type == DataType.BYTEARRAY ? "Bytes" : s.substring(0,1).toUpperCase() + s.substring(1);
+            switch (type) {
+            case DataType.BYTEARRAY: return "Bytes";
+            default: return s.substring(0,1).toUpperCase() + s.substring(1);
+            }
         }
     }
 }

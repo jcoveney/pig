@@ -32,7 +32,7 @@ public interface TypeAwareTuple extends Tuple {
     public void setBoolean(int idx, boolean val) throws ExecException;
     public void setBytes(int idx, byte[] val) throws ExecException;
     public void setTuple(int idx, Tuple val) throws ExecException;
-    public void setBag(int idx, DataBag val) throws ExecException;
+    public void setDataBag(int idx, DataBag val) throws ExecException;
     public void setMap(int idx, Map<String,Object> val) throws ExecException;
 
     public int getInt(int idx) throws ExecException, FieldIsNullException;
@@ -43,7 +43,7 @@ public interface TypeAwareTuple extends Tuple {
     public boolean getBoolean(int idx) throws ExecException, FieldIsNullException;
     public byte[] getBytes(int idx) throws ExecException, FieldIsNullException;
     public Tuple getTuple(int idx) throws ExecException;
-    public DataBag getBag(int idx) throws ExecException, FieldIsNullException;
+    public DataBag getDataBag(int idx) throws ExecException, FieldIsNullException;
     public Map<String,Object> getMap(int idx) throws ExecException, FieldIsNullException;
 
     public Schema getSchema();

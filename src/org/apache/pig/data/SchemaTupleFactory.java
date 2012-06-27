@@ -59,7 +59,7 @@ public class SchemaTupleFactory extends TupleFactory {
         }
 
         for (Schema.FieldSchema fs : s.getFields()) {
-            if (fs.type == DataType.BAG || fs.type == DataType.MAP) {
+            if (fs.type == DataType.MAP) {
                 return false;
             }
 
