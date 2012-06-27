@@ -473,7 +473,7 @@ public class POMergeJoin extends PhysicalOperator {
                 prevRightKey = rightKey;
                 prevRightInp = rightInp;
                 // Since we didn't find any matching right tuple we throw away the buffered left tuples and add the one read in this function call.
-                leftTuples = new ArrayList<Tuple>(arrayListSize);
+                leftTuples = newLeftTupleArray();
                 leftTuples.add((Tuple)curLeftInp.result);
                 prevLeftInp = curLeftInp;
                 prevLeftKey = curLeftKey;
