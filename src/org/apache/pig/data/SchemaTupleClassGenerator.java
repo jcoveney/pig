@@ -56,12 +56,45 @@ public class SchemaTupleClassGenerator {
 
     private SchemaTupleClassGenerator() {}
 
+    /**
+     * The GenContext mechanism provides a level of control in where SchemaTupleFactories
+     * are used. By attaching a GenContext enum type to the registration of a Schema,
+     * the code can express the intent of where a SchemaTupleFactory is intended to be used.
+     * In this way, if a load func and a join both involve Tuples of the same Schema, it's
+     * possible to use SchemaTupleFactories in one but not in the other.
+     */
     public static enum GenContext {
+        /**
+         * This context is used in UDF code. Currently, this is only used for
+         * the inputs to UDF's.
+         */
         UDF ("pig.schematuple.udf", true, GenerateUdf.class),
+        /**
+         * This context is for LoadFuncs. It is currently not used,
+         * however the intent is that when a Schema is known, the
+         * LoadFunc can return typed Tuples.
+         */
         LOAD ("pig.schematuple.load", true, GenerateLoad.class),
+        /**
+         * This context controls whether or not SchemaTuples will be used in FR joins.
+         * Currently, they will be used in the HashMap that FR Joins construct.
+         */
         FR_JOIN ("pig.schematuple.fr_join", true, GenerateFrJoin.class),
+        /**
+         * This context controls whether or not SchemaTuples will be used in merge joins.
+         */
         MERGE_JOIN ("pig.schematuple.merge_join", true, GenerateMergeJoin.class),
+        /**
+         * All registered Schemas will also be registered in one additional context.
+         * This context will allow users to "force" the load of a SchemaTupleFactory
+         * if one is present in any context.
+         */
         FORCE_LOAD ("pig.schematuple.force", true, GenerateForceLoad.class);
+
+        /**
+         * These annotations are used to mark a given SchemaTuple with
+         * the context in which is was intended to be generated.
+         */
 
         @Retention(RetentionPolicy.RUNTIME)
         @Target(ElementType.TYPE)
@@ -101,11 +134,23 @@ public class SchemaTupleClassGenerator {
             return annotation.getCanonicalName();
         }
 
-        @SuppressWarnings("unchecked")
+        /**
+         * Checks the generated class to see if the annotation
+         * associated with this enum is present.
+         * @param clazz
+         * @return
+         */
+        @SuppressWarnings({ "unchecked", "rawtypes" })
         public boolean shouldGenerate(Class clazz) {
             return clazz.getAnnotation(annotation) != null;
         }
 
+        /**
+         * Given a job configuration file, this checks to see
+         * if the default value has been overriden.
+         * @param conf
+         * @return
+         */
         public boolean shouldGenerate(Configuration conf) {
             String shouldString = conf.get(key);
             if (shouldString == null) {
