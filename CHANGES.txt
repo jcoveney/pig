@@ -24,6 +24,13 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+<<<<<<< HEAD
+=======
+PIG-2746: Pig doesn't detect all forms of compression extensions properly (qwertymaniac via daijy)
+
+PIG-2770: Allow easy inclusion of custom build targets (julien)
+
+>>>>>>> d3b8b7dd9693a95a3afcb8abf7cac1c9f6de35be
 PIG-2697: pretty print schema via pig.pretty.print.schema (rangadi via jcoveney)
 
 PIG-2673: Allow Merge join to follow an ORDER statement (dvryaboy)
