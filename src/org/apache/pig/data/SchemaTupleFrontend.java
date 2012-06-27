@@ -66,6 +66,7 @@ public class SchemaTupleFrontend {
             return pr.getFirst();
         }
         if (!SchemaTupleFactory.isGeneratable(udfSchema)) {
+            LOG.warn("Given Schema is not generatable: " + udfSchema);
             return -1;
         }
         int id = SchemaTupleClassGenerator.getNextGlobalClassIdentifier();
