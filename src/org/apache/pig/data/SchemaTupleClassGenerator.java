@@ -190,7 +190,6 @@ public class SchemaTupleClassGenerator {
         compileCodeString(name, codeString, codeDir);
     }
 
-    //Should it inherit the
     private static int generateSchemaTuple(Schema s, boolean appendable, File codeDir, GenContext... contexts) {
         int id = SchemaTupleClassGenerator.getNextGlobalClassIdentifier();
 

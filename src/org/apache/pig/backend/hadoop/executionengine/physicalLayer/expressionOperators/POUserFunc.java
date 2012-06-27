@@ -45,6 +45,7 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.data.SchemaTupleFactory;
+import org.apache.pig.data.SchemaTupleFrontend;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
@@ -117,9 +118,11 @@ public class POUserFunc extends ExpressionOperator {
         this.func = (EvalFunc) PigContext.instantiateFuncFromSpec(fSpec);
         this.setSignature(signature);
         Properties props = UDFContext.getUDFContext().getUDFProperties(func.getClass());
-    	Schema tmpS=(Schema)props.get("pig.evalfunc.inputschema."+signature);
-    	if(tmpS!=null)
+    	Schema tmpS = (Schema)props.get("pig.evalfunc.inputschema."+signature);
+    	if(tmpS!=null) {
     		this.func.setInputSchema(tmpS);
+    	    SchemaTupleFrontend.registerToGenerateIfPossible(tmpS, false, GenContext.UDF);
+    	}
         if (func.getClass().isAnnotationPresent(MonitoredUDF.class)) {
             executor = new MonitoredUDFExecutor(func);
         }
@@ -135,7 +138,7 @@ public class POUserFunc extends ExpressionOperator {
     }
 
     private transient TupleFactory inputTupleFactory;
-    private boolean usingSchemaTupleFactory;
+    private boolean inputSchemaTupleFactory;
 
     @Override
     public Result processInput() throws ExecException {
@@ -151,21 +154,19 @@ public class POUserFunc extends ExpressionOperator {
             // We initialize here instead of instantiateFunc because this is called
             // when actual processing has begun, whereas a function can be instantiated
             // on the frontend potentially (mainly for optimization)
-            Schema tmpS = func.getInputSchema();
-            if (tmpS != null) {
+            Schema inputSchema = func.getInputSchema();
+            if (inputSchema != null) {
                 //Currently, getInstanceForSchema returns null if no class was found. This works fine...
                 //if it is null, the default will be used. We pass the context because if it happens that
                 //the same Schema was generated elsewhere, we do not want to override user expectations
-                inputTupleFactory = SchemaTupleFactory.getInstance(tmpS, false, GenContext.UDF);
+                inputTupleFactory = SchemaTupleFactory.getInstance(inputSchema, false, GenContext.UDF);
                 if (inputTupleFactory == null) {
-                    LOG.debug("No SchemaTupleFactory found for Schema ["+tmpS+"], using default TupleFactory");
-                    usingSchemaTupleFactory = false;
+                    LOG.debug("No SchemaTupleFactory found for Schema ["+inputSchema+"], using default TupleFactory");
+                    inputSchemaTupleFactory = false;
                 } else {
-                    LOG.debug("Using SchemaTupleFactory for Schema: " + tmpS);
-                    usingSchemaTupleFactory = true;
+                    LOG.debug("Using SchemaTupleFactory for Schema: " + inputSchema);
+                    inputSchemaTupleFactory = true;
                 }
-
-                //In the future, we could optionally use SchemaTuples for output as well
             }
 
             if (inputTupleFactory == null) {
@@ -176,7 +177,6 @@ public class POUserFunc extends ExpressionOperator {
         }
 
         Result res = new Result();
-        Tuple inpValue = null;
         if (input == null && (inputs == null || inputs.size()==0)) {
 //			log.warn("No inputs found. Signaling End of Processing.");
             res.returnStatus = POStatus.STATUS_EOP;
@@ -197,7 +197,7 @@ public class POUserFunc extends ExpressionOperator {
         } else {
             //we decouple this because there may be cases where the size is known and it isn't a schema
             // tuple factory
-            boolean knownSize = usingSchemaTupleFactory;
+            boolean knownSize = inputSchemaTupleFactory;
             int knownIndex = 0;
             res.result = inputTupleFactory.newTuple();
 
@@ -259,15 +259,15 @@ public class POUserFunc extends ExpressionOperator {
 
     private Result getNext() throws ExecException {
         Result result = processInput();
-        String errMsg = "";
         try {
             if(result.returnStatus == POStatus.STATUS_OK) {
                 if (isAccumulative()) {
                     if (isAccumStarted()) {
                         if (!haveCheckedIfTerminatingAccumulator) {
                             haveCheckedIfTerminatingAccumulator  = true;
-                            if (func instanceof TerminatingAccumulator<?>)
+                            if (func instanceof TerminatingAccumulator<?>) {
                                 setIsEarlyTerminating();
+                            }
                         }
 
                         if (!hasBeenTerminated() && isEarlyTerminating() && ((TerminatingAccumulator<?>)func).isFinished()) {
@@ -358,43 +358,36 @@ public class POUserFunc extends ExpressionOperator {
 
     @Override
     public Result getNext(Boolean b) throws ExecException {
-
         return getNext();
     }
 
     @Override
     public Result getNext(DataByteArray ba) throws ExecException {
-
         return getNext();
     }
 
     @Override
     public Result getNext(Double d) throws ExecException {
-
         return getNext();
     }
 
     @Override
     public Result getNext(Float f) throws ExecException {
-
         return getNext();
     }
 
     @Override
     public Result getNext(Long l) throws ExecException {
-
         return getNext();
     }
 
     @Override
     public Result getNext(Map m) throws ExecException {
-
         return getNext();
     }
 
     @Override
     public Result getNext(String s) throws ExecException {
-
         return getNext();
     }
 
