@@ -1,6 +1,8 @@
 package org.apache.pig.data;
 
-import static org.junit.Assert.assertEquals;
+import static junit.framework.Assert.assertEquals;
+import static org.apache.pig.builtin.mock.Storage.resetData;
+import static org.apache.pig.builtin.mock.Storage.tuple;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -16,18 +18,22 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
+import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.Utils;
 import org.junit.Before;
 import org.junit.Test;
@@ -426,6 +432,70 @@ public class TestSchemaTuple {
             assertEquals(written.get(i), st);
         }
         fis.close();
+    }
+
+    @Test
+    public void testFRJoinWithSchemaTuple() throws Exception {
+        testJoinType("replicated");
+    }
+
+    @Test
+    public void testMergeJoinWithSchemaTuple() throws Exception {
+        testJoinType("merge");
+    }
+
+    public void testJoinType(String joinType) throws Exception {
+        Properties props = PropertiesUtil.loadDefaultProperties();
+        props.setProperty("pig.schematuple", "true");
+        PigServer pigServer = new PigServer(ExecType.LOCAL, props);
+
+        Data data = resetData(pigServer);
+
+        data.set("foo1",
+            tuple(1),
+            tuple(2),
+            tuple(3),
+            tuple(4),
+            tuple(5),
+            tuple(6),
+            tuple(7),
+            tuple(8),
+            tuple(9),
+            tuple(10)
+            );
+
+        data.set("foo2",
+            tuple(1),
+            tuple(2),
+            tuple(3),
+            tuple(4),
+            tuple(5),
+            tuple(6),
+            tuple(7),
+            tuple(8),
+            tuple(9),
+            tuple(10)
+            );
+
+        pigServer.registerQuery("A = LOAD 'foo1' USING mock.Storage() as (x:int);");
+        pigServer.registerQuery("B = LOAD 'foo1' USING mock.Storage() as (x:int);");
+        pigServer.registerQuery("C = ORDER A BY x ASC;");
+        pigServer.registerQuery("D = ORDER B BY x ASC;");
+        pigServer.registerQuery("E = JOIN C by x, D by x using '"+joinType+"';");
+
+        Iterator<Tuple> out = pigServer.openIterator("E");
+        for (int i = 1; i <= 10; i++) {
+            assertEquals(tuple(i, i), out.next());
+        }
+        assertFalse(out.hasNext());
+
+        pigServer.registerQuery("STORE E INTO 'bar' USING mock.Storage();");
+
+        out = data.get("bar").iterator();
+        for (int i = 1; i <= 10; i++) {
+            assertEquals(tuple(i, i), out.next());
+        }
+        assertFalse(out.hasNext());
     }
 
 }
