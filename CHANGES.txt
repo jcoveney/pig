@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2750: add artifacts to the ivy.xml for other jars Pig generates (julien)
+
 PIG-2748: Change the names of the jar produced in the build folder to match maven conventions (julien)
 
 PIG-2746: Pig doesn't detect all forms of compression extensions properly (qwertymaniac via daijy)
@@ -599,6 +601,8 @@ inclusion of test classes (cos via gates)
 Release 0.9.3 - Unreleased
 
 BUG FIXES
+
+PIG-2775: Register jar does not goes to classpath in some cases (daijy)
 
 PIG-2693: LoadFunc.setLocation should be called before LoadMetadata.getStatistics (billgraham via julien)
 
