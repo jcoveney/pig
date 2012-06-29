@@ -44,6 +44,7 @@ import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.data.SchemaTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.data.TupleMaker;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.DefaultIndexableLoader;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -130,8 +131,8 @@ public class POMergeJoin extends PhysicalOperator {
      * decrease the amount of memory needed for a given map task to successfully perform
      * a merge join.
      */
-    private transient SchemaTupleFactory mergedTupleFactory;
-    private transient SchemaTupleFactory leftTupleFactory;
+    private transient TupleMaker mergedTupleMaker;
+    private transient TupleMaker leftTupleMaker;
 
     private Schema leftInputSchema;
     private Schema mergedInputSchema;
@@ -187,19 +188,21 @@ public class POMergeJoin extends PhysicalOperator {
         mTupleFactory = TupleFactory.getInstance();
 
         if (leftInputSchema != null) {
-            leftTupleFactory = SchemaTupleBackend.newSchemaTupleFactory(leftInputSchema, false, GenContext.MERGE_JOIN);
+            leftTupleMaker = SchemaTupleBackend.newSchemaTupleFactory(leftInputSchema, false, GenContext.MERGE_JOIN);
         }
-        if (leftTupleFactory == null) {
+        if (leftTupleMaker == null) {
             log.debug("No SchemaTupleFactory available for combined left merge join schema: " + leftInputSchema);
+            leftTupleMaker = mTupleFactory;
         } else {
             log.debug("Using SchemaTupleFactory for left merge join schema: " + leftInputSchema);
         }
 
         if (mergedInputSchema != null) {
-            mergedTupleFactory = SchemaTupleBackend.newSchemaTupleFactory(mergedInputSchema, false, GenContext.MERGE_JOIN);
+            mergedTupleMaker = SchemaTupleBackend.newSchemaTupleFactory(mergedInputSchema, false, GenContext.MERGE_JOIN);
         }
-        if (mergedTupleFactory == null) {
+        if (mergedTupleMaker == null) {
             log.debug("No SchemaTupleFactory available for combined left/right merge join schema: " + mergedInputSchema);
+            mergedTupleMaker = mTupleFactory;
         } else {
             log.debug("Using SchemaTupleFactory for left/right merge join schema: " + mergedInputSchema);
         }
@@ -212,10 +215,10 @@ public class POMergeJoin extends PhysicalOperator {
      * @return the list object to store Tuples in
      */
     private List<Tuple> newLeftTupleArray() {
-        if (leftTupleFactory == null) {
-            return new ArrayList<Tuple>(arrayListSize);
+        if (leftTupleMaker instanceof SchemaTupleFactory) {
+            return new TuplesToSchemaTupleList(arrayListSize, (SchemaTupleFactory)leftTupleMaker);
         } else {
-            return new TuplesToSchemaTupleList(arrayListSize, (SchemaTupleFactory)leftTupleFactory);
+            return new ArrayList<Tuple>(arrayListSize);
         }
     }
 
@@ -235,7 +238,7 @@ public class POMergeJoin extends PhysicalOperator {
         }
 
         public boolean add(Tuple t) {
-            SchemaTuple<?> st = (SchemaTuple<?>)tf.newTuple();
+            SchemaTuple<?> st = tf.newTuple();
             try {
                 st.set(t);
             } catch (ExecException e) {
@@ -285,18 +288,20 @@ public class POMergeJoin extends PhysicalOperator {
             if(counter > 0){    // We have left tuples to join with current right tuple.
                 Tuple joiningLeftTup = leftTuples.get(--counter);
                 leftTupSize = joiningLeftTup.size();
-                Tuple joinedTup;
-                if (mergedTupleFactory != null) {
-                    joinedTup = mergedTupleFactory.newTuple();
-                } else {
-                    joinedTup = mTupleFactory.newTuple(leftTupSize + rightTupSize);
+                Tuple joinedTup = mergedTupleMaker.newTuple(leftTupSize + rightTupSize);
+                //if (mergedTupleFactory != null) {
+                //    joinedTup = mergedTupleFactory.newTuple();
+                //} else {
+                //    joinedTup = mTupleFactory.newTuple(leftTupSize + rightTupSize);
+                //}
+
+                for(int i=0; i<leftTupSize; i++) {
+                    joinedTup.set(i, joiningLeftTup.get(i));
                 }
 
-                for(int i=0; i<leftTupSize; i++)
-                    joinedTup.set(i, joiningLeftTup.get(i));
-
-                for(int i=0; i < rightTupSize; i++)
+                for(int i=0; i < rightTupSize; i++) {
                     joinedTup.set(i+leftTupSize, curJoiningRightTup.get(i));
+                }
 
                 return new Result(POStatus.STATUS_OK, joinedTup);
             }

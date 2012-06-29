@@ -34,11 +34,13 @@ public class SchemaTupleFactory implements TupleMaker<SchemaTuple<?>> {
 
     private SchemaTupleQuickGenerator<? extends SchemaTuple<?>> generator;
     private Class<SchemaTuple<?>> clazz;
+    private int tupleSize;
 
     protected SchemaTupleFactory(Class<SchemaTuple<?>> clazz,
             SchemaTupleQuickGenerator<? extends SchemaTuple<?>> generator) {
         this.clazz = clazz;
         this.generator = generator;
+        tupleSize = generator.make().size();
     }
 
     /**
@@ -67,7 +69,17 @@ public class SchemaTupleFactory implements TupleMaker<SchemaTuple<?>> {
         return true;
     }
 
+    @Override
     public SchemaTuple<?> newTuple() {
+        return generator.make();
+    }
+
+    @Override
+    public SchemaTuple<?> newTuple(int size) {
+        if (size != tupleSize) {
+            throw new RuntimeException("Request a SchemaTuple of the wrong size! Requested ["
+                    + size + "], can only be [" + tupleSize + "]" );
+        }
         return generator.make();
     }
 

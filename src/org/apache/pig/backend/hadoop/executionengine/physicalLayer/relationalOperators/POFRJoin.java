@@ -338,7 +338,7 @@ public class POFRJoin extends PhysicalOperator {
         }
 
         public List<Tuple> put(Tuple key, List<Tuple> val) {
-            SchemaTuple<?> st = (SchemaTuple<?>)tf.newTuple();
+            SchemaTuple<?> st = tf.newTuple();
             try {
                 st.set(key);
             } catch (ExecException e) {
@@ -350,7 +350,7 @@ public class POFRJoin extends PhysicalOperator {
 
         @Override
         public List<Tuple> get(Object key) {
-            SchemaTuple<?> st = (SchemaTuple<?>)tf.newTuple();
+            SchemaTuple<?> st = tf.newTuple();
             try {
                 st.set((Tuple)key);
             } catch (ExecException e) {
@@ -411,15 +411,15 @@ public class POFRJoin extends PhysicalOperator {
             POLocalRearrange lr = LRs[i];
             lr.setInputs(Arrays.asList((PhysicalOperator) ld));
 
-            Map<Tuple, List<Tuple>> replicate = new HashMap<Tuple,List<Tuple>>(1000);
+            Map<Tuple, List<Tuple>> replicate;
             if (keySchemaTupleFactory != null) {
                 replicate = new TupleToMapKey(1000, keySchemaTupleFactory);
+            } else {
+                replicate = new HashMap<Tuple,List<Tuple>>(1000);
             }
 
             log.debug("Completed setup. Trying to build replication hash table");
-            int cnt = 0;
             for (Result res = lr.getNext(dummyTuple);res.returnStatus != POStatus.STATUS_EOP;res = lr.getNext(dummyTuple)) {
-                ++cnt;
                 if (reporter != null)
                     reporter.progress();
                 Tuple tuple = (Tuple) res.result;
