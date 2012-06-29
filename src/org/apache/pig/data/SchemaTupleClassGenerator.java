@@ -650,7 +650,6 @@ public class SchemaTupleClassGenerator {
         private Queue<Integer> idQueue;
 
         private int booleans = 0;
-        private int booleanBytes = 0;
 
         public void prepare() {
             add("@Override");
@@ -659,10 +658,7 @@ public class SchemaTupleClassGenerator {
 
         public void process(int fieldPos, Schema.FieldSchema fs) {
             if (isBoolean()) {
-                if (booleans++ % 8 == 0) {
-                    add("    booleanByte_"+booleanBytes+" = in.readByte();");
-                    booleanBytes++;
-                }
+                booleans++;
                 add("    if (b["+fieldPos+"]) {");
                 add("        setNull_"+fieldPos+"(true);");
                 add("    } else {");
@@ -689,6 +685,13 @@ public class SchemaTupleClassGenerator {
         }
 
         public void end() {
+            if (booleans > 0) {
+                int i = 0;
+                while (booleans > 0) {
+                    add("    booleanByte_"+(i++)+" = in.readByte();");
+                    booleans -= 8;
+                }
+            }
             add("}");
             addBreak();
         }
@@ -707,28 +710,24 @@ public class SchemaTupleClassGenerator {
         }
 
         private int booleans = 0;
-        private int booleanBytes = 0;
 
         public void process(int fieldPos, Schema.FieldSchema fs) {
-            if (!isBoolean()) {
+            if (isBoolean()) {
+                booleans++;
+            } else {
                 add("    if (!checkIfNull_"+fieldPos+"()) {");
                 add("        write(out, pos_"+fieldPos+");");
                 add("    }");
                 addBreak();
             }
-
-            if (isBoolean() && booleans++ % 8 == 0)
-                booleanBytes++;
         }
 
         public void end() {
             if (booleans > 0) {
-                int booleans = booleanBytes;
-                if (booleans > booleanBytes * 8) {
-                    booleans++;
-                }
-                for (int i = 0; i < booleans; i++) {
-                    add("    out.writeByte(booleanByte_"+i+");");
+                int i = 0;
+                while (booleans > 0) {
+                    add("    out.writeByte(booleanByte_"+(i++)+");");
+                    booleans -= 8;
                 }
             }
             add("}");
