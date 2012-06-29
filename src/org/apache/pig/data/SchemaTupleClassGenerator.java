@@ -648,7 +648,8 @@ public class SchemaTupleClassGenerator {
 
    static class ReadString extends TypeInFunctionStringOut {
         private Queue<Integer> idQueue;
-        int ct = 0;
+        private int ct = 0;
+        private List<Integer> booleanPositions = Lists.newArrayList();
 
         private int booleans = 0;
         private int booleanBytes = 0;
@@ -663,6 +664,11 @@ public class SchemaTupleClassGenerator {
                 if (booleans++ % 8 == 0) {
                     booleanBytes++;
                 }
+                add("    if (b["+fieldPos+"]) {");
+                add("        setNull_"+fieldPos+"(true);");
+                add("    } else {");
+                add("        setNull_"+fieldPos+"(false);");
+                add("    }");
             } else if (!isTuple()) {
                 add("    if (b["+fieldPos+"]) {");
                 add("        setNull_"+fieldPos+"(true);");
@@ -685,8 +691,16 @@ public class SchemaTupleClassGenerator {
         }
 
         public void end() {
-            for (int i = 0; i < booleanBytes; i++) {
-                add("    booleanByte_"+i+" = in.readByte();");
+            if (booleans > 0) {
+                int booleans = booleanBytes;
+                if (booleans > booleanBytes * 8) {
+                    booleans++;
+                }
+                for (int i = 0; i < booleans; i++) {
+                    add("    booleanByte_"+i+" = in.readByte();");
+                }
+
+
             }
             add("}");
             addBreak();
@@ -721,8 +735,14 @@ public class SchemaTupleClassGenerator {
         }
 
         public void end() {
-            for (int i = 0; i < booleanBytes; i++) {
-                add("    out.writeByte(booleanByte_"+i+");");
+            if (booleans > 0) {
+                int booleans = booleanBytes;
+                if (booleans > booleanBytes * 8) {
+                    booleans++;
+                }
+                for (int i = 0; i < booleans; i++) {
+                    add("    out.writeByte(booleanByte_"+i+");");
+                }
             }
             add("}");
             addBreak();
