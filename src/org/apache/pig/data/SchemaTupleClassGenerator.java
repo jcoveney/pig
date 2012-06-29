@@ -648,8 +648,6 @@ public class SchemaTupleClassGenerator {
 
    static class ReadString extends TypeInFunctionStringOut {
         private Queue<Integer> idQueue;
-        private int ct = 0;
-        private List<Integer> booleanPositions = Lists.newArrayList();
 
         private int booleans = 0;
         private int booleanBytes = 0;
@@ -662,6 +660,7 @@ public class SchemaTupleClassGenerator {
         public void process(int fieldPos, Schema.FieldSchema fs) {
             if (isBoolean()) {
                 if (booleans++ % 8 == 0) {
+                    add("    booleanByte_"+booleanBytes+" = in.readByte();");
                     booleanBytes++;
                 }
                 add("    if (b["+fieldPos+"]) {");
@@ -687,21 +686,9 @@ public class SchemaTupleClassGenerator {
                 add("    }");
                 addBreak();
             }
-            ct++;
         }
 
         public void end() {
-            if (booleans > 0) {
-                int booleans = booleanBytes;
-                if (booleans > booleanBytes * 8) {
-                    booleans++;
-                }
-                for (int i = 0; i < booleans; i++) {
-                    add("    booleanByte_"+i+" = in.readByte();");
-                }
-
-
-            }
             add("}");
             addBreak();
         }
