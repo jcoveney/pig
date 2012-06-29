@@ -271,7 +271,7 @@ public class POMergeJoin extends PhysicalOperator {
             } catch (IOException e) {
                 throwProcessingException(true, e);
             } catch (ClassCastException e) {
-                throwProcessingException(true, e);;
+                throwProcessingException(true, e);
             }
             leftTuples.add((Tuple)curLeftInp.result);
             firstTime = false;

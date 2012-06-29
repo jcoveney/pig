@@ -69,7 +69,7 @@ public class InterRecordReader extends RecordReader<Text, Tuple> {
     in = new BufferedPositionedInputStream(fileIn, start);
     inData = new DataInputStream(in);
   }
-  
+
   public boolean nextKeyValue() throws IOException {
       int b = 0;
       //    skip to next record
@@ -78,7 +78,7 @@ public class InterRecordReader extends RecordReader<Text, Tuple> {
               return false;
           }
           // check if we saw RECORD_1 in our last attempt
-          // this can happen if we have the following 
+          // this can happen if we have the following
           // sequence RECORD_1-RECORD_1-RECORD_2-RECORD_3
           // After reading the second RECORD_1 in the above
           // sequence, we should not look for RECORD_1 again
@@ -100,9 +100,7 @@ public class InterRecordReader extends RecordReader<Text, Tuple> {
           }
           if(b == -1) return false;
           b = in.read();
-          if(b != BinInterSedes.TINYTUPLE && 
-                  b != BinInterSedes.SMALLTUPLE &&
-                  b != BinInterSedes.TUPLE &&
+          if(!BinInterSedes.isTupleByte((byte) b) &&
                   b != -1) {
               continue;
           }
@@ -111,7 +109,7 @@ public class InterRecordReader extends RecordReader<Text, Tuple> {
       }
       try {
           // if we got here, we have seen RECORD_1-RECORD_2-RECORD_3-TUPLE_MARKER
-          // sequence - lets now read the contents of the tuple 
+          // sequence - lets now read the contents of the tuple
           value =  (Tuple)sedes.readDatum(inData, (byte)b);
           pos=in.getPosition();
           return true;
@@ -143,10 +141,10 @@ public class InterRecordReader extends RecordReader<Text, Tuple> {
       return Math.min(1.0f, (pos - start) / (float)(end - start));
     }
   }
-  
+
   public synchronized void close() throws IOException {
     if (in != null) {
-      in.close(); 
+      in.close();
     }
   }
 }

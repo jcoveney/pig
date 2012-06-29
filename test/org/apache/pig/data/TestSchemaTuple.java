@@ -24,13 +24,21 @@ import java.util.Properties;
 import java.util.Random;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.TaskAttemptID;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.InterRecordReader;
+import org.apache.pig.impl.io.InterRecordWriter;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.util.PropertiesUtil;
@@ -266,7 +274,7 @@ public class TestSchemaTuple {
         putThroughPaces(tf, udfSchema, isAppendable);
     }
 
-    private void putThroughPaces(TupleFactory tfPrime, Schema udfSchema, boolean isAppendable) throws IOException {
+    private void putThroughPaces(TupleFactory tfPrime, Schema udfSchema, boolean isAppendable) throws IOException, InterruptedException {
         SchemaTupleFactory tf = (SchemaTupleFactory)tfPrime;
         assertNotNull(tf);
         assertTrue(tf instanceof SchemaTupleFactory);
@@ -289,7 +297,7 @@ public class TestSchemaTuple {
 
     }
 
-    private void testNotAppendable(SchemaTupleFactory tf, Schema udfSchema) throws IOException {
+    private void testNotAppendable(SchemaTupleFactory tf, Schema udfSchema) throws IOException, InterruptedException {
         SchemaTuple<?> st = (SchemaTuple<?>) tf.newTuple();
         Schema.equals(udfSchema, st.getSchema(), false, true);
 
@@ -300,6 +308,7 @@ public class TestSchemaTuple {
         copyThenCompare(tf);
 
         testSerDe(tf);
+        testInterStorageSerDe(tf);
     }
 
     private void copyThenCompare(SchemaTupleFactory tf) throws ExecException {
@@ -410,14 +419,55 @@ public class TestSchemaTuple {
         }
     }
 
-    public void testSerDe(TupleFactory tf) throws IOException {
-        List<Tuple> written = new ArrayList<Tuple>(4096);
+    public void testInterStorageSerDe(TupleFactory tf) throws IOException, InterruptedException {
+        int sz = 4096;
+        List<Tuple> written = new ArrayList<Tuple>(sz);
 
         File temp = File.createTempFile("tmp", "tmp");
+        temp.deleteOnExit();
+        FileOutputStream fos = new FileOutputStream(temp);
+        DataOutputStream dos = new DataOutputStream(fos);
+
+        InterRecordWriter writer = new InterRecordWriter(dos);
+
+        for (int i = 0; i < sz; i++) {
+            SchemaTuple<?> st = (SchemaTuple<?>)tf.newTuple();
+            fillWithData(st);
+            writer.write(null, st);
+            written.add(st);
+        }
+        writer.close(null);
+
+        Configuration conf = new Configuration();
+        conf.set("fs.default.name", "file:///");
+
+        TaskAttemptID taskId = HadoopShims.createTaskAttemptID("jt", 1, true, 1, 1);
+        conf.set("mapred.task.id", taskId.toString());
+
+        InputSplit is = new FileSplit(new Path(temp.getAbsolutePath()), 0, temp.length(), null);
+
+        InterRecordReader reader = new InterRecordReader();
+        reader.initialize(is, new TaskAttemptContext(conf, taskId));
+
+        for (int i = 0; i < sz; i++) {
+            assertTrue(reader.nextKeyValue());
+            SchemaTuple<?> st = (SchemaTuple<?>)reader.getCurrentValue();
+            assertEquals(written.get(i), st);
+        }
+        reader.close();
+
+    }
+
+    public void testSerDe(TupleFactory tf) throws IOException {
+        int sz = 4096;
+        List<Tuple> written = new ArrayList<Tuple>(sz);
+
+        File temp = File.createTempFile("tmp", "tmp");
+        temp.deleteOnExit();
         FileOutputStream fos = new FileOutputStream(temp);
         DataOutput dos = new DataOutputStream(fos);
 
-        for (int i = 0; i < written.size(); i++) {
+        for (int i = 0; i < sz; i++) {
             SchemaTuple<?> st = (SchemaTuple<?>)tf.newTuple();
             fillWithData(st);
             bis.writeDatum(dos, st);
@@ -425,9 +475,11 @@ public class TestSchemaTuple {
         }
         fos.close();
 
+        assertEquals(sz, written.size());
+
         FileInputStream fis = new FileInputStream(temp);
         DataInput din = new DataInputStream(fis);
-        for (int i = 0; i < written.size(); i++) {
+        for (int i = 0; i < sz; i++) {
             SchemaTuple<?> st = (SchemaTuple<?>)bis.readDatum(din);
             assertEquals(written.get(i), st);
         }
@@ -436,15 +488,15 @@ public class TestSchemaTuple {
 
     @Test
     public void testFRJoinWithSchemaTuple() throws Exception {
-        testJoinType("replicated");
+        testJoinType("replicated", false);
     }
 
     @Test
     public void testMergeJoinWithSchemaTuple() throws Exception {
-        testJoinType("merge");
+        testJoinType("merge", true);
     }
 
-    public void testJoinType(String joinType) throws Exception {
+    public void testJoinType(String joinType, boolean preSort) throws Exception {
         Properties props = PropertiesUtil.loadDefaultProperties();
         props.setProperty("pig.schematuple", "true");
         PigServer pigServer = new PigServer(ExecType.LOCAL, props);
@@ -452,6 +504,7 @@ public class TestSchemaTuple {
         Data data = resetData(pigServer);
 
         data.set("foo1",
+            tuple(0),
             tuple(1),
             tuple(2),
             tuple(3),
@@ -460,11 +513,11 @@ public class TestSchemaTuple {
             tuple(6),
             tuple(7),
             tuple(8),
-            tuple(9),
-            tuple(10)
+            tuple(9)
             );
 
         data.set("foo2",
+            tuple(0),
             tuple(1),
             tuple(2),
             tuple(3),
@@ -473,29 +526,39 @@ public class TestSchemaTuple {
             tuple(6),
             tuple(7),
             tuple(8),
-            tuple(9),
-            tuple(10)
+            tuple(9)
             );
 
         pigServer.registerQuery("A = LOAD 'foo1' USING mock.Storage() as (x:int);");
-        pigServer.registerQuery("B = LOAD 'foo1' USING mock.Storage() as (x:int);");
-        pigServer.registerQuery("C = ORDER A BY x ASC;");
-        pigServer.registerQuery("D = ORDER B BY x ASC;");
-        pigServer.registerQuery("E = JOIN C by x, D by x using '"+joinType+"';");
+        pigServer.registerQuery("B = LOAD 'foo2' USING mock.Storage() as (x:int);");
+        if (preSort) {
+            pigServer.registerQuery("A = ORDER A BY x ASC;");
+            pigServer.registerQuery("B = ORDER B BY x ASC;");
+        }
+        pigServer.registerQuery("C = JOIN A by x, B by x using '"+joinType+"';");
+        pigServer.registerQuery("D = ORDER C BY $0 ASC;");
 
-        Iterator<Tuple> out = pigServer.openIterator("E");
-        for (int i = 1; i <= 10; i++) {
+        Iterator<Tuple> out = pigServer.openIterator("D");
+        for (int i = 0; i < 10; i++) {
+            if (!out.hasNext()) {
+                throw new Exception("Output should have had more elements! Failed on element: " + i);
+            }
             assertEquals(tuple(i, i), out.next());
         }
         assertFalse(out.hasNext());
 
-        pigServer.registerQuery("STORE E INTO 'bar' USING mock.Storage();");
+        pigServer.registerQuery("STORE D INTO 'bar' USING mock.Storage();");
 
-        out = data.get("bar").iterator();
-        for (int i = 1; i <= 10; i++) {
-            assertEquals(tuple(i, i), out.next());
+        List<Tuple> tuples = data.get("bar");
+
+        if (tuples.size() != 10) {
+            throw new Exception("Output does not have enough elements! List: " + tuples);
         }
-        assertFalse(out.hasNext());
+
+        for (int i = 0; i < 10; i++) {
+            assertEquals(tuple(i, i), tuples.get(i));
+        }
+
     }
 
 }

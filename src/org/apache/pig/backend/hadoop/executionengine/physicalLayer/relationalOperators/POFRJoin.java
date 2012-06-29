@@ -345,7 +345,7 @@ public class POFRJoin extends PhysicalOperator {
                 throw new RuntimeException("Unable to set SchemaTuple with schema ["
                         + st.getSchemaString() + "] with given Tuple in merge join.");
             }
-            return super.put(key, val);
+            return super.put(st, val);
         }
 
         @Override

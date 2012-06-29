@@ -118,7 +118,7 @@ public class SedesHelper {
             byte encoding = 0;
             for (int i = chunk; i < len && i < chunk + 8; i++) {
                 encoding <<= 1;
-                if (chunk == v.length) {
+                if (i == v.length) {
                     encoding += extra ? 1 : 0; //v[len] is the extra piece
                 } else {
                     encoding += v[i] ? 1 : 0;

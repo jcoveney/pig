@@ -1166,4 +1166,13 @@ public class BinInterSedes implements InterSedes {
     public Tuple readTuple(DataInput in) throws IOException {
         return readTuple(in, in.readByte());
     }
+
+    public static boolean isTupleByte(byte b) {
+        return b == BinInterSedes.TUPLE
+            || b == BinInterSedes.SMALLTUPLE
+            || b == BinInterSedes.TINYTUPLE
+            || b == BinInterSedes.SCHEMA_TUPLE
+            || b == BinInterSedes.SCHEMA_TUPLE_BYTE_INDEX
+            || b == BinInterSedes.SCHEMA_TUPLE_SHORT_INDEX;
+    }
 }
