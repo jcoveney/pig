@@ -37,7 +37,7 @@ import org.apache.pig.classification.InterfaceStability;
  */
 @InterfaceAudience.Public
 @InterfaceStability.Stable
-public abstract class TupleFactory {
+public abstract class TupleFactory implements TupleMaker<Tuple> {
     private static TupleFactory gSelf = null;
 
     /**

@@ -130,8 +130,8 @@ public class POMergeJoin extends PhysicalOperator {
      * decrease the amount of memory needed for a given map task to successfully perform
      * a merge join.
      */
-    private transient TupleFactory mergedTupleFactory;
-    private transient TupleFactory leftTupleFactory;
+    private transient SchemaTupleFactory mergedTupleFactory;
+    private transient SchemaTupleFactory leftTupleFactory;
 
     private Schema leftInputSchema;
     private Schema mergedInputSchema;

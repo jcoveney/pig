@@ -17,14 +17,10 @@
  */
 package org.apache.pig.data;
 
-import java.util.List;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.data.SchemaTuple.SchemaTupleQuickGenerator;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
-import org.apache.pig.data.utils.MethodHelper;
-import org.apache.pig.data.utils.MethodHelper.NotImplemented;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
@@ -33,7 +29,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * of code, and instead simply encapsulates the classes which allow
  * for efficiently creating SchemaTuples.
  */
-public class SchemaTupleFactory extends TupleFactory {
+public class SchemaTupleFactory implements TupleMaker<SchemaTuple<?>> {
     static final Log LOG = LogFactory.getLog(SchemaTupleFactory.class);
 
     private SchemaTupleQuickGenerator<? extends SchemaTuple<?>> generator;
@@ -71,60 +67,16 @@ public class SchemaTupleFactory extends TupleFactory {
         return true;
     }
 
-    @Override
-    public Tuple newTuple() {
+    public SchemaTuple<?> newTuple() {
         return generator.make();
     }
 
-    /**
-     * The notion of instantiating a SchemaTuple with a given
-     * size doesn't really make sense, as the size is set
-     * by the Schema.
-     */
-    @Override
-    @NotImplemented
-    public Tuple newTuple(int size) {
-        throw MethodHelper.methodNotImplemented();
-    }
-
-    /**
-     * As with newTuple(int), it doesn't make much sense
-     * to instantiate a Tuple with a notion of Schema from
-     * an untyped list of objects. Note: in the future
-     * we may inspect the type of the Objects in the list
-     * and see if they match with the underlying Schema, and if so,
-     * generate the Tuple. For now the gain seems minimal.
-     */
-    @Override
-    @NotImplemented
-    public Tuple newTuple(List c) {
-        throw MethodHelper.methodNotImplemented();
-    }
-
-    @Override
-    @NotImplemented
-    public Tuple newTupleNoCopy(List c) {
-        throw MethodHelper.methodNotImplemented();
-    }
-
-    /**
-     * It does not make any sense to instantiate with
-     * one object a Tuple whose size and type is already known.
-     */
-    @Override
-    @NotImplemented
-    public Tuple newTuple(Object datum) {
-        throw MethodHelper.methodNotImplemented();
-    }
-
-    @Override
     public Class<SchemaTuple<?>> tupleClass() {
         return clazz;
     }
 
     // We could make this faster by caching the result, but I doubt it will be called
     // in any great volume.
-    @Override
     public boolean isFixedSize() {
         return clazz.isAssignableFrom(AppendableSchemaTuple.class);
     }

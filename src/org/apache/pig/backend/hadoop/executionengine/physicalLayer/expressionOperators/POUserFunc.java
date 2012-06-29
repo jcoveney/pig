@@ -47,6 +47,7 @@ import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.data.SchemaTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.data.TupleMaker;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -134,7 +135,7 @@ public class POUserFunc extends ExpressionOperator {
         this.func.setPigLogger(pigLogger);
     }
 
-    private transient TupleFactory inputTupleFactory;
+    private transient TupleMaker inputTupleMaker;
     private boolean usingSchemaTupleFactory;
 
     @Override
@@ -156,8 +157,8 @@ public class POUserFunc extends ExpressionOperator {
                 //Currently, getInstanceForSchema returns null if no class was found. This works fine...
                 //if it is null, the default will be used. We pass the context because if it happens that
                 //the same Schema was generated elsewhere, we do not want to override user expectations
-                inputTupleFactory = SchemaTupleFactory.getInstance(tmpS, false, GenContext.UDF);
-                if (inputTupleFactory == null) {
+                inputTupleMaker = SchemaTupleFactory.getInstance(tmpS, false, GenContext.UDF);
+                if (inputTupleMaker == null) {
                     LOG.debug("No SchemaTupleFactory found for Schema ["+tmpS+"], using default TupleFactory");
                     usingSchemaTupleFactory = false;
                 } else {
@@ -168,8 +169,8 @@ public class POUserFunc extends ExpressionOperator {
                 //In the future, we could optionally use SchemaTuples for output as well
             }
 
-            if (inputTupleFactory == null) {
-                inputTupleFactory = TupleFactory.getInstance();
+            if (inputTupleMaker == null) {
+                inputTupleMaker = TupleFactory.getInstance();
             }
 
             initialized = true;
@@ -199,7 +200,7 @@ public class POUserFunc extends ExpressionOperator {
             // tuple factory
             boolean knownSize = usingSchemaTupleFactory;
             int knownIndex = 0;
-            res.result = inputTupleFactory.newTuple();
+            res.result = inputTupleMaker.newTuple();
 
             Result temp = null;
 
