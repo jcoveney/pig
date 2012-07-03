@@ -1068,33 +1068,20 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                 if (logicalSchema != null) {
                     rightSchema = Schema.getPigSchema(new ResourceSchema(logicalSchema));
                 }
+                logicalSchema = loj.getSchema();
                 Schema mergedSchema = null;
+                if (logicalSchema != null) {
+                    mergedSchema = Schema.getPigSchema(new ResourceSchema(logicalSchema));
+                }
+
                 if (leftSchema != null) {
                     SchemaTupleFrontend.registerToGenerateIfPossible(leftSchema, false, GenContext.MERGE_JOIN);
                 }
                 if (rightSchema != null) {
                     SchemaTupleFrontend.registerToGenerateIfPossible(rightSchema, false, GenContext.MERGE_JOIN);
                 }
-                if (leftSchema != null && rightSchema != null) {
-                    try {
-                        mergedSchema = leftSchema.clone();
-                        String opName = ((LogicalRelationalOperator)inputs.get(0)).getAlias();
-                        for (Schema.FieldSchema fs : mergedSchema.getFields()) {
-                            fs.alias = opName + "::" + fs.alias;
-                        }
-                        opName = ((LogicalRelationalOperator)inputs.get(1)).getAlias();
-                        for (Schema.FieldSchema fs : rightSchema.clone().getFields()) {
-                            fs.alias = opName + "::" + fs.alias;
-                            mergedSchema.add(fs);
-                        }
-                    } catch (CloneNotSupportedException e) {
-                        LOG.warn("Unable to clone and merge left and right schema. Left schema: " + leftSchema
-                                + ", right schema: " + rightSchema);
-                    }
-
-                    if (mergedSchema != null) {
-                        SchemaTupleFrontend.registerToGenerateIfPossible(mergedSchema, false, GenContext.MERGE_JOIN);
-                    }
+                if (mergedSchema != null) {
+                    SchemaTupleFrontend.registerToGenerateIfPossible(mergedSchema, false, GenContext.MERGE_JOIN);
                 }
 
                 // inner join on two sorted inputs. We have less restrictive
