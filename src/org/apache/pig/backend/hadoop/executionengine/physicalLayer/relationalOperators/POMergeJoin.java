@@ -289,11 +289,6 @@ public class POMergeJoin extends PhysicalOperator {
                 Tuple joiningLeftTup = leftTuples.get(--counter);
                 leftTupSize = joiningLeftTup.size();
                 Tuple joinedTup = mergedTupleMaker.newTuple(leftTupSize + rightTupSize);
-                //if (mergedTupleFactory != null) {
-                //    joinedTup = mergedTupleFactory.newTuple();
-                //} else {
-                //    joinedTup = mTupleFactory.newTuple(leftTupSize + rightTupSize);
-                //}
 
                 for(int i=0; i<leftTupSize; i++) {
                     joinedTup.set(i, joiningLeftTup.get(i));

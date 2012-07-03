@@ -30,6 +30,7 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.pig.ExecType;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.data.utils.StructuresHelper.SchemaKey;
 import org.apache.pig.data.utils.StructuresHelper.Triple;
@@ -272,8 +273,8 @@ public class SchemaTupleBackend {
 
     private static SchemaTupleBackend stb;
 
-    public static void initialize(Configuration jConf, boolean isLocal) throws IOException {
-        stb = new SchemaTupleBackend(jConf, isLocal);
+    public static void initialize(Configuration jConf, ExecType type) throws IOException {
+        stb = new SchemaTupleBackend(jConf, type == ExecType.LOCAL);
         stb.copyAndResolve();
     }
 

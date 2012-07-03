@@ -62,7 +62,6 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
         return isAppendedFieldsNull() || appendedFields.isNull(i);
     }
 
-    //protected Tuple getAppend() {
     public Tuple getAppendedFields() {
         return appendedFields;
     }

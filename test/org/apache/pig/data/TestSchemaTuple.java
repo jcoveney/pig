@@ -176,7 +176,7 @@ public class TestSchemaTuple {
         SchemaTupleFrontend.copyAllGeneratedToDistributedCache(pigContext, conf);
 
         //backend
-        SchemaTupleBackend.initialize(conf, true);
+        SchemaTupleBackend.initialize(conf, ExecType.LOCAL);
 
         udfSchema = Utils.getSchemaFromString("a:int");
         isAppendable = false;

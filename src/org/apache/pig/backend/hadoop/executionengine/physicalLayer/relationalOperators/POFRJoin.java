@@ -338,26 +338,36 @@ public class POFRJoin extends PhysicalOperator {
         }
 
         public List<Tuple> put(Tuple key, List<Tuple> val) {
+            return super.put(convert((Tuple)key), val);
+        }
+
+        @Override
+        public boolean containsKey(Object obj) {
+            if (obj instanceof SchemaTuple<?>) {
+                return super.containsKey(obj);
+            } else if (obj instanceof Tuple) {
+                return super.containsKey(convert((Tuple)obj));
+            } else {
+                return false;
+            }
+        }
+
+        private SchemaTuple<?> convert(Tuple t) {
+            if (t instanceof SchemaTuple<?>) {
+                return (SchemaTuple<?>)t;
+            }
             SchemaTuple<?> st = tf.newTuple();
             try {
-                st.set(key);
+                return st.set(t);
             } catch (ExecException e) {
                 throw new RuntimeException("Unable to set SchemaTuple with schema ["
                         + st.getSchemaString() + "] with given Tuple in merge join.");
             }
-            return super.put(st, val);
         }
 
         @Override
         public List<Tuple> get(Object key) {
-            SchemaTuple<?> st = tf.newTuple();
-            try {
-                st.set((Tuple)key);
-            } catch (ExecException e) {
-                throw new RuntimeException("Unable to set SchemaTuple with schema ["
-                        + st.getSchemaString() + "] with given Tuple in merge join.");
-            }
-            return super.get(st);
+            return super.get(convert((Tuple)key));
         }
     }
 
