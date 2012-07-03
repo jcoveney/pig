@@ -42,7 +42,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.NonSpillableDataBag;
-import org.apache.pig.data.SchemaTuple;
 import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.data.SchemaTupleFactory;
@@ -95,7 +94,7 @@ public class POFRJoin extends PhysicalOperator {
     // The array of Hashtables one per replicated input. replicates[fragment] =
     // null
     // fragment is the input which is fragmented and not replicated.
-    private Map<Tuple, List<Tuple>> replicates[];
+    private TupleToMapKey replicates[];
     // varaible which denotes whether we are returning tuples from the foreach
     // operator
     private boolean processingPlan;
@@ -133,7 +132,7 @@ public class POFRJoin extends PhysicalOperator {
         this.fragment = fragment;
         this.keyTypes = keyTypes;
         this.replFiles = replFiles;
-        replicates = new Map[ppLists.size()];
+        replicates = new TupleToMapKey[ppLists.size()];
         LRs = new POLocalRearrange[ppLists.size()];
         constExps = new ConstantExpression[ppLists.size()];
         createJoinPlans(k);
@@ -297,7 +296,7 @@ public class POFRJoin extends PhysicalOperator {
                     ce.setValue(value);
                     continue;
                 }
-                Map<Tuple, List<Tuple>> replicate = replicates[i];
+                TupleToMapKey replicate = replicates[i];
                 if (replicate.get(key) == null) {
                     if (isLeftOuterJoin) {
                         ce.setValue(nullBag);
@@ -305,7 +304,7 @@ public class POFRJoin extends PhysicalOperator {
                     noMatch = true;
                     break;
                 }
-                ce.setValue(new NonSpillableDataBag(replicate.get(key)));
+                ce.setValue(new NonSpillableDataBag(replicate.get(key).getList()));
             }
 
             // If this is not LeftOuter Join and there was no match we
@@ -327,47 +326,27 @@ public class POFRJoin extends PhysicalOperator {
         }
     }
 
-    private static class TupleToMapKey extends HashMap<Tuple, List<Tuple>> {
-        static final long serialVersionUID = 1L;
-
+    private static class TupleToMapKey {
+        private HashMap<Tuple, TuplesToSchemaTupleList> tuples;
         private SchemaTupleFactory tf;
 
         public TupleToMapKey(int ct, SchemaTupleFactory tf) {
-            super(ct);
+            tuples = new HashMap<Tuple, TuplesToSchemaTupleList>(ct);
             this.tf = tf;
         }
 
-        public List<Tuple> put(Tuple key, List<Tuple> val) {
-            return super.put(convert((Tuple)key), val);
+        public TuplesToSchemaTupleList put(Tuple key, TuplesToSchemaTupleList val) {
+            if (tf != null) {
+                key = TuplesToSchemaTupleList.convert(key, tf);
+            }
+            return tuples.put(key, val);
         }
 
-        @Override
-        public boolean containsKey(Object obj) {
-            if (obj instanceof SchemaTuple<?>) {
-                return super.containsKey(obj);
-            } else if (obj instanceof Tuple) {
-                return super.containsKey(convert((Tuple)obj));
-            } else {
-                return false;
+        public TuplesToSchemaTupleList get(Tuple key) {
+            if (tf != null) {
+                key = TuplesToSchemaTupleList.convert(key, tf);
             }
-        }
-
-        private SchemaTuple<?> convert(Tuple t) {
-            if (t instanceof SchemaTuple<?>) {
-                return (SchemaTuple<?>)t;
-            }
-            SchemaTuple<?> st = tf.newTuple();
-            try {
-                return st.set(t);
-            } catch (ExecException e) {
-                throw new RuntimeException("Unable to set SchemaTuple with schema ["
-                        + st.getSchemaString() + "] with given Tuple in merge join.");
-            }
-        }
-
-        @Override
-        public List<Tuple> get(Object key) {
-            return super.get(convert((Tuple)key));
+            return tuples.get(key);
         }
     }
 
@@ -421,12 +400,7 @@ public class POFRJoin extends PhysicalOperator {
             POLocalRearrange lr = LRs[i];
             lr.setInputs(Arrays.asList((PhysicalOperator) ld));
 
-            Map<Tuple, List<Tuple>> replicate;
-            if (keySchemaTupleFactory != null) {
-                replicate = new TupleToMapKey(1000, keySchemaTupleFactory);
-            } else {
-                replicate = new HashMap<Tuple,List<Tuple>>(1000);
-            }
+            TupleToMapKey replicate = new TupleToMapKey(1000, keySchemaTupleFactory);
 
             log.debug("Completed setup. Trying to build replication hash table");
             for (Result res = lr.getNext(dummyTuple);res.returnStatus != POStatus.STATUS_EOP;res = lr.getNext(dummyTuple)) {
@@ -439,11 +413,7 @@ public class POFRJoin extends PhysicalOperator {
                 Tuple value = getValueTuple(lr, tuple);
 
                 if (replicate.get(key) == null) {
-                    if (inputSchemaTupleFactory != null) {
-                        replicate.put(key, new TuplesToSchemaTupleList(1, inputSchemaTupleFactory));
-                    } else {
-                        replicate.put(key, new ArrayList<Tuple>(1));
-                    }
+                    replicate.put(key, new TuplesToSchemaTupleList(1, inputSchemaTupleFactory));
                 }
 
                 replicate.get(key).add(value);

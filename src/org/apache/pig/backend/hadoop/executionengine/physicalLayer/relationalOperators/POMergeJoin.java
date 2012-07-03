@@ -97,7 +97,7 @@ public class POMergeJoin extends PhysicalOperator {
     private String indexFile;
 
     // Buffer to hold accumulated left tuples.
-    private transient List<Tuple> leftTuples;
+    private transient TuplesToSchemaTupleList leftTuples;
 
     private MultiMap<PhysicalOperator, PhysicalPlan> inpPlans;
 
@@ -214,12 +214,8 @@ public class POMergeJoin extends PhysicalOperator {
      * or not there is a TupleFactory available.
      * @return the list object to store Tuples in
      */
-    private List<Tuple> newLeftTupleArray() {
-        if (leftTupleMaker instanceof SchemaTupleFactory) {
-            return new TuplesToSchemaTupleList(arrayListSize, (SchemaTupleFactory)leftTupleMaker);
-        } else {
-            return new ArrayList<Tuple>(arrayListSize);
-        }
+    private TuplesToSchemaTupleList newLeftTupleArray() {
+        return new TuplesToSchemaTupleList(arrayListSize, (SchemaTupleFactory)leftTupleMaker);
     }
 
     /**
@@ -227,25 +223,45 @@ public class POMergeJoin extends PhysicalOperator {
      * from Tuple to SchemaTuple. This is necessary because we are not getting SchemaTuples
      * from the source, though in the future that is what we would like to do.
      */
-    protected static class TuplesToSchemaTupleList extends ArrayList<Tuple> {
-        static final long serialVersionUID = 1L;
-
+    protected static class TuplesToSchemaTupleList {
+        private List<Tuple> tuples;
         private SchemaTupleFactory tf;
 
-        public TuplesToSchemaTupleList(int ct, SchemaTupleFactory tf) {
-            super(ct);
+        protected TuplesToSchemaTupleList(int ct, SchemaTupleFactory tf) {
+            tuples = new ArrayList<Tuple>(ct);
             this.tf = tf;
         }
 
-        public boolean add(Tuple t) {
+        public static SchemaTuple<?> convert(Tuple t, SchemaTupleFactory tf) {
+            if (t instanceof SchemaTuple<?>) {
+                return (SchemaTuple<?>)t;
+            }
             SchemaTuple<?> st = tf.newTuple();
             try {
-                st.set(t);
+                return st.set(t);
             } catch (ExecException e) {
                 throw new RuntimeException("Unable to set SchemaTuple with schema ["
                         + st.getSchemaString() + "] with given Tuple in merge join.");
             }
-            return super.add(st);
+        }
+
+        public boolean add(Tuple t) {
+            if (tf != null) {
+                t = convert(t, tf);
+            }
+            return tuples.add(t);
+        }
+
+        public Tuple get(int i) {
+            return tuples.get(i);
+        }
+
+        public int size() {
+            return tuples.size();
+        }
+
+        public List<Tuple> getList() {
+            return tuples;
         }
     }
 
