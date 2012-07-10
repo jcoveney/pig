@@ -24,13 +24,13 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2787: change the module name in ivy to lowercase to match the maven repo (julien)
+
 PIG-2632: Create a SchemaTuple which generates efficient Tuples via code gen (jcoveney)
 
 PIG-2750: add artifacts to the ivy.xml for other jars Pig generates (julien)
 
 PIG-2748: Change the names of the jar produced in the build folder to match maven conventions (julien)
-
-PIG-2746: Pig doesn't detect all forms of compression extensions properly (qwertymaniac via daijy)
 
 PIG-2770: Allow easy inclusion of custom build targets (julien)
 
@@ -185,6 +185,10 @@ PIG-2337: Provide UDF with input schema (xutingz via daijy)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-2782: Specifying sorting field(s) at nightly.conf (cheolsoo via daijy)
+
+PIG-2790: After Pig-2699 the script schema (LOAD ... USING ... AS {script schema}) is passed after getSchema is called (daijy)
 
 PIG-2777: Docs are broken due to malformed xml after PIG-2673 (dvryaboy)
 
@@ -412,6 +416,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
+
+PIG-2783: Fix Iterator_1 e2e test for Hadoop 23 (rohini via daijy)
 
 PIG-2761: With hadoop23 importing modules inside python script does not work (rohini via daijy)
 
