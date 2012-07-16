@@ -37,18 +37,14 @@ import junit.framework.Assert;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
-import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.util.Utils;
-import org.apache.pig.newplan.logical.relational.LogicalSchema;
-import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestCombiner {
@@ -59,8 +55,8 @@ public class TestCombiner {
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
-    
+
+
     @Test
     public void testSuccessiveUserFuncs1() throws Exception{
         String query = "a = load 'students.txt' as (c1,c2,c3,c4); " +
@@ -84,23 +80,24 @@ public class TestCombiner {
         PigContext pc = pigServer.getPigContext();
         assertTrue((Util.buildMRPlan(Util.buildPp(pigServer,query),pc).getRoots().get(0).combinePlan.isEmpty()));
     }
-    
+
     @Test
     public void testOnCluster() throws Exception {
-        // run the test on cluster        
+        // run the test on cluster
         String inputFileName = runTest(new PigServer(
                 ExecType.MAPREDUCE, cluster.getProperties()));
         Util.deleteFile(cluster, inputFileName);
 
     }
-    
+
     /* (non-Javadoc)
      * @see junit.framework.TestCase#setUp()
      */
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         // cause a re initialization of FileLocalizer's
         // internal state before each test run
-        // A previous test might have been in a different 
+        // A previous test might have been in a different
         // mode than the test which is about to run. To
         // ensure each test runs correctly in it's exectype
         // mode, let's re initialize.
@@ -115,7 +112,7 @@ public class TestCombiner {
         FileLocalizer.deleteTempFiles();
     }
 
-    
+
     private String  runTest(PigServer pig) throws IOException {
         List<String> inputLines = new ArrayList<String>();
         inputLines.add("a,b,1");
@@ -130,7 +127,7 @@ public class TestCombiner {
         assertEquals("(a,b,2)", tuple.toString());
         tuple = resultIterator.next();
         assertEquals("(a,c,1)", tuple.toString());
-        
+
         return inputFileName;
     }
 
@@ -153,7 +150,7 @@ public class TestCombiner {
                 + PigStorage.class.getName() + "(',');");
         return inputFileName;
     }
-    
+
     @Test
     public void testNoCombinerUse() {
         // To simulate this, we will have two input files
@@ -161,7 +158,7 @@ public class TestCombiner {
         // in two map tasks and each would process only one record
         // hence the combiner would not get called.
     }
-    
+
     @Test
     public void testMultiCombinerUse() throws Exception {
         // test the scenario where the combiner is called multiple
@@ -200,11 +197,11 @@ public class TestCombiner {
         assertEquals(0.5, t.get(4));
         assertEquals(0.5, t.get(5));
         assertEquals(512000L + 256000L + 1, t.get(6));
-        
+
         assertFalse(it.hasNext());
         Util.deleteFile(cluster, "MultiCombinerUseInput.txt");
     }
-    
+
     @Test
     public void testDistinctAggs1() throws Exception {
         // test the use of combiner for distinct aggs:
@@ -227,7 +224,7 @@ public class TestCombiner {
         		"        z = distinct a;" +
         		"        generate group, COUNT(x), SUM(x.age), SUM(y.gpa), SUM(a.age), " +
         		"                       SUM(a.gpa), COUNT(z.age), COUNT(z), SUM(z.age);};");
-        
+
         // make sure there is a combine plan in the explain output
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
@@ -249,9 +246,9 @@ public class TestCombiner {
             }
         }
         Util.deleteFile(cluster, "distinctAggs1Input.txt");
-        
+
     }
-    
+
     @Test
     public void testGroupElements() throws Exception {
         // test use of combiner when group elements are accessed in the foreach
@@ -268,7 +265,7 @@ public class TestCombiner {
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         pigServer.registerQuery("a = load 'testGroupElements.txt' as (str:chararray, num1:int, alph : chararray, num2 : int);");
         pigServer.registerQuery("b = group a by (str, num1);");
-        
+
         //check if combiner is present or not for various forms of foreach
         pigServer.registerQuery("c = foreach b  generate flatten(group), COUNT(a.alph), SUM(a.num2); ");
         checkCombinerUsed(pigServer, "c", true);
@@ -282,22 +279,22 @@ public class TestCombiner {
 
         // projecting bag - combiner should not be used
         pigServer.registerQuery("c = foreach b  generate group, a.num2,  COUNT(a.alph), SUM(a.num2); ");
-        checkCombinerUsed(pigServer, "c", false);      
-        
+        checkCombinerUsed(pigServer, "c", false);
+
         pigServer.registerQuery("c = foreach b  generate group.$0, group.$1, COUNT(a.alph), SUM(a.num2); ");
         checkCombinerUsed(pigServer, "c", true);
 
         pigServer.registerQuery("c = foreach b  generate group.$0, group.$1 + COUNT(a.alph), SUM(a.num2); ");
         checkCombinerUsed(pigServer, "c", true);
-        
+
         pigServer.registerQuery("c = foreach b  generate group.str, group.$1, COUNT(a.alph), SUM(a.num2); ");
         checkCombinerUsed(pigServer, "c", true);
-        
+
         pigServer.registerQuery("c = foreach b  generate group.str, group.$1, COUNT(a.alph), SUM(a.num2), " +
         		" (group.num1 == 1 ? (COUNT(a.num2) + 1)  : (SUM(a.num2) + 10)) ; ");
         checkCombinerUsed(pigServer, "c", true);
 
-        List<Tuple> expectedRes = 
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "('ABC',1,3L,6L,4L)",
@@ -310,9 +307,9 @@ public class TestCombiner {
         Util.checkQueryOutputsAfterSort(it, expectedRes);
 
         Util.deleteFile(cluster, "distinctAggs1Input.txt");
-        
+
     }
-    
+
     @Test
     public void testGroupByLimit() throws Exception {
         // test use of combiner when group elements are accessed in the foreach
@@ -330,15 +327,15 @@ public class TestCombiner {
         pigServer.registerQuery("a = load 'testGroupLimit.txt'  using PigStorage(' ') " +
         		"as (str:chararray, num1:int) ;");
         pigServer.registerQuery("b = group a by str;");
-        
+
 
         pigServer.registerQuery("c = foreach b  generate group, COUNT(a.num1) ; ");
 
-        //check if combiner is present 
+        //check if combiner is present
         pigServer.registerQuery("d = limit c 2 ; ");
         checkCombinerUsed(pigServer, "d", true);
-        
-        List<Tuple> expectedRes = 
+
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "('ABC',2L)",
@@ -347,7 +344,7 @@ public class TestCombiner {
 
         Iterator<Tuple> it = pigServer.openIterator("d");
         Util.checkQueryOutputsAfterSort(it, expectedRes);
-        
+
 
     }
 
@@ -357,7 +354,7 @@ public class TestCombiner {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
         pigServer.explain("c", ps);
-        boolean combinerFound = baos.toString().matches("(?si).*combine plan.*"); 
+        boolean combinerFound = baos.toString().matches("(?si).*combine plan.*");
         System.out.println(baos.toString());
         assertEquals("is combiner present as expected", combineExpected, combinerFound);
     }
@@ -384,7 +381,7 @@ public class TestCombiner {
         pigServer.registerQuery("c = foreach b  {" +
                 "        z = distinct a;" +
                 "        generate group, z, SUM(a.age), SUM(a.gpa);};");
-        
+
         // make sure there is a combine plan in the explain output
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
@@ -411,7 +408,7 @@ public class TestCombiner {
             }
         }
         Util.deleteFile(cluster, "distinctNoCombinerInput.txt");
-        
+
     }
 
     @Test
@@ -435,7 +432,7 @@ public class TestCombiner {
         pigServer.registerQuery("c = foreach b  {" +
                 "        z = a.age;" +
                 "        generate group, z, SUM(a.age), SUM(a.gpa);};");
-        
+
         // make sure there is a combine plan in the explain output
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
@@ -462,9 +459,9 @@ public class TestCombiner {
             }
         }
         Util.deleteFile(cluster, "forEachNoCombinerInput.txt");
-        
+
     }
-    
+
     @Test
     public void testJiraPig746() {
         // test that combiner is NOT invoked when
@@ -478,7 +475,7 @@ public class TestCombiner {
                 "pig1\t19\t2.1",
                 "pig2\t24\t4.5",
                 "pig1\t20\t3.1" };
-        
+
         String expected[] = {
                 "(pig1,75,{(pig1,18,2.1),(pig1,18,2.1),(pig1,19,2.1),(pig1,20,3.1)})",
                 "(pig2,48,{(pig2,24,3.3),(pig2,24,4.5)})",
@@ -487,18 +484,18 @@ public class TestCombiner {
 
         try {
             Util.createInputFile(cluster, "forEachNoCombinerInput.txt", input);
- 
+
             PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
             pigServer.registerQuery("a = load 'forEachNoCombinerInput.txt' as (name:chararray, age:int, gpa:double);");
             pigServer.registerQuery("b = group a by name;");
             pigServer.registerQuery("c = foreach b generate group, SUM(a.age), a;");
-            
+
             // make sure there isn't a combine plan in the explain output
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             PrintStream ps = new PrintStream(baos);
             pigServer.explain("c", ps);
             assertFalse(baos.toString().matches("(?si).*combine plan.*"));
-    
+
             Iterator<Tuple> it = pigServer.openIterator("c");
             Util.checkQueryOutputsAfterSortRecursive(it, expected, "group:chararray,age:long,b:{t:(name:chararray,age:int,gpa:double)}");
         } catch (IOException e) {
@@ -515,19 +512,19 @@ public class TestCombiner {
     }
 
     public static class JiraPig1030 extends EvalFunc<DataBag> {
-        
+
         public DataBag exec(Tuple input) throws IOException {
             return new DefaultDataBag();
         }
     }
-   
+
     @Test
     public void testJiraPig1030() {
         // test that combiner is NOT invoked when
         // one of the elements in the foreach generate
         // has a non-algebraic UDF that have multiple inputs
         // (one of them is distinct).
-        
+
         String input[] = {
                 "pig1\t18\t2.1",
                 "pig2\t24\t3.3",
@@ -536,7 +533,7 @@ public class TestCombiner {
                 "pig1\t19\t2.1",
                 "pig2\t24\t4.5",
                 "pig1\t20\t3.1" };
- 
+
         try {
             Util.createInputFile(cluster, "forEachNoCombinerInput.txt", input);
             PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -545,12 +542,12 @@ public class TestCombiner {
             pigServer.registerQuery("c = foreach b  {" +
                     "        d = distinct a.age;" +
                     "        generate group, " + JiraPig1030.class.getName() + "(d, 0);};");
-            
+
             // make sure there isn't a combine plan in the explain output
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             PrintStream ps = new PrintStream(baos);
             pigServer.explain("c", ps);
-            assertFalse(baos.toString().matches("(?si).*combine plan.*"));    
+            assertFalse(baos.toString().matches("(?si).*combine plan.*"));
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();

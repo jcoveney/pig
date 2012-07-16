@@ -17,7 +17,9 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -25,8 +27,6 @@ import java.io.PrintStream;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
-
-import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -42,8 +42,6 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 public class TestSecondarySort {
     static MiniCluster cluster = MiniCluster.buildCluster();
@@ -463,19 +461,19 @@ public class TestSecondarySort {
         ps1.println("1\t2\t4");
         ps1.println("2\t3\t4");
         ps1.close();
-        
+
         String expected[] = {
                 "(2,{(2,3,4)})",
                 "(1,{(1,2,3),(1,2,4),(1,2,4),(1,2,4),(1,3,4)})"
         };
-        
+
         Util.copyFromLocalToCluster(cluster, tmpFile1.getCanonicalPath(), tmpFile1.getCanonicalPath());
         pigServer.registerQuery("A = LOAD '" + tmpFile1.getCanonicalPath() + "' AS (a0, a1, a2);");
         pigServer.registerQuery("B = group A by $0 parallel 2;");
         pigServer.registerQuery("C = foreach B { D = limit A 10; E = order D by $1; generate group, E;};");
         Iterator<Tuple> iter = pigServer.openIterator("C");
         Schema s = pigServer.dumpSchema("C");
-        
+
         Util.checkQueryOutputsAfterSortRecursive(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(s));
         Util.deleteFile(cluster, tmpFile1.getCanonicalPath());
     }
@@ -491,19 +489,19 @@ public class TestSecondarySort {
         ps1.println("1\t8\t4");
         ps1.println("2\t3\t4");
         ps1.close();
-        
+
         String expected[] = {
                 "(2,{(2,3,4)})",
                 "(1,{(1,8,4),(1,4,4),(1,3,4),(1,2,3),(1,2,4)})"
         };
-        
+
         Util.copyFromLocalToCluster(cluster, tmpFile1.getCanonicalPath(), tmpFile1.getCanonicalPath());
         pigServer.registerQuery("A = LOAD '" + tmpFile1.getCanonicalPath() + "' AS (a0, a1, a2);");
         pigServer.registerQuery("B = group A by $0 parallel 2;");
         pigServer.registerQuery("C = foreach B { D = order A by a1 desc; generate group, D;};");
         Iterator<Tuple> iter = pigServer.openIterator("C");
         Schema s = pigServer.dumpSchema("C");
-        
+
         Util.checkQueryOutputsAfterSortRecursive(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(s));
         Util.deleteFile(cluster, tmpFile1.getCanonicalPath());
     }
@@ -544,7 +542,7 @@ public class TestSecondarySort {
         Util.deleteFile(cluster, tmpFile1.getCanonicalPath());
         Util.deleteFile(cluster, tmpFile2.getCanonicalPath());
     }
-    
+
     @Test
     public void testNestedSortMultiQueryEndToEnd1() throws Exception {
         pigServer.setBatchOn();
@@ -567,7 +565,7 @@ public class TestSecondarySort {
         FileLocalizer.delete("/tmp/output2", pigServer.getPigContext());
         Util.deleteFile(cluster, "testNestedSortMultiQueryEndToEnd1-input.txt");
     }
-    
+
     // See PIG-1978
     @Test
     public void testForEachTwoInput() throws Exception {
@@ -580,7 +578,7 @@ public class TestSecondarySort {
         ps1.println("1\t2\t4");
         ps1.println("2\t3\t4");
         ps1.close();
-        
+
         String expected[] = {
                 "((1,2),{(2,3),(2,4),(2,4),(2,4)})",
                 "((1,3),{(3,4)})",
@@ -592,9 +590,9 @@ public class TestSecondarySort {
         pigServer.registerQuery("C = foreach B { C1 = A.(a1,a2); generate group, C1;};");
         Iterator<Tuple> iter = pigServer.openIterator("C");
         Schema s = pigServer.dumpSchema("C");
-        
+
         Util.checkQueryOutputsAfterSortRecursive(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(s));
-        
+
         Util.deleteFile(cluster, tmpFile1.getCanonicalPath());
     }
 }

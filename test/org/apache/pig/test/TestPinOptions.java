@@ -34,7 +34,7 @@ public class TestPinOptions {
     private PigServer pigServer;
 
     @Before
-    protected void setUp() throws Exception {
+    public void setUp() throws Exception {
         pigServer = new PigServer(LOCAL);
     }
 

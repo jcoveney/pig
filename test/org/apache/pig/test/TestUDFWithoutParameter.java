@@ -39,7 +39,7 @@ public class TestUDFWithoutParameter {
 	static File TempScriptFile = null;
 
 	@Before
-	protected void setUp() throws Exception {
+	public void setUp() throws Exception {
 		TempScriptFile = File.createTempFile("temp_jira_753", ".pig");
 		FileWriter writer=new FileWriter(TempScriptFile);
 		for (String line:ScriptStatement){
@@ -68,7 +68,7 @@ public class TestUDFWithoutParameter {
 	}
 
 	@After
-	protected void tearDown() throws Exception {
+	public void tearDown() throws Exception {
 		TempScriptFile.delete();
 	}
 }

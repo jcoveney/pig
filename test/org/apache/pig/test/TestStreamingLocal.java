@@ -36,7 +36,7 @@ import org.junit.Test;
 public class TestStreamingLocal {
 
     private TupleFactory tf = TupleFactory.getInstance();
-    PigServer pigServer;
+    private PigServer pigServer;
 
     private static final String simpleEchoStreamingCommand;
     static {
@@ -47,12 +47,12 @@ public class TestStreamingLocal {
     }
 
     @Before
-    protected void setUp() throws Exception {
+    public void setUp() throws Exception {
         pigServer = new PigServer("local");
     }
 
     @After
-    protected void tearDown() throws Exception {
+    public void tearDown() throws Exception {
         pigServer.shutdown();
     }
 
@@ -71,8 +71,7 @@ public class TestStreamingLocal {
     }
 
     @Test
-    public void testSimpleMapSideStreaming()
-    throws Exception {
+    public void testSimpleMapSideStreaming() throws Exception {
         File input = Util.createInputFile("tmp", "",
                 new String[] {"A,1", "B,2", "C,3", "D,2",
                 "A,5", "B,5", "C,8", "A,8",
@@ -113,8 +112,7 @@ public class TestStreamingLocal {
     }
 
     @Test
-    public void testSimpleMapSideStreamingWithOutputSchema()
-    throws Exception {
+    public void testSimpleMapSideStreamingWithOutputSchema() throws Exception {
         File input = Util.createInputFile("tmp", "",
                 new String[] {"A,1", "B,2", "C,3", "D,2",
                 "A,5", "B,5", "C,8", "A,8",
@@ -154,8 +152,7 @@ public class TestStreamingLocal {
     }
 
     @Test
-    public void testSimpleReduceSideStreamingAfterFlatten()
-    throws Exception {
+    public void testSimpleReduceSideStreamingAfterFlatten() throws Exception {
         File input = Util.createInputFile("tmp", "",
                 new String[] {"A,1", "B,2", "C,3", "D,2",
                 "A,5", "B,5", "C,8", "A,8",
@@ -247,8 +244,7 @@ public class TestStreamingLocal {
     }
 
     @Test
-    public void testSimpleMapSideStreamingWithUnixPipes()
-    throws Exception {
+    public void testSimpleMapSideStreamingWithUnixPipes() throws Exception {
         File input = Util.createInputFile("tmp", "",
                 new String[] {"A,1", "B,2", "C,3", "D,2",
                 "A,5", "B,5", "C,8", "A,8",
@@ -332,8 +328,7 @@ public class TestStreamingLocal {
         testNegativeLoadStoreOptimization(ExecType.LOCAL);
     }
 
-    private void testNegativeLoadStoreOptimization(ExecType execType)
-    throws Exception {
+    private void testNegativeLoadStoreOptimization(ExecType execType) throws Exception {
         File input = Util.createInputFile("tmp", "",
                 new String[] {"A,1", "B,2", "C,3", "D,2",
                 "A,5", "B,5", "C,8", "A,8",

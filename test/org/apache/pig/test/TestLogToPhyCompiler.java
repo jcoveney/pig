@@ -65,7 +65,7 @@ public class TestLogToPhyCompiler {
 
 
     @Before
-    protected void setUp() throws Exception {
+    public void setUp() throws Exception {
     	pigServer = new PigServer( ExecType.LOCAL, new Properties() );
         pc.connect();
     }

@@ -240,6 +240,7 @@ public class TestMRCompiler {
         run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC10.gld");
     }
 
+    @Test
     public void testRun2() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 
@@ -331,6 +332,7 @@ public class TestMRCompiler {
         run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC11.gld");
     }
 
+    @Test
     public void testSpl1() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 
@@ -370,6 +372,7 @@ public class TestMRCompiler {
 
     }
 
+    @Test
     public void testSpl2() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 
@@ -418,6 +421,7 @@ public class TestMRCompiler {
 
     }
 
+    @Test
     public void testSpl3() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 
@@ -499,6 +503,7 @@ public class TestMRCompiler {
 
      // Tests Single input case for both blocking and non-blocking
      // with both map and reduce phases
+    @Test
     public void testSim1() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
         POLoad ld = GenPhyOp.topLoadOp();
@@ -529,6 +534,7 @@ public class TestMRCompiler {
 
     }
 
+    @Test
     public void testSim2() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 
@@ -549,6 +555,7 @@ public class TestMRCompiler {
 
     }
 
+    @Test
     public void testSim3() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 
@@ -573,6 +580,7 @@ public class TestMRCompiler {
         run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC3.gld");
     }
 
+    @Test
     public void intTestSim4() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 
@@ -601,6 +609,7 @@ public class TestMRCompiler {
         run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC4.gld");
     }
 
+    @Test
     public void testSim5() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
         PhysicalPlan ldFil1 = GenPhyOp.loadedFilter();
@@ -618,6 +627,7 @@ public class TestMRCompiler {
         run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC5.gld");
     }
 
+    @Test
     public void testSim6() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 
@@ -645,6 +655,7 @@ public class TestMRCompiler {
 
     }
 
+    @Test
     public void testSim7() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 
@@ -676,6 +687,7 @@ public class TestMRCompiler {
         run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC7.gld");
     }
 
+    @Test
     public void testSim8() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 
@@ -711,6 +723,7 @@ public class TestMRCompiler {
         run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC8.gld");
     }
 
+    @Test
     public void testSim9() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 
@@ -734,6 +747,7 @@ public class TestMRCompiler {
         run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC9.gld");
     }
 
+    @Test
     public void testSortUDF1() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
         PhysicalPlan ldFil1 = GenPhyOp.loadedFilter();
@@ -800,6 +814,7 @@ public class TestMRCompiler {
         run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC15.gld");
     }
 
+    @Test
     public void testDistinct1() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
         PhysicalPlan ldFil1 = GenPhyOp.loadedFilter();
@@ -823,7 +838,7 @@ public class TestMRCompiler {
         run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC16.gld");
     }
 
-
+    @Test
     public void testLimit() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 

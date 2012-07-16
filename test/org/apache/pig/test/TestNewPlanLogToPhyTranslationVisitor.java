@@ -98,7 +98,7 @@ public class TestNewPlanLogToPhyTranslationVisitor {
     }
 
     @Before
-    protected void setUp() throws Exception {
+    public void setUp() throws Exception {
         LogicalExpression.resetNextUid();
     }
 
