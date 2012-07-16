@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2763: Groovy UDFs (herberts via julien)
+
 PIG-2780: MapReduceLauncher should break early when one of the jobs throws an exception (jay23jack via daijy)
 
 PIG-2804: Remove "PIG" exec type (dvryaboy)
@@ -193,6 +195,8 @@ PIG-2337: Provide UDF with input schema (xutingz via daijy)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-2815: class loader management in PigContext (rangadi via jcoveney)
 
 PIG-2813: Fix test regressions from PIG-2632 (jcoveney)
 
