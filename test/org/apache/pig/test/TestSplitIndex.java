@@ -34,10 +34,7 @@ import org.apache.pig.data.Tuple;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
 public class TestSplitIndex {
     private PigServer pigServer;
     File inputDir;
@@ -50,12 +47,12 @@ public class TestSplitIndex {
         Util.createLocalInputFile(inputDir.getAbsolutePath()+"/1", new String[] {"1\t2"});
         Util.createLocalInputFile(inputDir.getAbsolutePath()+"/2", new String[] {"3\t4"});
     }
-    
+
     @Test
     public void testSplitIndex() throws Exception {
         pigServer.registerQuery("a = load '" + inputDir + "' using " + SplitSensitiveLoadFunc.class.getName() + "();");
         Iterator<Tuple> iter = pigServer.openIterator("a");
-        
+
         boolean file1exist=false, file2exist=false;
         Tuple t = iter.next();
         if (t.get(2).toString().endsWith("/1"))
@@ -70,13 +67,13 @@ public class TestSplitIndex {
         if (!file1exist || !file2exist)
             Assert.fail();
     }
-    
+
     @Test
     public void testSplitIndexNoCombine() throws Exception {
         pigServer.getPigContext().getProperties().setProperty("pig.splitCombination", "false");
         pigServer.registerQuery("a = load '" + inputDir + "' using " + SplitSensitiveLoadFunc.class.getName() + "();");
         Iterator<Tuple> iter = pigServer.openIterator("a");
-        
+
         boolean file1exist=false, file2exist=false;
         Tuple t = iter.next();
         if (t.get(2).toString().endsWith("/1"))
@@ -91,7 +88,7 @@ public class TestSplitIndex {
         if (!file1exist || !file2exist)
             Assert.fail();
     }
-    
+
     public static class SplitSensitiveLoadFunc extends PigStorage {
         Path path = null;
         public SplitSensitiveLoadFunc() {
@@ -102,7 +99,7 @@ public class TestSplitIndex {
             in = reader;
             path = ((FileSplit)split.getWrappedSplit()).getPath();
         }
-        
+
         @Override
         public Tuple getNext() throws IOException {
             Tuple myTuple = super.getNext();

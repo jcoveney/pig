@@ -54,25 +54,25 @@ public class TestPigStats  {
         w.println("register /mydir/lib/jackson-core-asl-1.4.2.jar");
         w.println("register /mydir/lib/jackson-mapper-asl-1.4.2.jar");
         w.close();
-        
+
         ScriptState ss = ScriptState.get();
         ss.setScript(new File("test.pig"));
         Configuration conf = new Configuration();
         MapReduceOper mro = new MapReduceOper(new OperatorKey());
         ss.addSettingsToConf(mro, conf);
-        
+
         String s = conf.get("pig.script");
         String script = new String(Base64.decodeBase64(s.getBytes()));
-        
-        String expected = 
+
+        String expected =
             "register /mydir/sath.jar\n" +
             "register /mydir/lib/hadoop-tools-0.20.201.0-SNAPSHOT.jar\n" +
             "register /mydir/lib/jackson-core-asl-1.4.2.jar\n"  +
             "register /mydir/lib/jackson-mapper-asl-1.4.2.jar\n";
-        
+
         Assert.assertEquals(expected, script);
     }
-    
+
     @Test
     public void testJythonScriptInConf() throws Exception {
         String[] script = {
@@ -89,19 +89,19 @@ public class TestPigStats  {
                 "else:",
                 "\traise 'failed'"
         };
-        
+
         Util.createLocalInputFile( "testScript.py", script);
-        
+
         ScriptState ss = ScriptState.get();
         ss.setScript(new File("testScript.py"));
         Configuration conf = new Configuration();
         MapReduceOper mro = new MapReduceOper(new OperatorKey());
         ss.addSettingsToConf(mro, conf);
-        
+
         String s = conf.get("pig.script");
         String actual = new String(Base64.decodeBase64(s.getBytes()));
-        
-        String expected = 
+
+        String expected =
             "#!/usr/bin/python\n" +
             "from org.apache.pig.scripting import *\n" +
             "Pig.fs(\"rmr simple_out\")\n" +
@@ -114,10 +114,10 @@ public class TestPigStats  {
             "\tprint 'success!'\n" +
             "else:\n" +
             "\traise 'failed'\n";
-        
+
         Assert.assertEquals(expected, actual);
     }
-    
+
     @Test
     public void testBytesWritten_JIRA_1027() {
 
@@ -144,7 +144,7 @@ public class TestPigStats  {
             }
         }
     }
-    
+
     @Test
     public void testPigStatsAlias() throws Exception {
         try {
@@ -156,19 +156,19 @@ public class TestPigStats  {
             pig.registerQuery("D = order C by $1;");
             pig.registerQuery("E = limit D 10;");
             pig.registerQuery("store E into 'alias_output';");
-            
+
             LogicalPlan lp = getLogicalPlan(pig);
             PhysicalPlan pp = pig.getPigContext().getExecutionEngine().compile(lp,
                     null);
             MROperPlan mp = getMRPlan(pp, pig.getPigContext());
             assertEquals(4, mp.getKeys().size());
-            
+
             MapReduceOper mro = mp.getRoots().get(0);
             assertEquals("A,B,C", getAlias(mro));
-            
+
             mro = mp.getSuccessors(mro).get(0);
             assertEquals("D", getAlias(mro));
-             
+
             mro = mp.getSuccessors(mro).get(0);
             assertEquals("D", getAlias(mro));
         } finally {
@@ -180,7 +180,7 @@ public class TestPigStats  {
             }
         }
     }
-    
+
     private void deleteDirectory( File dir ) {
         File[] files = dir.listFiles();
         for( File file : files ) {
@@ -192,13 +192,13 @@ public class TestPigStats  {
         }
         dir.delete();
     }
-    
+
     public static LogicalPlan getLogicalPlan(PigServer pig) throws Exception {
         java.lang.reflect.Method buildLp = pig.getClass().getDeclaredMethod("buildLp");
         buildLp.setAccessible(true);
         return (LogicalPlan ) buildLp.invoke( pig );
     }
-    
+
     public static MROperPlan getMRPlan(PhysicalPlan pp, PigContext ctx) throws Exception {
         MapReduceLauncher launcher = new MapReduceLauncher();
         java.lang.reflect.Method compile = launcher.getClass()
@@ -207,7 +207,7 @@ public class TestPigStats  {
         compile.setAccessible(true);
         return (MROperPlan) compile.invoke(launcher, new Object[] { pp, ctx });
     }
-           
+
     public static String getAlias(MapReduceOper mro) throws Exception {
         ScriptState ss = ScriptState.get();
         java.lang.reflect.Method getAlias = ss.getClass()
@@ -216,5 +216,4 @@ public class TestPigStats  {
         getAlias.setAccessible(true);
         return (String)getAlias.invoke(ss, new Object[] { mro });
     }
-         
 }

@@ -18,17 +18,20 @@
 
 package org.apache.pig.test;
 
-import java.util.Arrays;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
-import junit.framework.TestCase;
+import java.util.Arrays;
 
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.SchemaUtil;
+import org.junit.Test;
 
-public class TestSchemaUtil extends TestCase {
+public class TestSchemaUtil {
 
+    @Test
     public void testTupleSchema() {
         try {
             String tupleName = "mytuple";
@@ -63,6 +66,7 @@ public class TestSchemaUtil extends TestCase {
         }
     }
 
+    @Test
     public void testBagSchema() {
         try {
             String bagName="mybag";

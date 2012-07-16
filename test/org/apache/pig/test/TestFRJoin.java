@@ -19,17 +19,13 @@ package org.apache.pig.test;
 
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 
 import junit.framework.Assert;
-import junit.framework.TestCase;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
@@ -57,23 +53,20 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class TestFRJoin extends TestCase{
+public class TestFRJoin {
     private static final String INPUT_FILE = "testFrJoinInput.txt";
     private static final String INPUT_FILE2 = "testFrJoinInput2.txt";
     private PigServer pigServer;
     private static MiniCluster cluster = MiniCluster.buildCluster();
     private File tmpFile;
-    
+
     public TestFRJoin() throws ExecException, IOException{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 //        pigServer = new PigServer(ExecType.LOCAL);
-        
+
     }
-    
+
     @Before
     public void setUp() throws Exception {
         int LOOP_SIZE = 2;
@@ -85,7 +78,7 @@ public class TestFRJoin extends TestCase{
                 input[k++] = si + "\t" + j;
         }
         Util.createInputFile(cluster, INPUT_FILE, input);
-        
+
         String[] input2 = new String[2*(LOOP_SIZE/2)];
         k = 0;
         for(int i = 1; i <= LOOP_SIZE/2; i++) {
@@ -100,21 +93,21 @@ public class TestFRJoin extends TestCase{
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     @After
     public void tearDown() throws Exception {
         Util.deleteFile(cluster, INPUT_FILE);
         Util.deleteFile(cluster, INPUT_FILE2 );
     }
-    
+
     public static class FRJoin extends EvalFunc<DataBag>{
         String repl;
         int keyField;
         boolean isTblSetUp = false;
         Hashtable<String, DataBag> replTbl = new Hashtable<String, DataBag>();
-        
+
         public FRJoin(){
-            
+
         }
         public FRJoin(String repl){
             this.repl = repl;
@@ -133,16 +126,16 @@ public class TestFRJoin extends TestCase{
             } catch (ExecException e) {
                 throw new IOException(e.getMessage());
             }
-            
+
         }
-        
+
         private void setUpHashTable() throws IOException {
             FileSpec replFile = new FileSpec(repl,new FuncSpec(PigStorage.class.getName()+"()"));
             POLoad ld = new POLoad(new OperatorKey("Repl File Loader", 1L), replFile);
             PigContext pc = new PigContext(ExecType.MAPREDUCE,ConfigurationUtil.toProperties(PigMapReduce.sJobConfInternal.get()));
             try {
                 pc.connect();
-            
+
                 ld.setPc(pc);
                 Tuple dummyTuple = null;
                 for(Result res=ld.getNext(dummyTuple);res.returnStatus!=POStatus.STATUS_EOP;res=ld.getNext(dummyTuple)){
@@ -166,9 +159,9 @@ public class TestFRJoin extends TestCase{
                 throw new IOException(e.getMessage());
             }
         }
-        
+
     }
-    
+
     @Test
     public void testSortFRJoin() throws IOException{
       pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
@@ -179,7 +172,7 @@ public class TestFRJoin extends TestCase{
       {
           pigServer.registerQuery("C = join D by $0, E by $0 using \'replicated\';");
           Iterator<Tuple> iter = pigServer.openIterator("C");
-          
+
           while(iter.hasNext()) {
               dbfrj.add(iter.next());
           }
@@ -187,15 +180,15 @@ public class TestFRJoin extends TestCase{
       {
           pigServer.registerQuery("C = join D by $0, E by $0;");
           Iterator<Tuple> iter = pigServer.openIterator("C");
-          
+
           while(iter.hasNext()) {
               dbshj.add(iter.next());
           }
       }
       Assert.assertEquals(dbfrj.size(), dbshj.size());
-      Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));        
+      Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
     }
-    
+
     @Test
     public void testDistinctFRJoin() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
@@ -206,7 +199,7 @@ public class TestFRJoin extends TestCase{
         {
             pigServer.registerQuery("C = join D by $0, E by $0 using 'replicated';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
-            
+
             while(iter.hasNext()) {
                 dbfrj.add(iter.next());
             }
@@ -214,27 +207,27 @@ public class TestFRJoin extends TestCase{
         {
             pigServer.registerQuery("C = join D by $0, E by $0;");
             Iterator<Tuple> iter = pigServer.openIterator("C");
-            
+
             while(iter.hasNext()) {
                 dbshj.add(iter.next());
             }
         }
         Assert.assertEquals(dbfrj.size(), dbshj.size());
-        Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));        
+        Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
       }
-    
+
     @Test
     public void testUDFFRJ() throws IOException {
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:chararray,y:int);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (x:chararray,y:int);");
-        
+
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
             String fSpec = FRJoin.class.getName()+ "('" + INPUT_FILE + "')";
             pigServer.registerFunction("FRJ", new FuncSpec(fSpec));
             pigServer.registerQuery("C = foreach A generate *, flatten(FRJ(*));");
             Iterator<Tuple> iter = pigServer.openIterator("C");
-            
+
             while(iter.hasNext()) {
                 dbfrj.add(iter.next());
             }
@@ -242,7 +235,7 @@ public class TestFRJoin extends TestCase{
         {
             pigServer.registerQuery("C = join A by $0, B by $0;");
             Iterator<Tuple> iter = pigServer.openIterator("C");
-            
+
             while(iter.hasNext()) {
                 dbshj.add(iter.next());
             }
@@ -250,7 +243,7 @@ public class TestFRJoin extends TestCase{
         Assert.assertTrue(dbfrj.size()>0 && dbshj.size()>0);
         Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
     }
-    
+
     @Test
     public void testFRJoinOut1() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
@@ -259,7 +252,7 @@ public class TestFRJoin extends TestCase{
         {
             pigServer.registerQuery("C = join A by $0, B by $0 using 'replicated';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
-            
+
             while(iter.hasNext()) {
                 dbfrj.add(iter.next());
             }
@@ -267,7 +260,7 @@ public class TestFRJoin extends TestCase{
         {
             pigServer.registerQuery("C = join A by $0, B by $0;");
             Iterator<Tuple> iter = pigServer.openIterator("C");
-            
+
             while(iter.hasNext()) {
                 dbshj.add(iter.next());
             }
@@ -275,7 +268,7 @@ public class TestFRJoin extends TestCase{
         Assert.assertTrue(dbfrj.size()>0 && dbshj.size()>0);
         Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
     }
-    
+
     @Test
     public void testFRJoinOut2() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "';");
@@ -284,7 +277,7 @@ public class TestFRJoin extends TestCase{
         {
             pigServer.registerQuery("C = join A by $0, B by $0 using 'replicated';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
-            
+
             while(iter.hasNext()) {
                 dbfrj.add(iter.next());
             }
@@ -292,7 +285,7 @@ public class TestFRJoin extends TestCase{
         {
             pigServer.registerQuery("C = join A by $0, B by $0;");
             Iterator<Tuple> iter = pigServer.openIterator("C");
-            
+
             while(iter.hasNext()) {
                 dbshj.add(iter.next());
             }
@@ -300,7 +293,7 @@ public class TestFRJoin extends TestCase{
         Assert.assertTrue(dbfrj.size()>0 && dbshj.size()>0);
         Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
     }
-    
+
     @Test
     public void testFRJoinOut3() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
@@ -310,7 +303,7 @@ public class TestFRJoin extends TestCase{
         {
             pigServer.registerQuery("D = join A by $0, B by $0, C by $0 using 'replicated';");
             Iterator<Tuple> iter = pigServer.openIterator("D");
-            
+
             while(iter.hasNext()) {
                 dbfrj.add(iter.next());
             }
@@ -318,7 +311,7 @@ public class TestFRJoin extends TestCase{
         {
             pigServer.registerQuery("D = join A by $0, B by $0, C by $0;");
             Iterator<Tuple> iter = pigServer.openIterator("D");
-            
+
             while(iter.hasNext()) {
                 dbshj.add(iter.next());
             }
@@ -326,7 +319,7 @@ public class TestFRJoin extends TestCase{
         Assert.assertTrue(dbfrj.size()>0 && dbshj.size()>0);
         Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
     }
-    
+
     @Test
     public void testFRJoinOut4() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "';");
@@ -336,7 +329,7 @@ public class TestFRJoin extends TestCase{
         {
             pigServer.registerQuery("D = join A by $0, B by $0, C by $0 using 'replicated';");
             Iterator<Tuple> iter = pigServer.openIterator("D");
-            
+
             while(iter.hasNext()) {
                 dbfrj.add(iter.next());
             }
@@ -344,7 +337,7 @@ public class TestFRJoin extends TestCase{
         {
             pigServer.registerQuery("D = join A by $0, B by $0, C by $0;");
             Iterator<Tuple> iter = pigServer.openIterator("D");
-            
+
             while(iter.hasNext()) {
                 dbshj.add(iter.next());
             }
@@ -353,8 +346,8 @@ public class TestFRJoin extends TestCase{
         Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
     }
 
-    
-    
+
+
     @Test
     public void testFRJoinOut5() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
@@ -363,7 +356,7 @@ public class TestFRJoin extends TestCase{
         {
             pigServer.registerQuery("C = join A by ($0,$1), B by ($0,$1) using 'replicated';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
-            
+
             while(iter.hasNext()) {
                 dbfrj.add(iter.next());
             }
@@ -371,7 +364,7 @@ public class TestFRJoin extends TestCase{
         {
             pigServer.registerQuery("C = join A by ($0,$1), B by ($0,$1);");
             Iterator<Tuple> iter = pigServer.openIterator("C");
-            
+
             while(iter.hasNext()) {
                 dbshj.add(iter.next());
             }
@@ -379,7 +372,7 @@ public class TestFRJoin extends TestCase{
         Assert.assertTrue(dbfrj.size()>0 && dbshj.size()>0);
         Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
     }
-    
+
     @Test
     public void testFRJoinOut6() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "';");
@@ -388,7 +381,7 @@ public class TestFRJoin extends TestCase{
         {
             pigServer.registerQuery("C = join A by ($0,$1), B by ($0,$1) using 'replicated';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
-            
+
             while(iter.hasNext()) {
                 dbfrj.add(iter.next());
             }
@@ -396,7 +389,7 @@ public class TestFRJoin extends TestCase{
         {
             pigServer.registerQuery("C = join A by ($0,$1), B by ($0,$1);");
             Iterator<Tuple> iter = pigServer.openIterator("C");
-            
+
             while(iter.hasNext()) {
                 dbshj.add(iter.next());
             }
@@ -404,7 +397,7 @@ public class TestFRJoin extends TestCase{
         Assert.assertTrue(dbfrj.size()>0 && dbshj.size()>0);
         Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
     }
-    
+
     @Test
     public void testFRJoinOut7() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
@@ -415,7 +408,7 @@ public class TestFRJoin extends TestCase{
             pigServer.registerQuery("D = join A by $1, B by $1 using 'replicated';");
             pigServer.registerQuery("E = union C,D;");
             Iterator<Tuple> iter = pigServer.openIterator("E");
-            
+
             while(iter.hasNext()) {
                 dbfrj.add(iter.next());
             }
@@ -425,7 +418,7 @@ public class TestFRJoin extends TestCase{
             pigServer.registerQuery("D = join A by $1, B by $1;");
             pigServer.registerQuery("E = union C,D;");
             Iterator<Tuple> iter = pigServer.openIterator("E");
-            
+
             while(iter.hasNext()) {
                 dbshj.add(iter.next());
             }
@@ -446,13 +439,13 @@ public class TestFRJoin extends TestCase{
             pigServer.registerQuery("D = join A by $1 left, B by $1 using 'replicated';");
             pigServer.registerQuery("E = union C,D;");
             Iterator<Tuple> iter = pigServer.openIterator("E");
-            
+
             while(iter.hasNext()) {
                 Tuple tuple = iter.next();
                 String Key = tuple.toDelimitedString(",");
                 hashFRJoin.put( Key, tuple);
                 dbfrj.add(tuple);
-                
+
             }
         }
         {
@@ -468,10 +461,10 @@ public class TestFRJoin extends TestCase{
             }
         }
         Assert.assertTrue(dbfrj.size()>0 && dbshj.size()>0);
-                
+
         Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
     }
-    
+
     @Test
     public void testFRJoinOut9() throws IOException {
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
@@ -484,13 +477,13 @@ public class TestFRJoin extends TestCase{
             pigServer.registerQuery("D = join A by $1 left, B by $1 using 'repl';");
             pigServer.registerQuery("E = union C,D;");
             Iterator<Tuple> iter = pigServer.openIterator("E");
-            
+
             while(iter.hasNext()) {
                 Tuple tuple = iter.next();
                 String Key = tuple.toDelimitedString(",");
                 hashFRJoin.put( Key, tuple);
                 dbfrj.add(tuple);
-                
+
             }
         }
         {
@@ -505,10 +498,10 @@ public class TestFRJoin extends TestCase{
                 dbshj.add(tuple);
             }
         }
-        Assert.assertTrue(dbfrj.size()>0 && dbshj.size()>0);        
+        Assert.assertTrue(dbfrj.size()>0 && dbshj.size()>0);
         Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
     }
-        
+
     @Test
     public void testFRJoinSch1() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
@@ -520,7 +513,7 @@ public class TestFRJoin extends TestCase{
         shjSch = pigServer.dumpSchema("C");
         Assert.assertEquals(true, shjSch.equals(frjSch));
     }
-    
+
     @Test
     public void testFRJoinSch2() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "';");
@@ -532,7 +525,7 @@ public class TestFRJoin extends TestCase{
         shjSch = pigServer.dumpSchema("C");
         Assert.assertTrue(shjSch == null);
     }
-    
+
     @Test
     public void testFRJoinSch3() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
@@ -545,7 +538,7 @@ public class TestFRJoin extends TestCase{
         shjSch = pigServer.dumpSchema("D");
         Assert.assertEquals(true, shjSch.equals(frjSch));
     }
-    
+
     @Test
     public void testFRJoinSch4() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "';");
@@ -558,7 +551,7 @@ public class TestFRJoin extends TestCase{
         shjSch = pigServer.dumpSchema("D");
         Assert.assertTrue(shjSch == null);
     }
-    
+
     @Test
     public void testFRJoinSch5() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
@@ -570,7 +563,7 @@ public class TestFRJoin extends TestCase{
         shjSch = pigServer.dumpSchema("C");
         Assert.assertEquals(true, shjSch.equals(frjSch));
     }
-    
+
     @Test
     public void testFRJoinSch6() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "';");

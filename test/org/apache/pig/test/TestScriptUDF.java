@@ -19,7 +19,6 @@ package org.apache.pig.test;
 
 import java.io.File;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Random;
 
 import junit.framework.Assert;
@@ -27,8 +26,6 @@ import junit.framework.Assert;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.BagFactory;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -36,24 +33,24 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestScriptUDF{
+public class TestScriptUDF {
     static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer;
 
     TupleFactory mTf = TupleFactory.getInstance();
     BagFactory mBf = BagFactory.getInstance();
-    
+
     @Before
     public void setUp() throws Exception{
         FileLocalizer.setR(new Random());
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     // See PIG-928
     @Test
     public void testJavascriptExampleScript() throws Exception{
@@ -137,7 +134,7 @@ public class TestScriptUDF{
         t = iter.next();
 
         Assert.assertTrue(t.toString().equals("(9)"));
-        
+
         Assert.assertFalse(iter.hasNext());
     }
 
@@ -150,7 +147,7 @@ public class TestScriptUDF{
      * for "import re".
      * to use a jython install, the Lib dir must be in the jython search path
      * via env variable JYTHON_HOME=jy_home or JYTHON_PATH=jy_home/Lib:...
-     * 
+     *
      * Left in for now as we don't have paths to include other scripts in a
      * script in the e2e harness.
      *
@@ -161,7 +158,7 @@ public class TestScriptUDF{
         // Skip for hadoop 23 until PIG-2433 fixed
         if (Util.isHadoop23())
             return;
-        
+
         String[] scriptA = {
                 "#!/usr/bin/python",
                 "def square(number):" ,
@@ -207,7 +204,7 @@ public class TestScriptUDF{
         t = iter.next();
 
         Assert.assertTrue(t.toString().equals("(9)"));
-        
+
         Assert.assertFalse(iter.hasNext());
     }
 }

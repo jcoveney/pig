@@ -383,5 +383,4 @@ public class TestNativeMapReduce  {
             Util.deleteFile(cluster,"table_testNativeMRJobTypeCastInserter_output");
         }
     }
-
 }

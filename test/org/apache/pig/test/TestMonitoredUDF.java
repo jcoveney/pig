@@ -82,7 +82,7 @@ public class TestMonitoredUDF {
     public static void main(String[] args) throws IOException {
         long startTime = System.currentTimeMillis();
         long unmonitoredTime = 0, monitoredTime = 0;
-        
+
         int[] numReps = { 1000, 10000, 100000, 1000000};
         MonitoredNoOpUDF monitoredUdf  = new MonitoredNoOpUDF();
         MonitoredUDFExecutor exec = new MonitoredUDFExecutor(monitoredUdf);
@@ -110,7 +110,7 @@ public class TestMonitoredUDF {
                 }
                 unmonitoredTime = System.currentTimeMillis() - startTime;
                 System.out.println("Reps: " + i + " monitored: " + monitoredTime + " unmonitored: " + unmonitoredTime);
-            }    
+            }
         }
     }
 
@@ -131,19 +131,19 @@ public class TestMonitoredUDF {
             return true;
         }
     }
-    
+
     public static class UnmonitoredNoOpUDF extends EvalFunc<Boolean> {
-        @Override public Boolean exec(Tuple input) throws IOException { 
+        @Override public Boolean exec(Tuple input) throws IOException {
             System.currentTimeMillis(); return true; }
     }
 
     @MonitoredUDF(timeUnit = TimeUnit.MILLISECONDS, duration = 500)
     public static class MonitoredNoOpUDF extends EvalFunc<Boolean> {
-        @Override public Boolean exec(Tuple input) throws IOException { 
+        @Override public Boolean exec(Tuple input) throws IOException {
             System.currentTimeMillis(); return true; }
     }
 
-    
+
     @MonitoredUDF(timeUnit = TimeUnit.MILLISECONDS, duration = 100, intDefault = SimpleIntUDF.DEFAULT)
     public static class SimpleIntUDF extends EvalFunc<Integer> {
         public static final int DEFAULT = 123;

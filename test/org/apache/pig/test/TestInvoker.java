@@ -35,7 +35,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.junit.Test;
 
-/** need more tests -- non-String funcs and especially the full path through the pig interpreter. 
+/** need more tests -- non-String funcs and especially the full path through the pig interpreter.
  * I tested manually, seems to work, but
  * should really add more here.
  */
@@ -98,7 +98,7 @@ public class TestInvoker {
       InvokeForInt ii = new InvokeForInt(TestInvoker.class.getName() + ".avg", "double[]");
       DataBag nums = newSimpleBag(1.0, 2.0, 3.0);
       assertEquals(Integer.valueOf(2), ii.exec(tf_.newTuple(nums)));
-      
+
       ii = new InvokeForInt(TestInvoker.class.getName() + ".avg", "long[]");
       nums = newSimpleBag(1L, 2L, 3L);
       assertEquals(Integer.valueOf(2), ii.exec(tf_.newTuple(nums)));
@@ -141,7 +141,7 @@ public class TestInvoker {
     public static int simpleStaticFunction() {
       return 1;
     }
-    
+
     public static int avg(long[] nums) {
         long sum = 0;
         for (long d: nums) {
@@ -186,7 +186,7 @@ public class TestInvoker {
         System.err.println("Dynamic to static ratio: "+((float) dynamicSpeed)/staticSpeed);
         assertTrue( ((float) dynamicSpeed)/staticSpeed < 5);
     }
-    
+
     private class Log extends EvalFunc<Double> {
 
         @Override
@@ -194,6 +194,6 @@ public class TestInvoker {
             Double d = (Double) input.get(0);
             return Math.log(d);
         }
-        
+
     }
 }

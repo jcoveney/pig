@@ -17,32 +17,36 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
-import junit.framework.TestCase;
 import junit.framework.Assert;
 
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.*;
-import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.test.PORead;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserComparisonFunc;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
+import org.apache.pig.data.DefaultBagFactory;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.test.utils.GenRandomData;
 import org.junit.Test;
 
-public class TestPOSort extends TestCase {
-	Random r = new Random();
-	int MAX_TUPLES = 10;
+public class TestPOSort {
+	private Random r = new Random();
+	private static final int MAX_TUPLES = 10;
 
 	@Test
 	public void testPOSortAscString() throws ExecException {
@@ -50,25 +54,25 @@ public class TestPOSort extends TestCase {
 				MAX_TUPLES, 100);
 		poSortAscString( input );
 	}
-	
+
 	@Test
 	public void testPOSortAscStringWithNull() throws ExecException {
 		DataBag input = (DataBag) GenRandomData.genRandSmallTupDataBagWithNulls(r,
 				MAX_TUPLES, 100);
 		poSortAscString( input );
 	}
-	
 
-	 
+
+
 	public void poSortAscString(DataBag input) throws ExecException {
-		
+
 		List<PhysicalPlan> sortPlans = new LinkedList<PhysicalPlan>();
 		POProject pr1 = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
 		pr1.setResultType(DataType.CHARARRAY);
 		PhysicalPlan expPlan = new PhysicalPlan();
 		expPlan.add(pr1);
 		sortPlans.add(expPlan);
-		
+
 		List<Boolean> mAscCols = new LinkedList<Boolean>();
 		mAscCols.add(true);
 		PORead read = new PORead(new OperatorKey("", r.nextLong()), input);
@@ -76,7 +80,7 @@ public class TestPOSort extends TestCase {
 		inputs.add(read);
 		POSort sort = new POSort(new OperatorKey("", r.nextLong()), -1, inputs,
 				sortPlans, mAscCols, null);
-		
+
 		//verify
 		Tuple t = null;
 		Result res1 = sort.getNext(t);
@@ -85,7 +89,7 @@ public class TestPOSort extends TestCase {
 		while (res2.returnStatus != POStatus.STATUS_EOP) {
 			Object i1 = ((Tuple) res1.result).get(0);
 			Object i2 = ((Tuple) res2.result).get(0);
-			
+
 			//System.out.println("i1: " + i1.toString() + " i2: " + i2.toString());
 			int i = DataType.compare(i1, i2);
 			System.out.println("RESULT2=i : " + res2.result + " i = " + i);
@@ -95,7 +99,7 @@ public class TestPOSort extends TestCase {
 		}
 	}
 
-	
+
 	@Test
 	public void testPOSortDescString() throws ExecException {
 		DataBag input = (DataBag) GenRandomData.genRandSmallTupDataBag(r,
@@ -109,7 +113,7 @@ public class TestPOSort extends TestCase {
 				MAX_TUPLES, 100);
 		poSortDescString(input);
 	}
-	
+
 
 	public void poSortDescString(DataBag input) throws ExecException {
 
@@ -146,17 +150,17 @@ public class TestPOSort extends TestCase {
 		DataBag input = (DataBag) GenRandomData.genRandSmallTupDataBag(r,
 				MAX_TUPLES, 100);
 		poSortAscInt( input );
- 
+
 	}
-	
+
 	@Test
 	public void testPOSortAscWithNulls() throws ExecException {
 		DataBag input = (DataBag) GenRandomData.genRandSmallTupDataBagWithNulls(r,
 				MAX_TUPLES, 100);
 		poSortAscInt( input );
- 
+
 	}
-	
+
 
 	public void poSortAscInt( DataBag input) throws ExecException {
 
@@ -187,21 +191,21 @@ public class TestPOSort extends TestCase {
 			res2 = sort.getNext(t);
 		}
 	}
-	
+
 	@Test
 	public void testPOSortDescInt() throws ExecException {
 		DataBag input = (DataBag) GenRandomData.genRandSmallTupDataBag(r,
 				MAX_TUPLES, 100);
 		poSortDescInt(input );
 	}
-	
+
 	@Test
 	public void testPOSortDescIntWithNulls() throws ExecException {
 		DataBag input = (DataBag) GenRandomData.genRandSmallTupDataBagWithNulls(r,
 				MAX_TUPLES, 100);
 		poSortDescInt(input );
 	}
-	
+
 	public void poSortDescInt(DataBag input) throws ExecException {
 		List<PhysicalPlan> sortPlans = new LinkedList<PhysicalPlan>();
 		POProject pr1 = new POProject(new OperatorKey("", r.nextLong()), -1, 1);
@@ -237,7 +241,7 @@ public class TestPOSort extends TestCase {
      *  (3, 8)
      *  (2, 8)
      *
-     *  BY $1 DESC, $0 ASC 
+     *  BY $1 DESC, $0 ASC
      *
      *  should return
      *  (1, 10)
@@ -305,18 +309,18 @@ public class TestPOSort extends TestCase {
         res = sort.getNext(t);
         Assert.assertEquals(((Tuple) res.result).get(0), 3) ;
         Assert.assertEquals(((Tuple) res.result).get(1), 8) ;
-        
+
     }
 
     /***
      * Sorting
      *  (null, 10)
-     *  (1, 8) 
+     *  (1, 8)
      *  (1, null)
      *  (null,null)
      *  (3, 8)
-     *  
-     *  BY $1 DESC, $0 ASC 
+     *
+     *  BY $1 DESC, $0 ASC
      *
      *  should return
      *  (null, 10)
@@ -406,7 +410,7 @@ public class TestPOSort extends TestCase {
         Assert.assertEquals(((Tuple) res.result).get(0), 1 );
         Assert.assertEquals(((Tuple) res.result).get(1), null) ;
 
-      
+
     }
 
     /***
@@ -424,7 +428,7 @@ public class TestPOSort extends TestCase {
      *
      * @throws ExecException
      */
-    
+
 
 
     @Test
@@ -488,16 +492,16 @@ public class TestPOSort extends TestCase {
         Assert.assertEquals(((Tuple) res.result).get(1), 2) ;
 
     }
-    
+
     /***
      * Sorting
      *  (null, 10)
-     *  (1, 8) 
+     *  (1, 8)
      *  (1, null)
      *  (null,null)
      *  (3, 8)
-     *  
-     *  BY $0 DESC, $1 ASC 
+     *
+     *  BY $0 DESC, $1 ASC
      *
      *  should return
      *  (3, 8 )
@@ -588,23 +592,23 @@ public class TestPOSort extends TestCase {
 
 
     }
-    
+
     @Test
 	public void testPOSortUDF() throws ExecException {
 		DataBag input = (DataBag) GenRandomData.genRandSmallTupDataBag(r,
 				MAX_TUPLES, 100);
 		poSortUDFWithNull(input);
-     
+
     }
-    
+
     @Test
 	public void testPOSortUDFWithNull() throws ExecException {
 		DataBag input = (DataBag) GenRandomData.genRandSmallTupDataBagWithNulls(r,
 				MAX_TUPLES, 100);
 		poSortUDFWithNull(input);
-     
+
     }
-    
+
 
 	public void poSortUDFWithNull(DataBag input) throws ExecException {
 		PORead read = new PORead(new OperatorKey("", r.nextLong()), input);
@@ -630,7 +634,7 @@ public class TestPOSort extends TestCase {
 			res1 = res2;
 			res2 = sort.getNext(t);
 		}
-     
+
     }
 	// sorts values in ascending order of their distance from 50
 	public static class WeirdComparator extends ComparisonFunc {
@@ -649,6 +653,5 @@ public class TestPOSort extends TestCase {
 			}
 			return result;
 		}
-
 	}
 }

@@ -57,25 +57,25 @@ public class TestStringUDFs {
         Tuple testTuple = Util.buildTuple("abc", 0, 0);
         assertEquals("Testing SUBSTIRNG, beginindex == endindex", "", stringSubstr_.exec(testTuple));
     }
-    
+
     @Test
     public void testStringSubstr_BI_LT_EI() throws IOException {
         Tuple testTuple = Util.buildTuple("abc", -2, 2);
         assertEquals("Testing SUBSTIRNG, beginindex < endindex", null, stringSubstr_.exec(testTuple));
     }
-    
+
     @Test
     public void testStringSubstr_BI_LT_ZERO() throws IOException {
         Tuple testTuple = Util.buildTuple("abc", -1, 2);
         assertEquals("Testing SUBSTIRNG, beginindex < 0", null, stringSubstr_.exec(testTuple));
     }
-       
+
     @Test
     public void testStringSubstr_BI_GT_EI() throws IOException {
         Tuple testTuple = Util.buildTuple("abc", 10, 2);
         assertEquals("Testing SUBSTIRNG, beginindex > endindex", null, stringSubstr_.exec(testTuple));
     }
-    
+
     @Test
     public void testStringSubstr_EI_LT_ZERO() throws IOException {
         Tuple testTuple = Util.buildTuple("abc", 0, -2);
@@ -87,57 +87,57 @@ public class TestStringUDFs {
         INDEXOF indexOf = new INDEXOF();
         Tuple testTuple = Util.buildTuple("xyz", "");
         assertEquals( ((Integer) "xyz".indexOf("")), indexOf.exec(testTuple));
-        
+
         testTuple = Util.buildTuple(null, null);
         assertNull(indexOf.exec(testTuple));
-        
+
         testTuple = Util.buildTuple("xyz", "y");
         assertEquals( ((Integer) "xyz".indexOf("y")), indexOf.exec(testTuple));
-        
+
         testTuple = Util.buildTuple("xyz", "abc");
         assertEquals( ((Integer) "xyz".indexOf("abc")), indexOf.exec(testTuple));
     }
-    
+
     @Test
     public void testLastIndexOf() throws IOException {
         LAST_INDEX_OF lastIndexOf = new LAST_INDEX_OF();
         Tuple testTuple = Util.buildTuple("xyz", "");
         assertEquals( ((Integer) "xyz".lastIndexOf("")), lastIndexOf.exec(testTuple));
-        
+
         testTuple = Util.buildTuple(null, null);
         assertNull(lastIndexOf.exec(testTuple));
-        
+
         testTuple = Util.buildTuple("xyzyy", "y");
         assertEquals( ((Integer) "xyzyy".lastIndexOf("y")), lastIndexOf.exec(testTuple));
-        
+
         testTuple = Util.buildTuple("xyz", "abc");
         assertEquals( ((Integer) "xyz".lastIndexOf("abc")), lastIndexOf.exec(testTuple));
     }
-    
+
     @Test
     public void testReplace() throws IOException {
         REPLACE replace = new REPLACE();
         Tuple testTuple = Util.buildTuple("foobar", "z", "x");
         assertEquals("foobar".replace("z", "x"), replace.exec(testTuple));
-        
+
         testTuple = Util.buildTuple("foobar", "oo", "aa");
         assertEquals("foobar".replace("oo", "aa"), replace.exec(testTuple));
     }
-    
+
     @Test
     public void testTrim() throws IOException {
         TRIM trim = new TRIM();
         Tuple testTuple = Util.buildTuple("nospaces");
         assertEquals("nospaces".trim(), trim.exec(testTuple));
-        
+
         testTuple = Util.buildTuple("spaces    ");
         assertEquals("spaces     ".trim(), trim.exec(testTuple));
-        
+
         testTuple = TupleFactory.getInstance().newTuple();
         assertNull(trim.exec(testTuple));
     }
-    
-    @Test 
+
+    @Test
     public void testSplit() throws IOException {
         STRSPLIT splitter = new STRSPLIT();
        // test no delims
@@ -146,9 +146,9 @@ public class TestStringUDFs {
         testTuple.set(1, ":");
         Tuple splits = splitter.exec(testTuple);
         assertEquals("no matches should return tuple with original string", 1, splits.size());
-        assertEquals("no matches should return tuple with original string", "foo", 
+        assertEquals("no matches should return tuple with original string", "foo",
                 splits.get(0));
-        
+
         // test default delimiter
         testTuple = Util.buildTuple("f ooo bar");
         splits = splitter.exec(testTuple);
@@ -156,17 +156,17 @@ public class TestStringUDFs {
         assertEquals("f", splits.get(0));
         assertEquals("ooo", splits.get(1));
         assertEquals("bar", splits.get(2));
-        
+
         // test trimming of whitespace
         testTuple = Util.buildTuple("foo bar  ");
         splits = splitter.exec(testTuple);
         assertEquals("whitespace trimmed if no length arg", 2, splits.size());
-        
+
         // test forcing null matches with length param
         testTuple = Util.buildTuple("foo bar   ", "\\s", 10);
         splits = splitter.exec(testTuple);
         assertEquals("length forces empty string matches on end", 5, splits.size());
-        
+
         // test limiting results with limit
         testTuple = Util.buildTuple("foo:bar:baz", ":", 2);
         splits = splitter.exec(testTuple);

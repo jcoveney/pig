@@ -48,8 +48,8 @@ public class TestSplit {
 
     @Test
     public void testSplit1() throws IOException {
-        String query = 
-            "a = load '" + file.getAbsolutePath() + "' as (id:int);" + 
+        String query =
+            "a = load '" + file.getAbsolutePath() + "' as (id:int);" +
             "split a into b if id > 3, c if id < 3, d otherwise;"
             ;
 
@@ -59,11 +59,11 @@ public class TestSplit {
         List<Tuple> expectedRes = Util.getTuplesFromConstantTupleStrings(new String[] { "(3)" });
         Util.checkQueryOutputs(it, expectedRes);
     }
-    
+
     @Test
     public void testSplit2() throws IOException {
-        String query = 
-            "a = load '" + file.getAbsolutePath() + "' as (id:int);" + 
+        String query =
+            "a = load '" + file.getAbsolutePath() + "' as (id:int);" +
             "split a into b if id % 2 == 0, d otherwise;"
             ;
 
@@ -73,11 +73,11 @@ public class TestSplit {
         List<Tuple> expectedRes = Util.getTuplesFromConstantTupleStrings(new String[] { "(1)", "(3)", "(5)" });
         Util.checkQueryOutputsAfterSort(it, expectedRes);
     }
-    
+
     @Test(expected=FrontendException.class)
     public void testSplitNondeterministic() throws IOException {
-        String query = 
-            "a = load '" + file.getAbsolutePath() + "' as (id:int);" + 
+        String query =
+            "a = load '" + file.getAbsolutePath() + "' as (id:int);" +
             "split a into b if RANDOM() < 0.5, d otherwise;"
             ;
 
@@ -91,4 +91,3 @@ public class TestSplit {
 
     }
 }
-    

@@ -46,16 +46,15 @@ import org.apache.pig.test.TestNewPlanPushDownForeachFlatten.MyFilterFunc;
 import org.junit.Assert;
 import org.junit.Test;
 
-
 public class TestNewPlanFilterAboveForeach {
     PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
-    
+
     @Test
     public void testSimple() throws Exception {
         String query = "A =LOAD 'file.txt' AS (name, cuisines:bag{ t : ( cuisine ) } );" +
         "B = FOREACH A GENERATE name, flatten(cuisines);" +
         "C = FILTER B BY name == 'joe';" +
-        "D = STORE C INTO 'empty';" ;  
+        "D = STORE C INTO 'empty';" ;
         LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
@@ -67,7 +66,7 @@ public class TestNewPlanFilterAboveForeach {
         Operator fe2 = newLogicalPlan.getSuccessors( fe1 ).get( 0 );
         Assert.assertTrue( fe2 instanceof LOForEach );
     }
-    
+
     /**
      * Non-deterministic filters should not be pushed up (see PIG-2014).
      * In the example below, if Filter gets pushed above flatten, we might remove
@@ -102,9 +101,9 @@ public class TestNewPlanFilterAboveForeach {
         "B = FOREACH A GENERATE name, flatten(cuisines);" +
         "C = FILTER B BY $1 == 'french';" +
         "D = FILTER C BY name == 'joe';" +
-        "E = STORE D INTO 'empty';";  
+        "E = STORE D INTO 'empty';";
         LogicalPlan newLogicalPlan = buildPlan( query );
-        
+
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
         Operator filter = newLogicalPlan.getSuccessors( load ).get( 0 );
@@ -116,16 +115,16 @@ public class TestNewPlanFilterAboveForeach {
         Operator filter2 = newLogicalPlan.getSuccessors( fe2 ).get( 0 );
         Assert.assertTrue( filter2 instanceof LOFilter );
     }
-    
+
     @Test
     public void testMultipleFilter2() throws Exception {
         String query = "A =LOAD 'file.txt' AS (name, age, cuisines : bag{ t : ( cuisine ) } );" +
         "B = FOREACH A GENERATE name, age, flatten(cuisines);" +
         "C = FILTER B BY name == 'joe';" +
         "D = FILTER C BY age == 30;" +
-        "E = STORE D INTO 'empty';";  
+        "E = STORE D INTO 'empty';";
         LogicalPlan newLogicalPlan = buildPlan( query );
-        
+
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
         Operator filter = newLogicalPlan.getSuccessors( load ).get( 0 );
@@ -137,14 +136,14 @@ public class TestNewPlanFilterAboveForeach {
         Operator fe2 = newLogicalPlan.getSuccessors( fe1 ).get( 0 );
         Assert.assertTrue( fe2 instanceof LOForEach );
     }
-    
+
     @Test
     public void testMultipleFilterNotPossible() throws Exception {
         String query = "A =LOAD 'file.txt' AS (name, cuisines : bag{ t : ( cuisine, region ) } );" +
         "B = FOREACH A GENERATE name, flatten(cuisines);" +
         "C = FILTER B BY $1 == 'French';" +
         "D = FILTER C BY $2 == 'Europe';" +
-        "E = STORE D INTO 'empty';";  
+        "E = STORE D INTO 'empty';";
         LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
@@ -158,13 +157,13 @@ public class TestNewPlanFilterAboveForeach {
         Operator filter2 = newLogicalPlan.getSuccessors( filter ).get( 0 );
         Assert.assertTrue( filter2 instanceof LOFilter );
     }
-    
+
     @Test
     public void testNotPossibleFilter() throws Exception {
         String query = "A =LOAD 'file.txt' AS (name, cuisines:bag{ t : ( cuisine ) } );" +
         "B = FOREACH A GENERATE name, flatten(cuisines);" +
         "C = FILTER B BY cuisine == 'French';" +
-        "D = STORE C INTO 'empty';";  
+        "D = STORE C INTO 'empty';";
         LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
@@ -176,13 +175,13 @@ public class TestNewPlanFilterAboveForeach {
         Operator filter = newLogicalPlan.getSuccessors( fe2 ).get( 0 );
         Assert.assertTrue( filter instanceof LOFilter );
     }
-    
+
     @Test
     public void testSimple2() throws Exception {
         String query = "A =LOAD 'file.txt' AS (name, cuisines:bag{ t : ( cuisine ) } );" +
         "B = FOREACH A GENERATE name, cuisines;" +
         "C = FILTER B BY name == 'joe';" +
-        "D = STORE C INTO 'empty';";  
+        "D = STORE C INTO 'empty';";
         LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
@@ -194,18 +193,18 @@ public class TestNewPlanFilterAboveForeach {
         Operator fe2 = newLogicalPlan.getSuccessors( fe1 ).get( 0 );
         Assert.assertTrue( fe2 instanceof LOForEach );
     }
-    
+
     /**
      * Normal test case: all fields from Foreach are used by exhaustive list.
      * Optimization should kick in.
-     * @throws Exception 
+     * @throws Exception
      */
     @Test
     public void test1() throws Exception {
         String query = "A =LOAD 'file.txt' AS (a:bag{(u,v)}, b, c);" +
         "B = FOREACH A GENERATE $0, b;" +
         "C = FILTER B BY " + COUNT.class.getName() +"($0) > 5;" +
-        "STORE C INTO 'empty';";  
+        "STORE C INTO 'empty';";
         LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
@@ -217,17 +216,17 @@ public class TestNewPlanFilterAboveForeach {
         Operator fe2 = newLogicalPlan.getSuccessors( filter ).get( 0 );
         Assert.assertTrue( fe2 instanceof LOForEach );
     }
-    
+
     /**
      * Identical to test1() except that it use project *.
-     * @throws Exception 
+     * @throws Exception
      */
     @Test
     public void test2() throws Exception {
         String query = "A =LOAD 'file.txt' AS (a:(u,v), b, c);" +
         "B = FOREACH A GENERATE $0, b;" +
         "C = FILTER B BY " + SIZE.class.getName() +"(TOTUPLE(*)) > 5;" +
-        "STORE C INTO 'empty';";  
+        "STORE C INTO 'empty';";
         LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
@@ -242,14 +241,14 @@ public class TestNewPlanFilterAboveForeach {
 
     /**
      * No fields are used in filter condition at all.
-     * @throws Exception 
+     * @throws Exception
      */
     @Test
     public void test3() throws Exception {
         String query = "A =LOAD 'file.txt' AS (a:(u,v), b, c);" +
         "B = FOREACH A GENERATE $0, b;" +
         "C = FILTER B BY 8 > 5;" +
-        "STORE C INTO 'empty';";  
+        "STORE C INTO 'empty';";
         LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
@@ -261,18 +260,18 @@ public class TestNewPlanFilterAboveForeach {
         Operator fe2 = newLogicalPlan.getSuccessors( fe1 ).get( 0 );
         Assert.assertTrue( fe2 instanceof LOForEach );
     }
-    
+
     /**
      * Similar to test2, but not all fields are available from the operator before foreach.
      * Optimziation doesn't kick in.
-     * @throws Exception 
+     * @throws Exception
      */
     @Test
     public void test4() throws Exception {
         String query = "A =LOAD 'file.txt' AS (a:(u,v), b, c);" +
         "B = FOREACH A GENERATE $0, b, flatten(1);" +
         "C = FILTER B BY " + SIZE.class.getName() +"(TOTUPLE(*)) > 5;" +
-        "STORE C INTO 'empty';";  
+        "STORE C INTO 'empty';";
         LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
@@ -288,9 +287,9 @@ public class TestNewPlanFilterAboveForeach {
     @Test
     public void testFilterForeach() throws Exception {
         String query = "A =load 'myfile' as (name, age, gpa);" +
-        "B = foreach A generate $1, $2;" +        
+        "B = foreach A generate $1, $2;" +
         "C = filter B by $0 < 18;" +
-         "D = STORE C INTO 'empty';"; 
+         "D = STORE C INTO 'empty';";
 
         LogicalPlan newLogicalPlan = buildPlan( query );
 
@@ -309,9 +308,9 @@ public class TestNewPlanFilterAboveForeach {
     @Test
     public void testFilterForeachAddedField() throws Exception {
         String query = "A =load 'myfile' as (name, age, gpa);" +
-        "B = foreach A generate $1, $2, COUNT({(1)});" +        
+        "B = foreach A generate $1, $2, COUNT({(1)});" +
         "C = filter B by $2 < 18;" +
-         "D = STORE C INTO 'empty';"; 
+         "D = STORE C INTO 'empty';";
 
         LogicalPlan newLogicalPlan = buildPlan( query );
 
@@ -330,9 +329,9 @@ public class TestNewPlanFilterAboveForeach {
     @Test
     public void testFilterForeachCast() throws Exception {
         String query = "A =load 'myfile' as (name, age, gpa);" +
-        "B = foreach A generate (int)$1, $2;" +        
+        "B = foreach A generate (int)$1, $2;" +
         "C = filter B by $0 < 18;" +
-         "D = STORE C INTO 'empty';"; 
+         "D = STORE C INTO 'empty';";
 
         LogicalPlan newLogicalPlan = buildPlan( query );
 
@@ -351,9 +350,9 @@ public class TestNewPlanFilterAboveForeach {
     @Test
     public void testFilterCastForeach() throws Exception {
         String query = "A =load 'myfile' as (name, age, gpa);" +
-        "B = foreach A generate $1, $2;" +        
+        "B = foreach A generate $1, $2;" +
         "C = filter B by (int)$0 < 18;" +
-         "D = STORE C INTO 'empty';"; 
+         "D = STORE C INTO 'empty';";
 
         LogicalPlan newLogicalPlan = buildPlan( query );
 
@@ -373,9 +372,9 @@ public class TestNewPlanFilterAboveForeach {
     @Test
     public void testFilterConstantConditionForeach() throws Exception {
         String query = "A =load 'myfile' as (name, age, gpa);" +
-        "B = foreach A generate $1, $2;" +        
+        "B = foreach A generate $1, $2;" +
         "C = filter B by 1 == 1;" +
-         "D = STORE C INTO 'empty';"; 
+         "D = STORE C INTO 'empty';";
 
         LogicalPlan newLogicalPlan = buildPlan( query );
 
@@ -394,9 +393,9 @@ public class TestNewPlanFilterAboveForeach {
     @Test
     public void testFilterUDFForeach() throws Exception {
         String query = "A =load 'myfile' as (name, age, gpa);" +
-        "B = foreach A generate $1, $2;" +        
+        "B = foreach A generate $1, $2;" +
         "C = filter B by " + MyFilterFunc.class.getName() + "($1) ;" +
-         "D = STORE C INTO 'empty';"; 
+         "D = STORE C INTO 'empty';";
 
         LogicalPlan newLogicalPlan = buildPlan( query );
 
@@ -411,13 +410,13 @@ public class TestNewPlanFilterAboveForeach {
         Operator store = newLogicalPlan.getSuccessors( fe ).get( 0 );
         Assert.assertTrue( store instanceof LOStore );
     }
-    
+
     @Test
     public void testFilterForeachFlatten() throws Exception {
         String query = "A =load 'myfile' as (name, age, gpa);" +
-        "B = foreach A generate $1, flatten($2);" +        
+        "B = foreach A generate $1, flatten($2);" +
         "C = filter B by $0 < 18;" +
-         "D = STORE C INTO 'empty';"; 
+         "D = STORE C INTO 'empty';";
 
         LogicalPlan newLogicalPlan = buildPlan( query );
 
@@ -432,7 +431,7 @@ public class TestNewPlanFilterAboveForeach {
         Operator store = newLogicalPlan.getSuccessors( fe ).get( 0 );
         Assert.assertTrue( store instanceof LOStore );
     }
-    
+
     // See PIG-1669
     @Test
     public void testPushUpFilterWithScalar() throws Exception {
@@ -449,7 +448,7 @@ public class TestNewPlanFilterAboveForeach {
         Operator foreach = newLogicalPlan.getPredecessors(store).get(0);
         Assert.assertTrue( foreach instanceof LOForEach );
     }
-    
+
     // See PIG-1935
     @Test
     public void testPushUpFilterAboveBinCond() throws Exception {
@@ -472,33 +471,33 @@ public class TestNewPlanFilterAboveForeach {
         optimizer.optimize();
         return newLogicalPlan;
     }
-    
+
     public class MyPlanOptimizer extends LogicalPlanOptimizer {
         protected MyPlanOptimizer(OperatorPlan p,  int iterations) {
             super(p, iterations, new HashSet<String>());
         }
-        
+
         @Override
         public void addPlanTransformListener(PlanTransformListener listener) {
             super.addPlanTransformListener(listener);
         }
-        
+
        @Override
-       protected List<Set<Rule>> buildRuleSets() {            
+       protected List<Set<Rule>> buildRuleSets() {
             List<Set<Rule>> ls = new ArrayList<Set<Rule>>();
-            
+
             Set<Rule> s = new HashSet<Rule>();
             // add split filter rule
             Rule r = new LoadTypeCastInserter( "TypeCastInserter" );
             s.add(r);
             ls.add(s);
-             
+
             s = new HashSet<Rule>();
             r = new FilterAboveForeach( "FilterAboveForeach" );
-            s.add(r);            
+            s.add(r);
             ls.add(s);
-            
+
             return ls;
         }
-    }    
+    }
 }

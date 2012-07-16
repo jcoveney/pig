@@ -36,7 +36,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestScalarAliases  {
+public class TestScalarAliases {
     static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer;
 
@@ -45,7 +45,7 @@ public class TestScalarAliases  {
 
     @Before
     public void setUp() throws Exception{
-        //re-init the variables, so that we can switch between 
+        //re-init the variables, so that we can switch between
         // local and mapreduce modes
         FileLocalizer.setInitialized(false);
         pigServer = new PigServer(ExecType.LOCAL);
@@ -105,7 +105,7 @@ public class TestScalarAliases  {
         assertTrue(t.toString().equals("(9,1.0)"));
 
         assertFalse(iter.hasNext());
-        
+
         Util.deleteDirectory(new File("table_testScalarAliasesDir"));
 
     }
@@ -131,7 +131,7 @@ public class TestScalarAliases  {
         pigServer.registerQuery("Store Z into 'table_testUseScalarMultipleTimesOutZ';");
         // Test Multiquery store
         pigServer.executeBatch();
-        
+
         // Check output
         pigServer.registerQuery("M = LOAD 'table_testUseScalarMultipleTimesOutY' as (a0: int, a1: double);");
 
@@ -149,10 +149,10 @@ public class TestScalarAliases  {
         assertTrue(t.toString().equals("(9,1.0)"));
 
         assertFalse(iter.hasNext());
-        
+
         // Check output
         pigServer.registerQuery("N = LOAD 'table_testUseScalarMultipleTimesOutZ' as (a0: double, a1: double);");
-        
+
         iter = pigServer.openIterator("N");
 
         t = iter.next();
@@ -165,7 +165,7 @@ public class TestScalarAliases  {
         assertTrue(t.toString().equals("(23.0,60.0)"));
 
         assertFalse(iter.hasNext());
-        
+
         // Non batch mode
         iter = pigServer.openIterator("Y");
 
@@ -180,7 +180,7 @@ public class TestScalarAliases  {
 
         assertFalse(iter.hasNext());
 
-        // Check in non-batch mode        
+        // Check in non-batch mode
         iter = pigServer.openIterator("Z");
 
         t = iter.next();
@@ -193,10 +193,10 @@ public class TestScalarAliases  {
         assertTrue(t.toString().equals("(23.0,60.0)"));
 
         assertFalse(iter.hasNext());
-        
+
         Util.deleteDirectory(new File("table_testUseScalarMultipleTimesOutY"));
         Util.deleteDirectory(new File("table_testUseScalarMultipleTimesOutZ"));
-        
+
     }
 
     // See PIG-1434
@@ -275,7 +275,7 @@ public class TestScalarAliases  {
 
         assertFalse(iter.hasNext());
 
-        // Check in non-batch mode        
+        // Check in non-batch mode
         iter = pigServer.openIterator("Y");
 
         t = iter.next();
@@ -288,7 +288,7 @@ public class TestScalarAliases  {
         assertTrue(t.toString().equals("(rocks,20.0)"));
 
         assertFalse(iter.hasNext());
-        
+
         Util.deleteDirectory(new File("testScalarWithTwoBranchesDir"));
 
     }
@@ -332,7 +332,7 @@ public class TestScalarAliases  {
 
         assertFalse(iter.hasNext());
 
-        // Check in non-batch mode        
+        // Check in non-batch mode
         iter = pigServer.openIterator("Y");
 
         t = iter.next();
@@ -415,7 +415,7 @@ public class TestScalarAliases  {
                 "(2,10,Total3,three)",
                 "(3,20,Total3,three)"
         };
-        
+
         Util.checkQueryOutputsAfterSortRecursive(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("Y")));
     }
 
@@ -487,7 +487,7 @@ public class TestScalarAliases  {
         Util.deleteFile(cluster, "table_testScalarAliasesSplitClauseDir");
 
     }
-    
+
     @Test
     public void testScalarErrMultipleRowsInInput() throws Exception{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -527,7 +527,7 @@ public class TestScalarAliases  {
             pigServer.registerQuery("A = LOAD 'table_testScalarAliasesGrammar' as (a0: long, a1: double);");
             pigServer.registerQuery("B = group A all;");
             pigServer.registerQuery("C = foreach B generate COUNT(A);");
-            // Only projections of C are supported 
+            // Only projections of C are supported
             pigServer.registerQuery("Y = foreach A generate C;");
             pigServer.openIterator( "Y" );
             //Control should not reach here
@@ -536,7 +536,7 @@ public class TestScalarAliases  {
             assertTrue(pe.getMessage().contains("Invalid scalar projection: C"));
         }
     }
-    
+
     // See PIG-1636
     @Test
     public void testScalarAliasesLimit() throws Exception{
@@ -579,21 +579,21 @@ public class TestScalarAliases  {
     }
 
     /**
-     * Test that a specific string is included in the error message when an 
-     * exception is thrown for using a relation in a 
+     * Test that a specific string is included in the error message when an
+     * exception is thrown for using a relation in a
      * scalar context without projecting any columns out of it
      */
     // See PIG-1788
     @Test
     public void testScalarWithNoProjection() throws Exception{
-        String query = 
+        String query =
             "  A = load 'table_testScalarWithNoProjection' as (x, y);" +
             "  B = group A by x;" +
-            // B is unintentionally being used as scalar, 
+            // B is unintentionally being used as scalar,
             // the user intends it to be COUNT(A)
-            "  C = foreach B generate COUNT(B);"; 
+            "  C = foreach B generate COUNT(B);";
 
-        Util.checkExceptionMessage(query, "C", 
+        Util.checkExceptionMessage(query, "C",
                 "A column needs to be projected from a relation" +
                 " for it to be used as a scalar"
         );

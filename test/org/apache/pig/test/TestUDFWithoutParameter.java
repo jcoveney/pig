@@ -17,25 +17,28 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Iterator;
 
-import junit.framework.TestCase;
-
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
+import org.junit.After;
+import org.junit.Before;
 
-public class TestUDFWithoutParameter extends TestCase {
+public class TestUDFWithoutParameter {
 
 	static String[] ScriptStatement = { "A = LOAD 'test/org/apache/pig/test/data/passwd' USING PigStorage();",
 			"B = FOREACH A GENERATE org.apache.pig.test.utils.MyUDFWithoutParameter();" };
 
 	static File TempScriptFile = null;
 
-	@Override
+	@Before
 	protected void setUp() throws Exception {
 		TempScriptFile = File.createTempFile("temp_jira_753", ".pig");
 		FileWriter writer=new FileWriter(TempScriptFile);
@@ -49,7 +52,7 @@ public class TestUDFWithoutParameter extends TestCase {
 		try {
 			PigServer pig = new PigServer(ExecType.LOCAL);
 			pig.registerScript(TempScriptFile.getAbsolutePath());
-			
+
 			Iterator<Tuple> iterator=pig.openIterator("B");
 			int index=0;
 			while(iterator.hasNext()){
@@ -63,8 +66,8 @@ public class TestUDFWithoutParameter extends TestCase {
 			fail();
 		}
 	}
-	
-	@Override
+
+	@After
 	protected void tearDown() throws Exception {
 		TempScriptFile.delete();
 	}

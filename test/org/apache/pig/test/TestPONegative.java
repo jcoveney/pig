@@ -17,6 +17,8 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.File;
 import java.util.Iterator;
 import java.util.Properties;
@@ -25,23 +27,19 @@ import java.util.Random;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PONegative;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PONegative;
 import org.apache.pig.impl.plan.PlanException;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-import junit.framework.TestCase;
-@RunWith(JUnit4.class)
-public class TestPONegative extends TestCase {
+public class TestPONegative {
 
     DataBag bag = BagFactory.getInstance().newDefaultBag();
     Random r = new Random();
@@ -109,7 +107,7 @@ public class TestPONegative extends TestCase {
                 int output = (Integer) pn.getNext(expected).result;
                 assertEquals(expected.intValue(), output);
             }
-          }
+        }
     }
 
     @Test
@@ -197,8 +195,8 @@ public class TestPONegative extends TestCase {
             Tuple t = it.next();
             plan.attachInput(t);
 			Double expected = -(Double)t.get(0);
-			double output = (Double) pn.getNext(expected).result;
-			assertEquals(expected.doubleValue(), output);
+			Double output = (Double) pn.getNext(expected).result;
+			assertEquals(expected, output);
         }
     }
 
@@ -260,8 +258,8 @@ public class TestPONegative extends TestCase {
             Tuple t = it.next();
             plan.attachInput(t);
             Float expected = -(Float)t.get(0);
-            float output = (Float) pn.getNext(expected).result;
-            assertEquals(expected.floatValue(), output);
+            Float output = (Float) pn.getNext(expected).result;
+            assertEquals(expected, output);
         }
     }
 
@@ -296,8 +294,8 @@ public class TestPONegative extends TestCase {
                 assertEquals(null, output);
             } else  {
                 Float expected = -(Float)t.get(0);
-                float output = (Float) pn.getNext(expected).result;
-                assertEquals(expected.floatValue(), output);
+                Float output = (Float) pn.getNext(expected).result;
+                assertEquals(expected, output);
             }
         }
     }
@@ -318,5 +316,4 @@ public class TestPONegative extends TestCase {
         }
         assertEquals(3, i);
     }
-
 }

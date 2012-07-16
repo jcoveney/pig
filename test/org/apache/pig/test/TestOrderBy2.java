@@ -18,26 +18,22 @@
 package org.apache.pig.test;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.PrintStream;
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ArrayList;
 
-import junit.framework.TestCase;
 import junit.framework.Assert;
 
-import org.junit.Test;
-
 import org.apache.pig.PigServer;
-import org.apache.pig.test.utils.TestHelper;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.test.utils.TestHelper;
+import org.junit.Test;
 
-public class TestOrderBy2 extends TestCase {
+public class TestOrderBy2 {
 
     private String initString = "mapreduce";
     MiniCluster cluster = MiniCluster.buildCluster();
@@ -126,7 +122,7 @@ public class TestOrderBy2 extends TestCase {
 
 
     //////////////////////// Star Order Tests ///////////////////////
-    
+
     @Test
     public void testTopLevelOrderBy_Star_NoUsing() throws Exception {
         File tmpFile = genDataSetFile3() ;

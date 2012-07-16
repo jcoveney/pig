@@ -41,7 +41,6 @@ import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.parser.ParserException;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -51,23 +50,18 @@ public class TestUnionOnSchema  {
     private static final String INP_FILE_2NUMS = "TestUnionOnSchemaInput1";
     private static final String INP_FILE_2NUM_1CHAR_1BAG = "TestUnionOnSchemaInput2";
     private static final String INP_FILE_EMPTY= "TestUnionOnSchemaInput3";
-    
+
     @Before
     public void setUp() throws Exception {
         FileLocalizer.setInitialized(false);
     }
 
-
-    @After
-    public void tearDown() throws Exception {
-    }
-    
     @BeforeClass
     public static void oneTimeSetup() throws IOException, Exception {
         // first input file
         String[] input1 = {"1\t2","5\t3"};
         Util.createLocalInputFile(INP_FILE_2NUMS, input1);
-        
+
         // 2nd input file
         String[] input2 = {
                 "1\tabc\t2\t{(1,a),(1,b)}\t(1,c)",
@@ -78,14 +72,13 @@ public class TestUnionOnSchema  {
         //3rd input - empty file
         Util.createLocalInputFile(INP_FILE_EMPTY, new String[0]);
     }
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         new File(INP_FILE_2NUMS).delete();
         new File(INP_FILE_2NUM_1CHAR_1BAG).delete();
         new File(INP_FILE_EMPTY).delete();
     }
- 
 
     /**
      * Test UNION ONSCHEMA on two inputs with same schema
@@ -99,14 +92,14 @@ public class TestUnionOnSchema  {
             "  l1 = load '" + INP_FILE_2NUMS + "' as (i : int, j : int);"
             + "l2 = load '" + INP_FILE_2NUMS + "' as (i : int, j : int);"
             + "u = union onschema l1, l2;"
-        ; 
+        ;
         Util.registerMultiLineQuery(pig, query);
         Schema expectedSch = Utils.getSchemaFromString("i: int, j: int");
         Schema sch = pig.dumpSchema("u");
         assertEquals("Checking expected schema",sch, expectedSch);
         Iterator<Tuple> it = pig.openIterator("u");
-        
-        List<Tuple> expectedRes = 
+
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "(1,2)",
@@ -117,8 +110,8 @@ public class TestUnionOnSchema  {
         Util.checkQueryOutputsAfterSort(it, expectedRes);
 
     }
-    
-    
+
+
     /**
      * Test UNION ONSCHEMA with operations after the union
      * @throws IOException
@@ -132,16 +125,16 @@ public class TestUnionOnSchema  {
             + "l2 = load '" + INP_FILE_2NUMS + "' as (i : int, j : int);"
             + "u = union onschema l1, l2;"
             + "fil = filter u by i == 5 and (x is null or x != 1);"
-        ; 
+        ;
         Util.registerMultiLineQuery(pig, query);
-        
+
         Schema sch = pig.dumpSchema("fil");
         Schema expectedSch = Utils.getSchemaFromString("i: int, x: int, j: int");
         assertEquals("Checking expected schema",sch, expectedSch);
-        
+
 
         Iterator<Tuple> it = pig.openIterator("fil");
-        List<Tuple> expectedRes = 
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "(5,null,3)",
@@ -150,8 +143,8 @@ public class TestUnionOnSchema  {
         Util.checkQueryOutputsAfterSort(it, expectedRes);
 
     }
-    
-    
+
+
     /**
      * Test UNION ONSCHEMA with operations after the union
      * @throws IOException
@@ -167,16 +160,16 @@ public class TestUnionOnSchema  {
             + "o = order u by i desc;"
             + "lim = limit o 2;"
             + "fil = filter lim by i == 5 and y is null;"
-        ; 
-        Util.registerMultiLineQuery(pig, query);        
-        
+        ;
+        Util.registerMultiLineQuery(pig, query);
+
         Schema sch = pig.dumpSchema("fil");
         Schema expectedSch = Utils.getSchemaFromString("i: int, x: int, y: int");
         assertEquals("Checking expected schema",sch, expectedSch);
-        
+
 
         Iterator<Tuple> it = pig.openIterator("fil");
-        List<Tuple> expectedRes = 
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "(5,null,null)",
@@ -184,7 +177,7 @@ public class TestUnionOnSchema  {
         Util.checkQueryOutputsAfterSort(it, expectedRes);
 
     }
-    
+
     /**
      * Test UNION ONSCHEMA with cast from bytearray to another type
      * @throws IOException
@@ -197,11 +190,11 @@ public class TestUnionOnSchema  {
             "  l1 = load '" + INP_FILE_2NUMS + "' as (i, j);"
             + " f1 = foreach l1 generate (int)i, (int)j;"
             + "u = union onschema f1, l1;"
-        ; 
+        ;
         Util.registerMultiLineQuery(pig, query);
         Iterator<Tuple> it = pig.openIterator("u");
-        
-        List<Tuple> expectedRes = 
+
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "(1,2)",
@@ -212,7 +205,7 @@ public class TestUnionOnSchema  {
         Util.checkQueryOutputsAfterSort(it, expectedRes);
 
     }
-    
+
     /**
      * Test UNION ONSCHEMA where a common column has additional 'namespace' part
      *  in the column name in one of the inputs
@@ -222,20 +215,20 @@ public class TestUnionOnSchema  {
     @Test
     public void testUnionOnSchemaScopedColumnName() throws IOException, ParserException {
         PigServer pig = new PigServer(ExecType.LOCAL);
-        String query_prefix = 
-        "  l1 = load '" + INP_FILE_2NUMS + "' as (i : int, j : int); " 
+        String query_prefix =
+        "  l1 = load '" + INP_FILE_2NUMS + "' as (i : int, j : int); "
         + "g = group l1 by i; "
         + "f = foreach g generate flatten(l1); "
         + "l2 = load '" + INP_FILE_2NUMS + "' as (i : int, j : int); ";
 
-        String query = query_prefix + "u = union onschema f, l2; " ; 
+        String query = query_prefix + "u = union onschema f, l2; " ;
         Util.registerMultiLineQuery(pig, query);
         Schema sch = pig.dumpSchema("u");
         Schema expectedSch = Utils.getSchemaFromString("i: int, j: int");
         assertEquals("Checking expected schema",sch, expectedSch);
         Iterator<Tuple> it = pig.openIterator("u");
 
-        List<Tuple> expectedRes = 
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "(1,2)",
@@ -244,9 +237,9 @@ public class TestUnionOnSchema  {
                             "(5,3)"
                     });
         Util.checkQueryOutputsAfterSort(it, expectedRes);
-        
+
         // now try reversing the order of relation
-        query = query_prefix + "u = union onschema l2, f; " ; 
+        query = query_prefix + "u = union onschema l2, f; " ;
         Util.registerMultiLineQuery(pig, query);
         sch = pig.dumpSchema("u");
         expectedSch = Utils.getSchemaFromString("i: int, j: int");
@@ -255,7 +248,7 @@ public class TestUnionOnSchema  {
         Util.checkQueryOutputsAfterSort(it, expectedRes);
 
     }
-    
+
     /**
      * Test UNION ONSCHEMA where a common column has additional 'namespace' part
      *  in the column name in both the inputs
@@ -265,23 +258,23 @@ public class TestUnionOnSchema  {
     @Test
     public void testUnionOnSchemaScopedColumnNameBothInp1() throws IOException, ParserException {
         PigServer pig = new PigServer(ExecType.LOCAL);
-        String query = 
-        "  l1 = load '" + INP_FILE_2NUMS + "' as (i : int, j : int); " 
+        String query =
+        "  l1 = load '" + INP_FILE_2NUMS + "' as (i : int, j : int); "
         + "g1 = group l1 by i; "
         + "f1 = foreach g1 generate group as gkey, flatten(l1); "
-        + "l2 = load '" + INP_FILE_2NUMS + "' as (i : int, x : chararray); " 
+        + "l2 = load '" + INP_FILE_2NUMS + "' as (i : int, x : chararray); "
         + "g2 = group l2 by i; "
         + "f2 = foreach g2 generate group as gkey, flatten(l2); "
-        + "u = union onschema f1, f2; " ; 
+        + "u = union onschema f1, f2; " ;
         Util.registerMultiLineQuery(pig, query);
-        
+
         Schema sch = pig.dumpSchema("u");
-        Schema expectedSch = 
+        Schema expectedSch =
             Utils.getSchemaFromString("gkey: int, l1::i: int, l1::j: int, l2::i: int, l2::x: chararray");
         assertEquals("Checking expected schema",sch, expectedSch);
 
         Iterator<Tuple> it = pig.openIterator("u");
-        List<Tuple> expectedRes = 
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "(1,1,2,null,null)",
@@ -291,7 +284,7 @@ public class TestUnionOnSchema  {
                     });
         Util.checkQueryOutputsAfterSort(it, expectedRes);
     }
-    
+
     /**
      * Test UNION ONSCHEMA where a common column has additional 'namespace' part
      *  in the column name in both the inputs
@@ -302,22 +295,22 @@ public class TestUnionOnSchema  {
     public void testUnionOnSchemaScopedColumnNameBothInp2() throws IOException, ParserException {
         PigServer pig = new PigServer(ExecType.LOCAL);
         String query =
-            "   l1 = load '" + INP_FILE_2NUMS + "' as (i : int, j : int); " 
-            + " l2 = load '" + INP_FILE_2NUMS + "' as (i : int, x : chararray); " 
+            "   l1 = load '" + INP_FILE_2NUMS + "' as (i : int, j : int); "
+            + " l2 = load '" + INP_FILE_2NUMS + "' as (i : int, x : chararray); "
             + " cg1 = cogroup l1 by i, l2 by i; "
             + " f1 = foreach cg1 generate group as gkey, flatten(l1), flatten(l2); "
             + " cg2 = cogroup l2 by i, l1 by i; "
             + " f2 = foreach cg1 generate group as gkey, flatten(l2), flatten(l1); "
-            + "u = union onschema f1, f2; " ; 
+            + "u = union onschema f1, f2; " ;
         Util.registerMultiLineQuery(pig, query);
-                
+
         Schema sch = pig.dumpSchema("u");
-        Schema expectedSch = 
+        Schema expectedSch =
             Utils.getSchemaFromString("gkey: int, l1::i: int, l1::j: int, l2::i: int, l2::x: chararray");
         assertEquals("Checking expected schema",sch, expectedSch);
 
         Iterator<Tuple> it = pig.openIterator("u");
-        List<Tuple> expectedRes = 
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "(1,1,2,1,'2')",
@@ -326,9 +319,9 @@ public class TestUnionOnSchema  {
                             "(5,5,3,5,'3')",
                     });
         Util.checkQueryOutputsAfterSort(it, expectedRes);
-        
+
     }
-    
+
     /**
      * Test UNION ONSCHEMA where a common column has additional 'namespace' part
      *  in the column name in one of the inputs.
@@ -338,7 +331,7 @@ public class TestUnionOnSchema  {
      */
     @Test
     public void testUnionOnSchemaScopedColumnNameNeg() throws IOException, ParserException {
-        
+
         String expectedErr = "Found more than one match: l1::i, l2::i";
         String query_prefix =
             "  l1 = load '/tmp/fn' as (i : int, j : long); "
@@ -353,7 +346,6 @@ public class TestUnionOnSchema  {
         // now try reversing the order of relation
         query = query_prefix +  "u = union onschema l3, f; ";
         checkSchemaEx(query, expectedErr);
-
     }
 
     /**
@@ -369,11 +361,11 @@ public class TestUnionOnSchema  {
             "  l1 = load '" + INP_FILE_2NUMS + "' as (i : int, j : double);"
             + "l2 = load '" + INP_FILE_2NUMS + "' as (i : long, j : float);"
             + "u = union onschema l1, l2;"
-        ; 
+        ;
         Util.registerMultiLineQuery(pig, query);
         Iterator<Tuple> it = pig.openIterator("u");
-        
-        List<Tuple> expectedRes = 
+
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "(1L,2.0)",
@@ -384,8 +376,6 @@ public class TestUnionOnSchema  {
         Util.checkQueryOutputsAfterSort(it, expectedRes);
 
     }
-    
-    
 
     /**
      * Test UNION ONSCHEMA on two inputs with no common columns
@@ -399,11 +389,11 @@ public class TestUnionOnSchema  {
             "  l1 = load '" + INP_FILE_2NUMS + "' as (i : int, j : int);"
             + "l2 = load '" + INP_FILE_2NUMS + "' as (x : long, y : float);"
             + "u = union onschema l1, l2;"
-        ; 
+        ;
         Util.registerMultiLineQuery(pig, query);
         Iterator<Tuple> it = pig.openIterator("u");
-        
-        List<Tuple> expectedRes = 
+
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "(1,2,null,null)",
@@ -412,9 +402,8 @@ public class TestUnionOnSchema  {
                             "(null,null,5L,3.0F)"
                     });
         Util.checkQueryOutputsAfterSort(it, expectedRes);
-
     }
-    
+
     /**
      * Test UNION ONSCHEMA on two inputs , one input with additional columns
      * @throws IOException
@@ -425,19 +414,19 @@ public class TestUnionOnSchema  {
         PigServer pig = new PigServer(ExecType.LOCAL);
         String query =
             "  l1 = load '" + INP_FILE_2NUMS + "' as (i : int, j : int);"
-            + "l2 = load '" + INP_FILE_2NUM_1CHAR_1BAG + "' as " 
-            + "  (i : long, c : chararray, j : int " 
-            +       ", b : bag { t : tuple (c1 : int, c2 : chararray)}" 
+            + "l2 = load '" + INP_FILE_2NUM_1CHAR_1BAG + "' as "
+            + "  (i : long, c : chararray, j : int "
+            +       ", b : bag { t : tuple (c1 : int, c2 : chararray)}"
             +       ", t : tuple (tc1 : int, tc2 : chararray) );"
             + "l3 = load '" + INP_FILE_EMPTY + "' as (i : int, x : long);"
             + "u = union onschema l1, l2, l3;"
-        ; 
+        ;
         Util.registerMultiLineQuery(pig, query);
         pig.explain("u", System.out);
 
         Iterator<Tuple> it = pig.openIterator("u");
-        
-        List<Tuple> expectedRes = 
+
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "(1L,2,null,null,null,null)",
@@ -448,10 +437,9 @@ public class TestUnionOnSchema  {
                     });
         Util.checkQueryOutputsAfterSort(it, expectedRes);
     }
-    
-    
+
     /**
-     * Test UNION ONSCHEMA on 3 inputs 
+     * Test UNION ONSCHEMA on 3 inputs
      * @throws IOException
      * @throws ParserException
      */
@@ -460,18 +448,18 @@ public class TestUnionOnSchema  {
         PigServer pig = new PigServer(ExecType.LOCAL);
         String query =
             "  l1 = load '" + INP_FILE_2NUMS + "' as (i : int, j : int); "
-            + "l2 = load '" + INP_FILE_2NUMS + "' as (i : double, x : int); "            
-            + "l3 = load '" + INP_FILE_2NUM_1CHAR_1BAG + "' as " 
-            + "  (i : long, c : chararray, j : int " 
+            + "l2 = load '" + INP_FILE_2NUMS + "' as (i : double, x : int); "
+            + "l3 = load '" + INP_FILE_2NUM_1CHAR_1BAG + "' as "
+            + "  (i : long, c : chararray, j : int "
             +       ", b : bag { t : tuple (c1 : int, c2 : chararray)} ); "
             + "u = union onschema l1, l2, l3;"
-        ; 
+        ;
         Util.registerMultiLineQuery(pig, query);
         pig.explain("u", System.out);
 
         Iterator<Tuple> it = pig.openIterator("u");
-        
-        List<Tuple> expectedRes = 
+
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "(1.0,2,null,null,null)",
@@ -486,7 +474,7 @@ public class TestUnionOnSchema  {
     }
 
     /**
-     * Test UNION ONSCHEMA with bytearray type 
+     * Test UNION ONSCHEMA with bytearray type
      * @throws IOException
      * @throws ParserException
      */
@@ -494,26 +482,26 @@ public class TestUnionOnSchema  {
     public void testUnionOnSchemaByteArrayConversions() throws IOException, ParserException {
         PigServer pig = new PigServer(ExecType.LOCAL);
         String query =
-            " l1 = load '" + INP_FILE_2NUM_1CHAR_1BAG + "' as " 
-            + "  (i : bytearray, x : bytearray, j : bytearray " 
+            " l1 = load '" + INP_FILE_2NUM_1CHAR_1BAG + "' as "
+            + "  (i : bytearray, x : bytearray, j : bytearray "
             +       ", b : bytearray); "
-            + "l2 = load '" + INP_FILE_2NUM_1CHAR_1BAG + "' as " 
-            + "  (i : long, c : chararray, j : int " 
+            + "l2 = load '" + INP_FILE_2NUM_1CHAR_1BAG + "' as "
+            + "  (i : long, c : chararray, j : int "
             +       ", b : bag { t : tuple (c1 : int, c2 : chararray)} ); "
             + "u = union onSchema l1, l2;"
-        ; 
+        ;
         Util.registerMultiLineQuery(pig, query);
         pig.explain("u", System.out);
 
         Iterator<Tuple> it = pig.openIterator("u");
-        
-        List<Tuple> expectedRes = 
+
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "(1L,null,2,{(1,'a'),(1,'b')},'abc')",
                             "(1L,'abc',2,{(1,'a'),(1,'b')},null)",
                             "(5L,null,3,{(2,'a'),(2,'b')},'def')",
-                            "(5L,'def',3,{(2,'a'),(2,'b')},null)",                            
+                            "(5L,'def',3,{(2,'a'),(2,'b')},null)",
                     });
         //update expectedRes to use bytearray instead of chararray in 2nd field
         for(Tuple t : expectedRes){
@@ -523,7 +511,7 @@ public class TestUnionOnSchema  {
         }
         Util.checkQueryOutputsAfterSort(it, expectedRes);
     }
-    
+
     /**
      * negative test - test error on no schema
      * @throws IOException
@@ -537,18 +525,18 @@ public class TestUnionOnSchema  {
             "  l1 = load '" + INP_FILE_2NUMS + "' ;"
             + "l2 = load '" + INP_FILE_2NUMS + "' as (x : long, y : float);"
             + "u = union onschema l1, l2;"
-        ; 
+        ;
         checkSchemaEx(query, expectedErr);
-        
+
         query =
             "  l1 = load '" + INP_FILE_2NUMS + "' ;"
             + "l2 = load '" + INP_FILE_2NUMS + "' ;"
             + "u = union onschema l1, l2;"
-        ; 
+        ;
        checkSchemaEx(query, expectedErr);
 
     }
-    
+
     /**
      * negative test - test error on null alias in one of the FieldSchema
      * @throws IOException
@@ -562,7 +550,7 @@ public class TestUnionOnSchema  {
             "  l = load '" + INP_FILE_2NUMS + "' as (x : long, y : float);"
             + "f = foreach l generate x+1, y;"
             + "u = union onschema l, f;"
-        ; 
+        ;
         checkSchemaEx(query, expectedErr);
 
     }
@@ -579,18 +567,15 @@ public class TestUnionOnSchema  {
             PigException pigEx = LogUtils.getPigException(e);
             foundEx = true;
             if(!pigEx.getMessage().contains(expectedErr)){
-                String msg = "Expected exception message matching '" 
+                String msg = "Expected exception message matching '"
                     + expectedErr + "' but got '" + pigEx.getMessage() + "'" ;
                 fail(msg);
             }
         }
-        
+
         if(!foundEx)
             fail("No exception thrown. Exception is expected.");
-        
-       
     }
-    
 
     /**
      * test union with incompatible types in schema
@@ -607,56 +592,56 @@ public class TestUnionOnSchema  {
         checkSchemaEquals(query, "x : long, y : bytearray");
 
 
-        
+
         query =
             "  l1 = load '" + INP_FILE_2NUMS + "' as (x : long, y : chararray);"
             + "l2 = load '" + INP_FILE_2NUMS + "' as (x : map[ ], y : chararray);"
             + "u = union onschema l1, l2;"
-        ; 
+        ;
         checkSchemaEquals(query, "x : bytearray, y : chararray");
-               
+
         // bag column with different internal column types
         query =
-            "  l1 = load '" + INP_FILE_2NUMS 
+            "  l1 = load '" + INP_FILE_2NUMS
             + "' as (x : long, b : bag { t : tuple (c1 : int, c2 : chararray)}  );"
-            
-            + "l2 = load '" + INP_FILE_2NUMS 
+
+            + "l2 = load '" + INP_FILE_2NUMS
             + "' as (x : long, b : bag { t : tuple (c1 : long, c2 : chararray)} );"
             + "u = union onschema l1, l2;"
-        ; 
+        ;
         Schema sch = new Schema();
         sch.add(new FieldSchema("x", DataType.LONG));
         Schema bagInnerSchema = new Schema();
         bagInnerSchema.add(new FieldSchema(null, new Schema(), DataType.TUPLE));
         sch.add(new FieldSchema("b", bagInnerSchema, DataType.BAG));
         checkSchemaEquals(query, sch);
-        
+
         // tuple column with different internal column types
         query =
-            "  l1 = load '" + INP_FILE_2NUMS 
+            "  l1 = load '" + INP_FILE_2NUMS
             + "' as (t : tuple (c1 : int, c2 : chararray)  );"
-            
-            + "l2 = load '" + INP_FILE_2NUMS 
+
+            + "l2 = load '" + INP_FILE_2NUMS
             + "' as (t : tuple (c1 : long, c2 : chararray) );"
             + "u = union onschema l1, l2;"
-        ; 
+        ;
         sch = new Schema();
         sch.add(new FieldSchema("t", new Schema(), DataType.TUPLE));
         checkSchemaEquals(query, sch);
     }
-    
-    
+
+
     private void checkSchemaEquals(String query, Schema expectedSch) throws IOException {
         PigServer pig = new PigServer(ExecType.LOCAL);
         Util.registerMultiLineQuery(pig, query);
         Schema sch = pig.dumpSchema("u");
-        assertEquals("Checking expected schema", expectedSch, sch);      
+        assertEquals("Checking expected schema", expectedSch, sch);
     }
 
 
     private void checkSchemaEquals(String query, String schemaStr) throws IOException, ParserException {
         Schema expectedSch = Utils.getSchemaFromString(schemaStr);
-        checkSchemaEquals(query, expectedSch);       
+        checkSchemaEquals(query, expectedSch);
     }
 
 
@@ -674,16 +659,16 @@ public class TestUnionOnSchema  {
             + "f1 = foreach l1 generate i, CONCAT(j,j) as cj, " +
             		"org.apache.pig.test.TestUnionOnSchema\\$UDFTupleNullSchema(i,j) as uo;"
             + "u = union onschema f1, l2;"
-        ; 
+        ;
         Util.registerMultiLineQuery(pig, query);
 
         Schema sch = pig.dumpSchema("u");
         String expectedSch = "{i: int,cj: chararray,uo: (),j: chararray}";
         Assert.assertTrue( expectedSch.equals( sch.toString() ) );
-        
+
 
         Iterator<Tuple> it = pig.openIterator("u");
-        List<Tuple> expectedRes = 
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "(1,null,null,'2')",
@@ -694,8 +679,8 @@ public class TestUnionOnSchema  {
         Util.checkQueryOutputsAfterSort(it, expectedRes);
 
     }
-    
-    
+
+
     /**
      * Test UNION ONSCHEMA with udf whose default type is different from
      * final type
@@ -706,37 +691,37 @@ public class TestUnionOnSchema  {
     public void testUnionOnSchemaUdfTypeEvolution() throws IOException, ParserException {
         PigServer pig = new PigServer(ExecType.LOCAL);
         String query_prefix =
-            "  l1 = load '" + INP_FILE_2NUM_1CHAR_1BAG + "' as " 
-            + "  (i : int, c : chararray, j : int " 
-            +       ", b : bag { t : tuple (c1 : int, c2 : chararray)}" 
+            "  l1 = load '" + INP_FILE_2NUM_1CHAR_1BAG + "' as "
+            + "  (i : int, c : chararray, j : int "
+            +       ", b : bag { t : tuple (c1 : int, c2 : chararray)}"
             +       ", t : tuple (tc1 : int, tc2 : chararray) );"
-            + " l2 = load '" + INP_FILE_2NUM_1CHAR_1BAG + "' as " 
-            + "  (i : int, c : chararray, j : int " 
-            +       ", b : bag { t : tuple (c1 : int, c2 : chararray)}" 
+            + " l2 = load '" + INP_FILE_2NUM_1CHAR_1BAG + "' as "
+            + "  (i : int, c : chararray, j : int "
+            +       ", b : bag { t : tuple (c1 : int, c2 : chararray)}"
             +       ", t : tuple (tc1 : int, tc2 : chararray) );"
             + "f1 = foreach l1 generate i, MAX(b.c1) as mx;"
             + "f2 = foreach l2 generate i, COUNT(b.c1) as mx;"
 
-        ; 
+        ;
         String query = query_prefix  + "u = union onschema f1, f2;";
         Util.registerMultiLineQuery(pig, query);
         Schema sch = pig.dumpSchema("u");
-        Schema expectedSch = 
+        Schema expectedSch =
             Utils.getSchemaFromString("i: int, mx: long");
         assertEquals("Checking expected schema",sch, expectedSch);
-        
+
         // verify schema for reverse order of relations as well
         query = query_prefix  + "u = union onschema f2, f1;";
         Util.registerMultiLineQuery(pig, query);
         sch = pig.dumpSchema("u");
-        expectedSch = 
+        expectedSch =
             Utils.getSchemaFromString("i: int, mx: long");
         assertEquals("Checking expected schema",sch, expectedSch);
-        
-        
+
+
         Iterator<Tuple> it = pig.openIterator("u");
-        
-        List<Tuple> expectedRes = 
+
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "(1,1L)",
@@ -746,8 +731,8 @@ public class TestUnionOnSchema  {
                     });
         Util.checkQueryOutputsAfterSort(it, expectedRes);
     }
-    
-    
+
+
     /**
      * Test UNION ONSCHEMA with udf whose default type is different from
      * final type - where udf is not in immediate input of union
@@ -758,39 +743,39 @@ public class TestUnionOnSchema  {
     public void testUnionOnSchemaUdfTypeEvolution2() throws IOException, ParserException {
         PigServer pig = new PigServer(ExecType.LOCAL);
         String query_prefix =
-            "  l1 = load '" + INP_FILE_2NUM_1CHAR_1BAG + "' as " 
-            + "  (i : int, c : chararray, j : int " 
-            +       ", b : bag { t : tuple (c1 : int, c2 : chararray)}" 
+            "  l1 = load '" + INP_FILE_2NUM_1CHAR_1BAG + "' as "
+            + "  (i : int, c : chararray, j : int "
+            +       ", b : bag { t : tuple (c1 : int, c2 : chararray)}"
             +       ", t : tuple (tc1 : int, tc2 : chararray) );"
-            + " l2 = load '" + INP_FILE_2NUM_1CHAR_1BAG + "' as " 
-            + "  (i : int, c : chararray, j : int " 
-            +       ", b : bag { t : tuple (c1 : int, c2 : chararray)}" 
+            + " l2 = load '" + INP_FILE_2NUM_1CHAR_1BAG + "' as "
+            + "  (i : int, c : chararray, j : int "
+            +       ", b : bag { t : tuple (c1 : int, c2 : chararray)}"
             +       ", t : tuple (tc1 : int, tc2 : chararray) );"
             + "f1 = foreach l1 generate i, MAX(b.c1) as mx;"
             + "f11 = foreach f1 generate i, mx;"
             + "f2 = foreach l2 generate i, COUNT(b.c1) as mx;"
             + "f22 = foreach f2 generate i, mx;"
 
-        ; 
+        ;
         String query = query_prefix  + "u = union onschema f11, f22;";
         Util.registerMultiLineQuery(pig, query);
         Schema sch = pig.dumpSchema("u");
-        Schema expectedSch = 
+        Schema expectedSch =
             Utils.getSchemaFromString("i: int, mx: long");
         assertEquals("Checking expected schema",sch, expectedSch);
-        
+
         // verify schema for reverse order of relations as well
         query = query_prefix  + "u = union onschema f22, f11;";
         Util.registerMultiLineQuery(pig, query);
         sch = pig.dumpSchema("u");
-        expectedSch = 
+        expectedSch =
             Utils.getSchemaFromString("i: int, mx: long");
         assertEquals("Checking expected schema",sch, expectedSch);
-        
-        
+
+
         Iterator<Tuple> it = pig.openIterator("u");
-        
-        List<Tuple> expectedRes = 
+
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "(1,1L)",
@@ -802,13 +787,13 @@ public class TestUnionOnSchema  {
     }
 
     /**
-     * Udf that has schema of tuple column with no inner schema 
+     * Udf that has schema of tuple column with no inner schema
      */
     public static class UDFTupleNullSchema extends EvalFunc <Tuple> {
         public Tuple exec(Tuple input) {
             return input;
         }
-        
+
         @Override
         public Schema outputSchema(Schema input) {
             FieldSchema fs =
@@ -818,7 +803,7 @@ public class TestUnionOnSchema  {
         }
 
     }
-    
+
     /**
      * Test UNION ONSCHEMA with input relation having column names with multiple
      * level of namespace in their names
@@ -840,22 +825,22 @@ public class TestUnionOnSchema  {
         Util.registerMultiLineQuery(pig, query);
 
         Schema sch = pig.dumpSchema("u");
-        Schema expectedSch = 
+        Schema expectedSch =
             Utils.getSchemaFromString("gp: int,c::gp: int,i: int,j: int");
         assertEquals("Checking expected schema",sch, expectedSch);
-        
-        
+
+
         query = query_prefix + "u = union onschema f,e;";
         Util.registerMultiLineQuery(pig, query);
 
         sch = pig.dumpSchema("u");
-        expectedSch = 
+        expectedSch =
             Utils.getSchemaFromString("i: int,j: int, gp: int,c::gp: int");
         assertEquals("Checking expected schema",sch, expectedSch);
-        
-        
+
+
         Iterator<Tuple> it = pig.openIterator("u");
-        List<Tuple> expectedRes = 
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "(1,2,null,null)",
@@ -864,11 +849,10 @@ public class TestUnionOnSchema  {
                             "(5,3,5,5)",
                     });
         Util.checkQueryOutputsAfterSort(it, expectedRes);
-
     }
-    
+
     /**
-     * Test query with a union-onschema having another as input 
+     * Test query with a union-onschema having another as input
      * @throws IOException
      * @throws ParserException
      */
@@ -881,11 +865,11 @@ public class TestUnionOnSchema  {
             + "u1 = union onschema l1, l2;"
             + "l3 = load '" + INP_FILE_2NUMS + "' as (i : long, j : double);"
             + "u2 = union onschema u1, l3;"
-        ; 
+        ;
         Util.registerMultiLineQuery(pig, query);
         Iterator<Tuple> it = pig.openIterator("u2");
-        
-        List<Tuple> expectedRes = 
+
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "(1L,2.0)",
@@ -896,6 +880,5 @@ public class TestUnionOnSchema  {
                             "(5L,3.0)"
                     });
         Util.checkQueryOutputsAfterSort(it, expectedRes);
-
     }
 }

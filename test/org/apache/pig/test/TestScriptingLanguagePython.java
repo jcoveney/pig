@@ -79,5 +79,4 @@ public class TestScriptingLanguagePython {
     assertEquals(output[1], "2\t2\t4");
     assertEquals(output[2], "3\t3\t5");
   }
-
 }

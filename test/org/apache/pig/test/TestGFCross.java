@@ -18,23 +18,17 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import org.apache.hadoop.conf.Configuration;
-
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.GFCross;
 import org.apache.pig.impl.util.UDFContext;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 public class TestGFCross {
-    
+
     // Test GFCross returns the correct number of default
     // join groups
     @Test

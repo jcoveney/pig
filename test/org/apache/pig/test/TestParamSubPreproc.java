@@ -18,27 +18,25 @@
 
 package org.apache.pig.test;
 
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
+import org.apache.pig.tools.parameters.ParseException;
+import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.FileWriter;
-
-import org.apache.pig.tools.parameters.*;
-
-import junit.framework.TestCase;
-
-public class TestParamSubPreproc extends TestCase {
+public class TestParamSubPreproc {
 
     private final Log log = LogFactory.getLog(getClass());
 
@@ -49,11 +47,10 @@ public class TestParamSubPreproc extends TestCase {
 
 
     public TestParamSubPreproc(String name) {
-        super(name);
         basedir = "test/org/apache/pig/test/data";
     }
 
-    /* Test case 1   
+    /* Test case 1
      * Use a parameter within a pig script and provide value on the command line.
      */
     @Test
@@ -201,7 +198,7 @@ public class TestParamSubPreproc extends TestCase {
         log.info("Done");
     }
 
-    /* Test case 4   
+    /* Test case 4
      * Use a Pig-supported parameter like "$0" and ensure that the Pig-supported parameter is not resolved
      */
     @Test
@@ -223,7 +220,7 @@ public class TestParamSubPreproc extends TestCase {
         log.info("Done");
     }
 
-    /* Test case 5   
+    /* Test case 5
      * Use the %declare statement after the command has been used.
      */
     @Test
@@ -244,7 +241,7 @@ public class TestParamSubPreproc extends TestCase {
         log.info("Done");
     }
 
-    /* Test case 7   
+    /* Test case 7
      *  Use a parameter in %declare that is defined in terms of other parameters
      */
     @Test
@@ -295,10 +292,10 @@ public class TestParamSubPreproc extends TestCase {
 
 
     /* Test case 8
-     *  Use a parameter within a pig script, provide value for it through running a binary or script. 
+     *  Use a parameter within a pig script, provide value for it through running a binary or script.
      *  The script itself takes an argument that is a parameter and should be resolved
      */
-    @Test 
+    @Test
     public void testSubstitutionWithinShellCommand() throws Exception{
         log.info("Starting test testSubstitutionWithinShellCommand()");
         try {
@@ -306,7 +303,7 @@ public class TestParamSubPreproc extends TestCase {
             pigIStream = new BufferedReader(new FileReader(basedir + "/inputSubstitutionWithinShellCommand.pig"));
             pigOStream = new FileWriter(basedir + "/output1.pig");
 
-            String[] arg = null; 
+            String[] arg = null;
             String[] argFiles = null;
             ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
 
@@ -355,7 +352,7 @@ public class TestParamSubPreproc extends TestCase {
             pigIStream = new BufferedReader(new FileReader(basedir + "/input2.pig"));
             pigOStream = new FileWriter(basedir + "/output1.pig");
 
-            String[] arg = {"param='20080228'"}; 
+            String[] arg = {"param='20080228'"};
             String[] argFiles = null;
             ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
 
@@ -391,7 +388,7 @@ public class TestParamSubPreproc extends TestCase {
         }
 
         log.info("Done");
-    } 
+    }
 
 
     /* Test case 10
@@ -405,7 +402,7 @@ public class TestParamSubPreproc extends TestCase {
             pigIStream = new BufferedReader(new FileReader(basedir + "/inputCmdnameAsParamDeclare.pig"));
             pigOStream = new FileWriter(basedir + "/output1.pig");
 
-            String[] arg = null; 
+            String[] arg = null;
             String[] argFiles = null;
             ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
 
@@ -443,14 +440,14 @@ public class TestParamSubPreproc extends TestCase {
     }
 
 
-    /* Test case 11   
+    /* Test case 11
      * Use the same parameter multiple times on the command line.
      * Result : last value used and warning should be thrown
      */
     @Test
     public void testMultipleCmdlineParam() throws Exception{
         log.info("Starting test testCmdnameAsParamDeclare()");
-        try {     
+        try {
             ParameterSubstitutionPreprocessor ps = new ParameterSubstitutionPreprocessor(50);
             pigIStream = new BufferedReader(new FileReader(basedir + "/input1.pig"));
             pigOStream = new FileWriter(basedir + "/output1.pig");
@@ -539,7 +536,7 @@ public class TestParamSubPreproc extends TestCase {
         }
         log.info("Done");
     }
-    
+
     /* Test case 13
      * Use the same parameter in multiple files.
      * Result: last value used and warning should be thrown
@@ -636,8 +633,8 @@ public class TestParamSubPreproc extends TestCase {
         }
 
     }
-    
-    /* Test case 15,16   
+
+    /* Test case 15,16
      *   Use an empty lines and Comment lines in the parameter file.
      *  Result: Allowed
      */
@@ -659,8 +656,8 @@ public class TestParamSubPreproc extends TestCase {
             fail ("Got error : " + e.getMessage());
         }
     }
-    
-    /* Test case 17   
+
+    /* Test case 17
      *   Use a line in the file that is not empty or a comment but does not conform to param_name=param_value.
      */
     @Test
@@ -682,8 +679,8 @@ public class TestParamSubPreproc extends TestCase {
             fail ("Got error : " + e.getMessage());
         }
     }
-    
-    
+
+
     /* Test case 18,19
      *   Check a parameter line of form param_name=param_value is allowed.
      *   Check a parameter line of form param_name<white space>=<white space>param_value is allowed.
@@ -706,7 +703,7 @@ public class TestParamSubPreproc extends TestCase {
             fail ("Got error : " + e.getMessage());
         }
     }
-    
+
      /* Test case 20
      * Use a combination of command line and file parameters.
      */
@@ -801,7 +798,7 @@ public class TestParamSubPreproc extends TestCase {
         }
 
     }
-    
+
 
     /* Test case 22
      *  Use a combination of command line, file and declare.
@@ -849,7 +846,7 @@ public class TestParamSubPreproc extends TestCase {
         }
 
     }
-    
+
     /* Test case 23
      *  Use a combination of command line, file and declare where there are duplicate parameters.
      *  Result: Declare has highest priority.
@@ -897,7 +894,7 @@ public class TestParamSubPreproc extends TestCase {
         }
 
     }
-    
+
     /* Test case 24
      *   Use multiple declare statement that specify the same parameter.
      *   Result: Scope of a parameter declared using declare is until the next declare statement that defines the same parameter.
@@ -945,8 +942,8 @@ public class TestParamSubPreproc extends TestCase {
         }
 
     }
-    
-    
+
+
     /* Test case 25
      *   Use %default to define param values
      */
@@ -993,7 +990,7 @@ public class TestParamSubPreproc extends TestCase {
         }
 
     }
-    
+
 
     /* Test case 26
      *  Use a combination of file, command line, declare and default. Default has the lowest precedence.
@@ -1041,8 +1038,8 @@ public class TestParamSubPreproc extends TestCase {
         }
 
     }
-    
-    
+
+
     /* Test case 28
      *  28. More than 1 parameter is present and needs to be substituted within a line e.g. A = load '/data/$name/$date';
      */
@@ -1091,7 +1088,7 @@ public class TestParamSubPreproc extends TestCase {
     }
 
 
-    /* Test case 29   
+    /* Test case 29
      * Parameter is substituted within a literal e.g. store A into 'output/$name';
      */
     @Test
@@ -1138,8 +1135,8 @@ public class TestParamSubPreproc extends TestCase {
 
     }
 
-    
-    /* Test case 30   
+
+    /* Test case 30
      * Make sure that escaped values are not substituted e.g. A = load '/data/\$name'
      */
     @Test
@@ -1185,8 +1182,8 @@ public class TestParamSubPreproc extends TestCase {
         }
 
     }
-        
-    /* Test case 31   
+
+    /* Test case 31
      * Use of inline command
      */
     @Test
@@ -1238,7 +1235,7 @@ public class TestParamSubPreproc extends TestCase {
 
     }
 
-    /* Test case 32   
+    /* Test case 32
      * No substitution
      */
     @Test
@@ -1288,7 +1285,7 @@ public class TestParamSubPreproc extends TestCase {
 
     }
 
-    /* Test case 32   
+    /* Test case 32
      * Test special values in characters
      */
     @Test
@@ -1337,7 +1334,7 @@ public class TestParamSubPreproc extends TestCase {
         log.info("Done");
 
     }
-    
+
     /* Test case 25
      *   Test that params in comments are untouched
      */
@@ -1384,15 +1381,15 @@ public class TestParamSubPreproc extends TestCase {
         }
 
     }
-    
-    /* Test case 
+
+    /* Test case
      *  Use a parameter within a pig function argument (containing newline characters).
-     *  provide value for it. 
+     *  provide value for it.
      */
-    @Test 
+    @Test
     public void testSubstitutionInFuncArgs() throws Exception{
         log.info("Starting test testSubstitutionInFuncArgs()");
-        final String queryString = 
+        final String queryString =
     "  avro = LOAD '/data/part-m-00000.avro' USING PigStorage ();\n" +
     "   avro2 = FOREACH avro GENERATE  browser_id, component_version, " +
                                    "member_id, page_key, session_id, tracking_time, type;\n" +
@@ -1406,17 +1403,17 @@ public class TestParamSubPreproc extends TestCase {
     "        { \"type\":\"record\",\"name\":\"$name\",   \n" +
     "          \"fields\": [ {\"name\":\"browser_id\", \"type\":[\"null\",\"string\"]},  \n" +
     "                      {\"name\":\"component_version\",\"type\":\"int\"},\n" +
-    "                      {\"name\":\"member_id\",\"type\":\"int\"},\n" + 
-    "                      {\"name\":\"page_key\",\"type\":[\"null\",\"string\"]},\n" + 
-    "                      {\"name\":\"session_id\",\"type\":\"long\"},\n" + 
-    "                      {\"name\":\"tracking_time\",\"type\":\"long\"},\n" + 
-    "                      {\"name\":\"type\",\"type\":[\"null\",\"string\"]}\n" + 
+    "                      {\"name\":\"member_id\",\"type\":\"int\"},\n" +
+    "                      {\"name\":\"page_key\",\"type\":[\"null\",\"string\"]},\n" +
+    "                      {\"name\":\"session_id\",\"type\":\"long\"},\n" +
+    "                      {\"name\":\"tracking_time\",\"type\":\"long\"},\n" +
+    "                      {\"name\":\"type\",\"type\":[\"null\",\"string\"]}\n" +
     "                   ]\n" +
     "        }\n" +
     "    }\n"+
     "    ');";
 
-        final String expectedString = 
+        final String expectedString =
             "  avro = LOAD '/data/part-m-00000.avro' USING PigStorage ();\n" +
             "   avro2 = FOREACH avro GENERATE  browser_id, component_version, " +
                                            "member_id, page_key, session_id, tracking_time, type;\n" +
@@ -1430,11 +1427,11 @@ public class TestParamSubPreproc extends TestCase {
             "        { \"type\":\"record\",\"name\":\"TestRecord\",   \n" +
             "          \"fields\": [ {\"name\":\"browser_id\", \"type\":[\"null\",\"string\"]},  \n" +
             "                      {\"name\":\"component_version\",\"type\":\"int\"},\n" +
-            "                      {\"name\":\"member_id\",\"type\":\"int\"},\n" + 
-            "                      {\"name\":\"page_key\",\"type\":[\"null\",\"string\"]},\n" + 
-            "                      {\"name\":\"session_id\",\"type\":\"long\"},\n" + 
-            "                      {\"name\":\"tracking_time\",\"type\":\"long\"},\n" + 
-            "                      {\"name\":\"type\",\"type\":[\"null\",\"string\"]}\n" + 
+            "                      {\"name\":\"member_id\",\"type\":\"int\"},\n" +
+            "                      {\"name\":\"page_key\",\"type\":[\"null\",\"string\"]},\n" +
+            "                      {\"name\":\"session_id\",\"type\":\"long\"},\n" +
+            "                      {\"name\":\"tracking_time\",\"type\":\"long\"},\n" +
+            "                      {\"name\":\"type\",\"type\":[\"null\",\"string\"]}\n" +
             "                   ]\n" +
             "        }\n" +
             "    }\n"+
@@ -1445,7 +1442,7 @@ public class TestParamSubPreproc extends TestCase {
                                             new InputStreamReader(new ByteArrayInputStream(queryString.getBytes("UTF-8"))));
             pigOStream = new FileWriter(basedir + "/output26.pig");
 
-            String[] arg = {"debug = '5'", "name = 'TestRecord'"}; 
+            String[] arg = {"debug = '5'", "name = 'TestRecord'"};
             String[] argFiles = null;
             ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
 

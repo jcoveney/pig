@@ -40,11 +40,10 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-
 /**
  * Test Project-(star/range) expansion when used as udf argument
  */
-public class TestProjectStarRangeInUdf  {
+public class TestProjectStarRangeInUdf {
 
     protected final Log log = LogFactory.getLog(getClass());
 
@@ -81,7 +80,7 @@ public class TestProjectStarRangeInUdf  {
         query =
             "  l1 = load '" + INP_FILE_5FIELDS + "' as (a, b);"
             + "f = foreach l1 generate CONCAT(*) as ct;"
-            ; 
+            ;
         compileAndCompareSchema("ct : bytearray", query, "f");
     }
 
@@ -93,21 +92,21 @@ public class TestProjectStarRangeInUdf  {
         query =
             "  l1 = load '" + INP_FILE_5FIELDS + "' as (a, b, c);"
             + "f = foreach l1 generate CONCAT(*) as ct;"
-            ; 
+            ;
         Util.checkExceptionMessage(query, "f",
                 "Could not infer the matching function for " +
                 "org.apache.pig.builtin.CONCAT");
     }
-    
+
     @Test
     public void testProjStarExpandInForeach1NegativeNoSchema() throws IOException{
-        
+
         String query;
 
         query =
             "  l1 = load '" + INP_FILE_5FIELDS + "' ;"
             + "f = foreach l1 generate CONCAT(*) as ct;"
-            ; 
+            ;
         Util.checkExceptionMessage(query, "f",
                 "Could not infer the matching function for " +
                 "org.apache.pig.builtin.CONCAT");
@@ -116,13 +115,13 @@ public class TestProjectStarRangeInUdf  {
         query =
             "  l1 = load '" + INP_FILE_5FIELDS + "' ;"
             + "f = foreach l1 generate SIZE(*) as ct;"
-            ; 
+            ;
         Util.checkExceptionMessage(query, "f",
                 "Could not infer the matching function for " +
                 "org.apache.pig.builtin.SIZE");
-        
+
     }
-    
+
     @Test
     public void testProjStarExpandInForeach2() throws IOException {
 
@@ -131,11 +130,11 @@ public class TestProjectStarRangeInUdf  {
         query =
             "  l1 = load '" + INP_FILE_5FIELDS + "' as (a : int, b : int, c : int);"
             + "f = foreach l1 generate TOTUPLE(*) as tb;"
-            ; 
+            ;
         compileAndCompareSchema("tb : (a : int, b : int, c : int)", query, "f");
         Iterator<Tuple> it = pigServer.openIterator("f");
 
-        List<Tuple> expectedRes = 
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "((10,20,30))",
@@ -145,7 +144,7 @@ public class TestProjectStarRangeInUdf  {
 
     }
 
-    //PIG-2223 
+    //PIG-2223
     // lookup on column name in udf output tuple schema
     @Test
     public void testProjStarExpandInForeachLookup1() throws IOException {
@@ -153,12 +152,12 @@ public class TestProjectStarRangeInUdf  {
         String query =
             "  l1 = load '" + INP_FILE_5FIELDS + "' as (a : int, b : int, c : int);"
             + "f = foreach l1 generate TOTUPLE(*) as tb;"
-            + "f2 = foreach f generate tb.a, tb.b;"                    
-            ; 
+            + "f2 = foreach f generate tb.a, tb.b;"
+            ;
         compileAndCompareSchema("a : int, b : int", query, "f2");
     }
-    
-    //PIG-2223 
+
+    //PIG-2223
     // lookup on column name in udf output tuple schema
     @Test
     public void testProjStarExpandInForeachLookup2() throws IOException {
@@ -166,12 +165,12 @@ public class TestProjectStarRangeInUdf  {
         String query =
             "  l1 = load '" + INP_FILE_5FIELDS + "' as (a : int, b : int, c : int);"
             + "f = foreach l1 generate TOTUPLE(b .. ) as tb;"
-            + "f2 = foreach f generate tb.b as b2, tb.c as c2;"     
-            + "f3 = foreach f2 generate b2, b2 + c2 as bc2;"     
-            ; 
+            + "f2 = foreach f generate tb.b as b2, tb.c as c2;"
+            + "f3 = foreach f2 generate b2, b2 + c2 as bc2;"
+            ;
         compileAndCompareSchema("b2 : int, bc2 : int", query, "f3");
     }
-    
+
     @Test
     public void testProjStarExpandInFilter1() throws IOException{
         //TOBAG has * and a bincond expression as argument
@@ -180,18 +179,18 @@ public class TestProjectStarRangeInUdf  {
         query =
             "  l1 = load '" + INP_FILE_5FIELDS + "' as (a : int, b : int);"
             + "f = filter l1 by SUM(TOBAG((a == 10 ? 100 : 0), *)) == 130;"
-            ; 
+            ;
         compileAndCompareSchema("a : int, b : int", query, "f");
         Iterator<Tuple> it = pigServer.openIterator("f");
 
-        List<Tuple> expectedRes = 
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "(10,20)",
                     });
         Util.checkQueryOutputsAfterSort(it, expectedRes);
     }
-    
+
     @Test
     public void testProjRangeExpandInFilterNoSchema1() throws IOException{
         //star expansion lets CONCAT be used if input has two cols
@@ -200,18 +199,18 @@ public class TestProjectStarRangeInUdf  {
         query =
             "  l1 = load '" + INP_FILE_5FIELDS + "' ;"
             + "f = filter l1 by SUM(TOBAG($0 .. $1)) == 30;"
-            ; 
+            ;
         compileAndCompareSchema((Schema)null, query, "f");
         Iterator<Tuple> it = pigServer.openIterator("f");
 
-        List<Tuple> expectedRes = 
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStringAsByteArray(
                     new String[] {
                             "('10','20','30','40','50')",
                     });
         Util.checkQueryOutputsAfterSort(it, expectedRes);
     }
-    
+
     /**
      * Test project-range in foreach with limits on both sides
      * @throws IOException
@@ -225,11 +224,11 @@ public class TestProjectStarRangeInUdf  {
         query =
             "  l1 = load '" + INP_FILE_5FIELDS + "' as (a, b : chararray, c : chararray, d);"
             + "f = foreach l1 generate CONCAT($1 .. $2) as ct;"
-            ; 
+            ;
         compileAndCompareSchema("ct : chararray", query, "f");
         Iterator<Tuple> it = pigServer.openIterator("f");
 
-        List<Tuple> expectedRes = 
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "('2030')",
@@ -238,7 +237,7 @@ public class TestProjectStarRangeInUdf  {
         Util.checkQueryOutputsAfterSort(it, expectedRes);
 
     }
-    
+
     @Test
     public void testProjRangeExpandInJoin() throws IOException {
 
@@ -248,17 +247,17 @@ public class TestProjectStarRangeInUdf  {
             "  l1 = load '" + INP_FILE_5FIELDS + "' as (a : chararray, b : chararray, c : chararray, d);"
             + "f1 = foreach l1 generate a, b, c, '1' as num;"
             + "l2 = load '" + INP_FILE_5FIELDS + "' as (a : chararray, b : chararray, c : chararray, d);"
-            + "f2 = foreach l1 generate c, a, b, '2' as num;" 
+            + "f2 = foreach l1 generate c, a, b, '2' as num;"
             + "j = join f1 by CONCAT($0 .. $1), f2 by CONCAT(a .. b);"
-            ; 
+            ;
         String schStr =
-            "f1::a : chararray, f1::b : chararray, f1::c : chararray, f1::num : chararray," + 
+            "f1::a : chararray, f1::b : chararray, f1::c : chararray, f1::num : chararray," +
             "f2::c : chararray, f2::a : chararray, f2::b : chararray, f2::num : chararray";
-            
+
         compileAndCompareSchema(schStr, query, "j");
         Iterator<Tuple> it = pigServer.openIterator("j");
 
-        List<Tuple> expectedRes = 
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "('10', '20', '30', '1', '30', '10', '20', '2')",
@@ -268,7 +267,7 @@ public class TestProjectStarRangeInUdf  {
 
     }
 
-    
+
     @Test
     public void testProjMixExpand1() throws IOException {
 
@@ -277,12 +276,12 @@ public class TestProjectStarRangeInUdf  {
         query =
             "  l1 = load '" + INP_FILE_5FIELDS + "' as (a : int, b : int, c : int);"
             + "f = foreach l1 generate TOBAG(*, $0 .. $2) as tt;"
-            ; 
-     
+            ;
+
         compileAndCompareSchema("tt : {(NullAlias : int)}", query, "f");
         Iterator<Tuple> it = pigServer.openIterator("f");
 
-        List<Tuple> expectedRes = 
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "({(10),(20),(30),(10),(20),(30)})",
@@ -291,7 +290,7 @@ public class TestProjectStarRangeInUdf  {
         Util.checkQueryOutputsAfterSort(it, expectedRes);
 
     }
-    
+
     @Test
     public void testProjMixExpand1NoSchema() throws IOException {
 
@@ -300,15 +299,15 @@ public class TestProjectStarRangeInUdf  {
         query =
             "  l1 = load '" + INP_FILE_5FIELDS + "';"
             + "f = foreach l1 generate TOBAG(*, $0 .. $2) as tt;"
-            ; 
+            ;
         Schema sch = Utils.getSchemaFromString("tt : {(NullALias)}");
         sch.getField(0).schema.getField(0).schema.getField(0).alias = null;
         sch.getField(0).schema.getField(0).schema.getField(0).type = DataType.NULL;
-        
+
         compileAndCompareSchema(sch, query, "f");
         Iterator<Tuple> it = pigServer.openIterator("f");
 
-        List<Tuple> expectedRes = 
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStringAsByteArray(
                     new String[] {
                             "({('10'),('20'),('30'),('40'),('50'),('10'),('20'),('30')})",
@@ -317,7 +316,7 @@ public class TestProjectStarRangeInUdf  {
         Util.checkQueryOutputsAfterSort(it, expectedRes);
 
     }
-    
+
     @Test
     public void testProjMixExpand2() throws IOException {
 
@@ -326,14 +325,14 @@ public class TestProjectStarRangeInUdf  {
         query =
             "  l1 = load '" + INP_FILE_5FIELDS + "' as (a : int, b : int, c : int, d : int);"
             + "f = foreach l1 generate TOTUPLE(1, $0 .. $1, 2+3, $2 .. , d - 1) as tt;"
-            ; 
-     
+            ;
+
         String schStr = "tt : (NullAliasA : int, a : int, b : int," +
             " NullAliasB : int, c : int, d : int, NullAliasC : int)";
         compileAndCompareSchema(schStr, query, "f");
         Iterator<Tuple> it = pigServer.openIterator("f");
 
-        List<Tuple> expectedRes = 
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "((1,10,20,5,30,40,39))",
@@ -342,7 +341,7 @@ public class TestProjectStarRangeInUdf  {
         Util.checkQueryOutputsAfterSort(it, expectedRes);
 
     }
-    
+
     @Test
     public void testProjMixExpand2NoSchema() throws IOException {
 
@@ -351,13 +350,13 @@ public class TestProjectStarRangeInUdf  {
         query =
             "  l1 = load '" + INP_FILE_5FIELDS + "' ;"
             + "f = foreach l1 generate TOTUPLE(1, $0 .. $1, 2+3, $2 .. , $4 -1) as tt;"
-            ; 
-     
+            ;
+
         compileAndCompareSchema("tt :()", query, "f");
         pigServer.explain("f", System.out);
         Iterator<Tuple> it = pigServer.openIterator("f");
 
-        List<Tuple> expectedRes = 
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStringAsByteArray(
                     new String[] {
                             "((1,'10','20',5,'30','40','50',49))",
@@ -366,7 +365,7 @@ public class TestProjectStarRangeInUdf  {
         Util.checkQueryOutputsAfterSort(it, expectedRes);
 
     }
-    
+
     @Test
     public void testProjMixExpand3() throws IOException {
 
@@ -375,13 +374,13 @@ public class TestProjectStarRangeInUdf  {
         query =
             "  l1 = load '" + INP_FILE_5FIELDS + "' as (a : int, b : int, c : chararray, d : chararray);"
             + "f = foreach l1 generate TOTUPLE($0 .. $1, CONCAT($2 .. )) as tt;"
-            ; 
-     
+            ;
+
         String schStr = "tt : (a : int, b : int, NullAlias : chararray)";
         compileAndCompareSchema(schStr, query, "f");
         Iterator<Tuple> it = pigServer.openIterator("f");
 
-        List<Tuple> expectedRes = 
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "((10,20,'3040'))",
@@ -390,13 +389,12 @@ public class TestProjectStarRangeInUdf  {
         Util.checkQueryOutputsAfterSort(it, expectedRes);
 
     }
-    
-    
+
     private void compileAndCompareSchema(String expectedSchStr, String query, String alias)
     throws IOException {
 
         Schema expectedSch = null;
-        
+
         if(expectedSchStr != null)
             expectedSch = Utils.getSchemaFromString(expectedSchStr);
         Util.schemaReplaceNullAlias(expectedSch);
@@ -411,5 +409,4 @@ public class TestProjectStarRangeInUdf  {
         Schema sch = pigServer.dumpSchema(alias);
         assertEquals("Checking expected schema", expectedSch, sch);
     }
-
 }

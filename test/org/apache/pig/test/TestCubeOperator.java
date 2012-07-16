@@ -39,9 +39,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.newplan.Operator;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
@@ -52,16 +50,12 @@ public class TestCubeOperator {
     private static TupleFactory tf = TupleFactory.getInstance();
     private Data data;
 
-    @BeforeClass
-    public static void oneTimeSetUp() throws Exception {
-    }
-
     @Before
     public void setUp() throws Exception {
 	pigServer = new PigServer("local");
 
 	data = resetData(pigServer);
-	data.set("input", 
+	data.set("input",
 		tuple("dog", "miami", 12),
 		tuple("cat", "miami", 18),
 		tuple("turtle", "tampa", 4),
@@ -70,7 +64,7 @@ public class TestCubeOperator {
 		tuple("dog", "naples", 5),
 		tuple("turtle", "naples", 1));
 
-	data.set("input1", 
+	data.set("input1",
 		tuple("u1,men,green,mango"),
 		tuple("u2,men,red,mango"),
 		tuple("u3,men,green,apple"),
@@ -82,15 +76,11 @@ public class TestCubeOperator {
 		tuple("u10,women,green,apple"),
 		tuple("u11,men,red,apple"),
 		tuple("u12,women,green,mango"));
-	
-	data.set("input3", 
+
+	data.set("input3",
 		tuple("dog", "miami", 12),
 		tuple(null, "miami", 18));
 
-    }
-
-    @AfterClass
-    public static void oneTimeTearDown() throws IOException {
     }
 
     @Test
@@ -130,11 +120,11 @@ public class TestCubeOperator {
     @Test
     public void testCubeMultipleIAliases() throws IOException {
 	// test for input alias to cube being assigned multiple times
-	String query = 
+	String query =
 		"a = load 'input' USING mock.Storage() as (x:chararray,y:chararray,z:long);" +
 			"a = load 'input' USING mock.Storage() as (x,y:chararray,z:long);" +
 			"a = load 'input' USING mock.Storage() as (x:chararray,y:chararray,z:long);" +
-			"b = cube a by (x,y);" + 
+			"b = cube a by (x,y);" +
 			"c = foreach b generate flatten(group) as (type,location), COUNT_STAR(cube) as count, SUM(cube.z) as total;" +
 			"store c into 'output' using mock.Storage();";
 
@@ -167,10 +157,10 @@ public class TestCubeOperator {
     @Test
     public void testCubeAfterForeach() throws IOException {
 	// test for foreach projection before cube operator
-	String query = 
+	String query =
 		"a = load 'input' USING mock.Storage() as (x:chararray,y:chararray,z:long);" +
 			"b = foreach a generate x as type,y as location,z as number;" +
-			"c = cube b by (type,location);" + 
+			"c = cube b by (type,location);" +
 			"d = foreach c generate flatten(group) as (type,location), COUNT_STAR(cube) as count, SUM(cube.number) as total;" +
 			"store d into 'output' using mock.Storage();";
 
@@ -203,10 +193,10 @@ public class TestCubeOperator {
     @Test
     public void testCubeAfterLimit() throws IOException {
 	// test for limit operator before cube operator
-	String query = 
+	String query =
 		"a = load 'input' USING mock.Storage() as (x:chararray,y:chararray,z:long);" +
 			"b = limit a 2;" +
-			"c = cube b by (x,y);" + 
+			"c = cube b by (x,y);" +
 			"d = foreach c generate flatten(group) as (x,y), SUM(cube.z) as total;" +
 			"store d into 'output' using mock.Storage();";
 
@@ -231,10 +221,10 @@ public class TestCubeOperator {
     @Test
     public void testCubeWithStar() throws IOException {
 	// test for * (all) dimensions in cube operator
-	String query = 
+	String query =
 		"a = load 'input' USING mock.Storage() as (x:chararray,y:chararray);" +
 			"b = foreach a generate x as type,y as location;" +
-			"c = cube b by (*);" + 
+			"c = cube b by (*);" +
 			"d = foreach c generate flatten(group) as (type,location), COUNT_STAR(cube) as count;" +
 			"store d into 'output' using mock.Storage();";
 
@@ -267,10 +257,10 @@ public class TestCubeOperator {
     @Test
     public void testCubeWithRange() throws IOException {
 	// test for range projection of dimensions in cube operator
-	String query = 
+	String query =
 		"a = load 'input' USING mock.Storage() as (x:chararray,y:chararray,z:long);" +
 			"b = foreach a generate x as type,y as location, z as number;" +
-			"c = cube b by ($0..$1);" + 
+			"c = cube b by ($0..$1);" +
 			"d = foreach c generate flatten(group) as (type,location), COUNT_STAR(cube) as count, SUM(cube.number) as total;" +
 			"store d into 'output' using mock.Storage();";
 
@@ -324,10 +314,10 @@ public class TestCubeOperator {
     @Test
     public void testCubeAfterFilter() throws IOException {
 	// test for filtering before cube operator
-	String query = 
+	String query =
 		"a = load 'input' USING mock.Storage() as (x:chararray,y:chararray,z:long);" +
 			"b = filter a by x == 'dog';" +
-			"c = cube b by (x,y);" + 
+			"c = cube b by (x,y);" +
 			"d = foreach c generate flatten(group), COUNT_STAR(cube) as count, SUM(cube.z) as total;" +
 			"store d into 'output' using mock.Storage();";
 
@@ -355,10 +345,10 @@ public class TestCubeOperator {
     @Test
     public void testCubeAfterOrder() throws IOException {
 	// test for ordering before cube operator
-	String query = 
+	String query =
 		"a = load 'input' USING mock.Storage() as (x:chararray,y:chararray,z:long);" +
 			"b = order a by $2;" +
-			"c = cube b by (x,y);" + 
+			"c = cube b by (x,y);" +
 			"d = foreach c generate flatten(group), COUNT_STAR(cube) as count, SUM(cube.z) as total;" +
 			"store d into 'output' using mock.Storage();";
 
@@ -390,11 +380,11 @@ public class TestCubeOperator {
     @Test
     public void testCubeAfterJoin() throws IOException {
 	// test for cubing on joined relations
-	String query = 
+	String query =
 		"a = load 'input1' USING mock.Storage() as (a1:chararray,b1,c1,d1); " +
 			"b = load 'input' USING mock.Storage() as (a2,b2,c2:long,d2:chararray);" +
 			"c = join a by a1, b by d2;" +
-			"d = cube c by ($4,$5);" + 
+			"d = cube c by ($4,$5);" +
 			"e = foreach d generate flatten(group), COUNT_STAR(cube) as count, SUM(cube.c2) as total;" +
 			"store e into 'output' using mock.Storage();";
 
@@ -424,7 +414,7 @@ public class TestCubeOperator {
     @Test
     public void testCubeAfterCogroup() throws IOException {
 	// test for cubing on co-grouped relation
-	String query = 
+	String query =
 		"a = load 'input1' USING mock.Storage() as (a1:chararray,b1,c1,d1); " +
 			"b = load 'input' USING mock.Storage() as (a2,b2,c2:long,d2:chararray);" +
 			"c = cogroup a by a1, b by d2;" +
@@ -459,9 +449,9 @@ public class TestCubeOperator {
     @Test
     public void testCubeWithNULLs() throws IOException {
 	// test for dimension values with legitimate null values
-	String query = 
+	String query =
 		"a = load 'input3' USING mock.Storage() as (x:chararray,y:chararray,z:long);" +
-			"b = cube a by (x,y);" + 
+			"b = cube a by (x,y);" +
 			"c = foreach b generate flatten(group) as (type,location), SUM(cube.z) as total;" +
 			"store c into 'output' using mock.Storage();";
 
@@ -482,14 +472,14 @@ public class TestCubeOperator {
 	}
 
     }
-    
+
     @Test
     public void testCubeWithNULLAndFilter() throws IOException {
 	// test for dimension values with legitimate null values
 	// followed by filter
-	String query = 
+	String query =
 		"a = load 'input3' USING mock.Storage() as (x:chararray,y:chararray,z:long);" +
-			"b = cube a by (x,y);" + 
+			"b = cube a by (x,y);" +
 			"c = foreach b generate flatten(group) as (type,location), SUM(cube.z) as total;" +
 			"d = filter c by type!='unknown';" +
 			"store d into 'output' using mock.Storage();";
@@ -511,7 +501,7 @@ public class TestCubeOperator {
     @Test
     public void testIllustrate() throws IOException {
 	// test for illustrate
-	String query = 
+	String query =
 		"a = load 'input' USING mock.Storage() as (a1:chararray,b1:chararray,c1:long); " +
 			"b = cube a by (a1,b1);";
 
@@ -523,7 +513,7 @@ public class TestCubeOperator {
     @Test
     public void testExplain() throws IOException {
 	// test for explain
-	String query = 
+	String query =
 		"a = load 'input' USING mock.Storage() as (a1:chararray,b1:chararray,c1:long); " +
 			"b = cube a by (a1,b1);";
 
@@ -537,7 +527,7 @@ public class TestCubeOperator {
     @Test
     public void testDescribe() throws IOException {
 	// test for describe
-	String query = 
+	String query =
 		"a = load 'input' USING mock.Storage() as (a1:chararray,b1:chararray,c1:long); " +
 			"b = cube a by (a1,b1);";
 

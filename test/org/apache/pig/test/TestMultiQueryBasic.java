@@ -29,8 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import junit.framework.Assert;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -54,10 +52,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
 public class TestMultiQueryBasic {
 
     private static PigServer myPig;
@@ -72,14 +67,14 @@ public class TestMultiQueryBasic {
         props.setProperty("opt.multiquery", ""+true);
         myPig = new PigServer(ExecType.LOCAL, props);
     }
-    
+
     @AfterClass
     public static void tearDownAfterClass() throws Exception {
         Util.deleteFile(new PigContext(ExecType.LOCAL, new Properties()), "passwd");
         Util.deleteFile(new PigContext(ExecType.LOCAL, new Properties()), "passwd2");
         deleteOutputFiles();
     }
-    
+
     @Before
     public void setUp() throws Exception {
         deleteOutputFiles();
@@ -87,10 +82,10 @@ public class TestMultiQueryBasic {
 
     @After
     public void tearDown() throws Exception {
-        
+
     }
-    
- 
+
+
     @Test
     public void testMultiQueryWithTwoStores2() throws Exception {
 
@@ -133,8 +128,8 @@ public class TestMultiQueryBasic {
 
         myPig.executeBatch();
         myPig.discardBatch();
-    }       
-    
+    }
+
     @Test
     public void testMultiQueryPhase3BaseCase2() throws Exception {
 
@@ -155,16 +150,16 @@ public class TestMultiQueryBasic {
         myPig.registerQuery("c2 = foreach c1 generate group, SUM(c.uid);");
         myPig.registerQuery("store c2 into 'output2';");
         myPig.registerQuery("d1 = group d by gid;");
-        myPig.registerQuery("d2 = foreach d1 generate group, AVG(d.uid);");            
+        myPig.registerQuery("d2 = foreach d1 generate group, AVG(d.uid);");
         myPig.registerQuery("store d2 into 'output3';");
-         
+
         List<ExecJob> jobs = myPig.executeBatch();
-        
+
         for (ExecJob job : jobs) {
             assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
         }
-    }         
-    
+    }
+
     @Test
     public void testMultiQueryPhase3WithoutCombiner2() throws Exception {
 
@@ -184,17 +179,17 @@ public class TestMultiQueryBasic {
         myPig.registerQuery("c1 = group c by gid;");
         myPig.registerQuery("c2 = foreach c1 generate group, SUM(c.uid) - COUNT(c.uid);");
         myPig.registerQuery("store c2 into 'output2';");
-        myPig.registerQuery("d1 = group d by gid;");           
+        myPig.registerQuery("d1 = group d by gid;");
         myPig.registerQuery("d2 = foreach d1 generate group, MAX(d.uid) - MIN(d.uid);");
         myPig.registerQuery("store d2 into 'output3';");
-         
+
         List<ExecJob> jobs = myPig.executeBatch();
 
         for (ExecJob job : jobs) {
             assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
         }
-    }     
-    
+    }
+
     @Test
     public void testMultiQueryPhase3WithMixedCombiner2() throws Exception {
 
@@ -214,17 +209,17 @@ public class TestMultiQueryBasic {
         myPig.registerQuery("c1 = group c by gid;");
         myPig.registerQuery("c2 = foreach c1 generate group, SUM(c.uid);");
         myPig.registerQuery("store c2 into 'output2';");
-        myPig.registerQuery("d1 = group d by gid;");            
+        myPig.registerQuery("d1 = group d by gid;");
         myPig.registerQuery("d2 = foreach d1 generate group, MAX(d.uid) - MIN(d.uid);");
         myPig.registerQuery("store d2 into 'output3';");
-         
+
         List<ExecJob> jobs = myPig.executeBatch();
         assertEquals(3, jobs.size());
 
         for (ExecJob job : jobs) {
             assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
         }
-    }         
+    }
 
     @Test
     public void testMultiQueryPhase3WithDifferentMapDataTypes2() throws Exception {
@@ -248,15 +243,15 @@ public class TestMultiQueryBasic {
         myPig.registerQuery("d1 = group d by $1;");
         myPig.registerQuery("d2 = foreach d1 generate group, COUNT(d.uid);");
         myPig.registerQuery("store d2 into 'output3';");
-         
+
         List<ExecJob> jobs = myPig.executeBatch();
         assertEquals(3, jobs.size());
 
         for (ExecJob job : jobs) {
             assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
         }
-    }         
-    
+    }
+
     @Test
     public void testMultiQueryPhase3WithDifferentMapDataTypes3() throws Exception {
 
@@ -278,14 +273,14 @@ public class TestMultiQueryBasic {
         myPig.registerQuery("d = group a by (name, gpa);");
         myPig.registerQuery("e = foreach d generate flatten(group), MIN(a.age);");
         myPig.registerQuery("store e into 'output2';");
-         
+
         myPig.executeBatch();
-        
+
         myPig.registerQuery("a = load 'output1' as (grp:chararray, cnt:long) ;");
         Iterator<Tuple> it = myPig.openIterator("a");
         assertEquals(Util.getPigConstant("('all', 5l)"), it.next());
         assertFalse(it.hasNext());
-        
+
         myPig.registerQuery("a = load 'output2' as (name:chararray, gpa:double, age:int);");
         it = myPig.openIterator("a");
         int i = 0;
@@ -299,8 +294,8 @@ public class TestMultiQueryBasic {
             assertEquals(expectedResults.get(t.get(0)), t);
         }
         assertEquals(3, i);
-    }         
- 
+    }
+
     @Test
     public void testMultiQueryPhase3StreamingInReducer2() throws Exception {
 
@@ -317,19 +312,19 @@ public class TestMultiQueryBasic {
         myPig.registerQuery("store D into 'output1';");
         myPig.registerQuery("E = group A4 by $2;");
         myPig.registerQuery("F = foreach E generate group, COUNT(A4);");
-        myPig.registerQuery("store F into 'output2';");            
+        myPig.registerQuery("store F into 'output2';");
         myPig.registerQuery("G = group A1 by $2;");
-        myPig.registerQuery("H = foreach G generate group, COUNT(A1);");          
+        myPig.registerQuery("H = foreach G generate group, COUNT(A1);");
         myPig.registerQuery("store H into 'output3';");
-         
+
         List<ExecJob> jobs = myPig.executeBatch();
         assertEquals(3, jobs.size());
 
         for (ExecJob job : jobs) {
             assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
         }
-    }       
-    
+    }
+
     @Test
     public void testMultiQueryWithPigMixL12_2() throws Exception {
 
@@ -340,7 +335,7 @@ public class TestMultiQueryBasic {
         myPig.registerQuery("a = load 'passwd' " +
                             "using PigStorage(':') as (uname, passwd, uid, gid);");
         myPig.registerQuery("b = foreach a generate uname, passwd, uid, gid;");
-        myPig.registerQuery("split b into c1 if uid > 5, c2 if uid <= 5 ;"); 
+        myPig.registerQuery("split b into c1 if uid > 5, c2 if uid <= 5 ;");
         myPig.registerQuery("split c1 into d1 if gid < 5, d2 if gid >= 5;");
         myPig.registerQuery("e = group d1 by uname;");
         myPig.registerQuery("e1 = foreach e generate group, MAX(d1.uid);");
@@ -359,18 +354,18 @@ public class TestMultiQueryBasic {
             assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
         }
     }
-    
+
     @Test
     public void testMultiQueryWithCoGroup_2() throws Exception {
 
         System.out.println("===== multi-query with CoGroup (2) =====");
-        
+
         myPig.setBatchOn();
 
         myPig.registerQuery("a = load 'passwd' " +
                             "using PigStorage(':') as (uname, passwd, uid, gid);");
         myPig.registerQuery("store a into 'output1' using BinStorage();");
-        myPig.registerQuery("b = load 'output1' using BinStorage() as (uname, passwd, uid, gid);"); 
+        myPig.registerQuery("b = load 'output1' using BinStorage() as (uname, passwd, uid, gid);");
         myPig.registerQuery("c = load 'passwd2' " +
                             "using PigStorage(':') as (uname, passwd, uid, gid);");
         myPig.registerQuery("d = cogroup b by (uname, uid) inner, c by (uname, uid) inner;");
@@ -384,7 +379,7 @@ public class TestMultiQueryBasic {
             assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
         }
     }
- 
+
     @Test
     public void testMultiQueryWithFJ_2() throws Exception {
 
@@ -409,15 +404,15 @@ public class TestMultiQueryBasic {
         for (ExecJob job : jobs) {
             assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
         }
-    } 
- 
+    }
+
     @Test
     public void testMultiQueryWithIntermediateStores_2() throws Exception {
 
         System.out.println("===== multi-query with intermediate stores (2) =====");
 
         myPig.setBatchOn();
-        
+
         myPig.registerQuery("a = load 'passwd' " +
                             "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
         myPig.registerQuery("store a into 'output1';");
@@ -430,7 +425,7 @@ public class TestMultiQueryBasic {
         for (ExecJob job : jobs) {
             assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
         }
-    }         
+    }
 
     @Test
     public void testMultiQueryWithSplitInMapAndMultiMerge() throws Exception {
@@ -438,9 +433,9 @@ public class TestMultiQueryBasic {
         // clean up any existing dirs/files
         String[] toClean = {"tmwsimam-input.txt", "foo1", "foo2", "foo3", "foo4" };
         for (int j = 0; j < toClean.length; j++) {
-            Util.deleteFile(new PigContext(ExecType.LOCAL, new Properties()), toClean[j]);    
+            Util.deleteFile(new PigContext(ExecType.LOCAL, new Properties()), toClean[j]);
         }
-        
+
         // the data below is tab delimited
         String[] inputData = {
         "1	a	b	e	f	i	j	m	n",
@@ -448,21 +443,21 @@ public class TestMultiQueryBasic {
         "3	c	d	g	h	k	l	o	p",
         "4	c	d	g	h	k	l	o	p" };
         Util.createLocalInputFile("tmwsimam-input.txt", inputData);
-        String query = 
+        String query =
         "A = LOAD 'tmwsimam-input.txt' " +
         "as (f0:chararray, f1:chararray, f2:chararray, f3:chararray, " +
         "f4:chararray, f5:chararray, f6:chararray, f7:chararray, f8:chararray); " +
         "B = FOREACH A GENERATE f0, f1, f2, f3, f4;" +
-        "B1 = foreach B generate f0, f1, f2;" + 
-        "C = GROUP B1 BY (f1, f2);" + 
+        "B1 = foreach B generate f0, f1, f2;" +
+        "C = GROUP B1 BY (f1, f2);" +
         "STORE C into 'foo1' using BinStorage();" +
-        "B2 = FOREACH B GENERATE f0, f3, f4;" + 
+        "B2 = FOREACH B GENERATE f0, f3, f4;" +
         "E = GROUP B2 BY (f3, f4);" +
         "STORE E into 'foo2'  using BinStorage();" +
         "F = FOREACH A GENERATE f0, f5, f6, f7, f8;" +
         "F1 = FOREACH F GENERATE f0, f5, f6;" +
         "G = GROUP F1 BY (f5, f6);" +
-        "STORE G into 'foo3'  using BinStorage();" + 
+        "STORE G into 'foo3'  using BinStorage();" +
         "F2  = FOREACH F GENERATE f0, f7, f8;" +
         "I = GROUP F2 BY (f7, f8);" +
         "STORE I into 'foo4'  using BinStorage();" +
@@ -470,25 +465,25 @@ public class TestMultiQueryBasic {
         myPig.setBatchOn();
         Util.registerMultiLineQuery(myPig, query);
         myPig.executeBatch();
-        
+
         String templateLoad = "a = load 'foo' using BinStorage();";
-        
+
         Map<Tuple, DataBag> expectedResults = new HashMap<Tuple, DataBag>();
-        expectedResults.put((Tuple)Util.getPigConstant("('a','b')"),  
+        expectedResults.put((Tuple)Util.getPigConstant("('a','b')"),
                             (DataBag)Util.getPigConstant("{('1','a','b'),('2','a','b')}"));
-        expectedResults.put((Tuple)Util.getPigConstant("('c','d')"),  
+        expectedResults.put((Tuple)Util.getPigConstant("('c','d')"),
                             (DataBag)Util.getPigConstant("{('3','c','d'),('4','c','d')}"));
-        expectedResults.put((Tuple)Util.getPigConstant("('e','f')"),  
+        expectedResults.put((Tuple)Util.getPigConstant("('e','f')"),
                             (DataBag)Util.getPigConstant("{('1','e','f'),('2','e','f')}"));
-        expectedResults.put((Tuple)Util.getPigConstant("('g','h')"),  
+        expectedResults.put((Tuple)Util.getPigConstant("('g','h')"),
                             (DataBag)Util.getPigConstant("{('3','g','h'),('4','g','h')}"));
-        expectedResults.put((Tuple)Util.getPigConstant("('i','j')"),  
+        expectedResults.put((Tuple)Util.getPigConstant("('i','j')"),
                             (DataBag)Util.getPigConstant("{('1','i','j'),('2','i','j')}"));
-        expectedResults.put((Tuple)Util.getPigConstant("('k','l')"),  
+        expectedResults.put((Tuple)Util.getPigConstant("('k','l')"),
                             (DataBag)Util.getPigConstant("{('3','k','l'),('4','k','l')}"));
-        expectedResults.put((Tuple)Util.getPigConstant("('m','n')"),  
+        expectedResults.put((Tuple)Util.getPigConstant("('m','n')"),
                             (DataBag)Util.getPigConstant("{('1','m','n'),('2','m','n')}"));
-        expectedResults.put((Tuple)Util.getPigConstant("('o','p')"),  
+        expectedResults.put((Tuple)Util.getPigConstant("('o','p')"),
                             (DataBag)Util.getPigConstant("{('3','o','p'),('4','o','p')}"));
         String[] outputDirs = { "foo1", "foo2", "foo3", "foo4" };
         for(int k = 0; k < outputDirs.length; k++) {
@@ -504,11 +499,11 @@ public class TestMultiQueryBasic {
         }
         // cleanup
         for (int j = 0; j < toClean.length; j++) {
-            Util.deleteFile(new PigContext(ExecType.LOCAL, new Properties()), toClean[j]);    
+            Util.deleteFile(new PigContext(ExecType.LOCAL, new Properties()), toClean[j]);
         }
-        
+
     }
-       
+
     @Test
     public void testMultiQueryWithTwoStores2Execs() throws Exception {
 
@@ -548,11 +543,11 @@ public class TestMultiQueryBasic {
         myPig.executeBatch();
         myPig.discardBatch();
     }
- 
+
     /**
      * Test that pig calls checkOutputSpecs() method of the OutputFormat (if the
-     * StoreFunc defines an OutputFormat as the return value of 
-     * {@link StoreFunc#getStorePreparationClass()} 
+     * StoreFunc defines an OutputFormat as the return value of
+     * {@link StoreFunc#getStorePreparationClass()}
      * @throws IOException
      */
     @Test
@@ -567,33 +562,33 @@ public class TestMultiQueryBasic {
         myPig.setBatchOn();
         Util.registerMultiLineQuery(myPig, query);
         myPig.executeBatch();
-        
+
         // check that files were created as a result of the
         // checkOutputSpecs() method of the OutputFormat being called
         FileSystem fs = FileSystem.getLocal(new Configuration());
         assertEquals(true, fs.exists(new Path("output1_checkOutputSpec_test")));
         assertEquals(true, fs.exists(new Path("output2_checkOutputSpec_test")));
- 
+
         Util.deleteFile(new PigContext(ExecType.LOCAL, new Properties()), "output1_checkOutputSpec_test");
         Util.deleteFile(new PigContext(ExecType.LOCAL, new Properties()), "output2_checkOutputSpec_test");
     }
-        
+
     private static final String DUMMY_STORE_WITH_OUTPUTFORMAT_CLASS
             = "org.apache.pig.test.TestMultiQueryBasic\\$DummyStoreWithOutputFormat";
 
     public static class DummyStoreWithOutputFormat extends StoreFunc {
- 
+
         public DummyStoreWithOutputFormat() {
         }
 
         @Override
         public void putNext(Tuple f) throws IOException {
- 
+
         }
 
         @Override
         public void checkSchema(ResourceSchema s) throws IOException {
- 
+
         }
 
         @Override
@@ -606,7 +601,7 @@ public class TestMultiQueryBasic {
         public void prepareToWrite(
                 org.apache.hadoop.mapreduce.RecordWriter writer)
                 throws IOException {
-            
+
         }
 
         @Override
@@ -620,21 +615,21 @@ public class TestMultiQueryBasic {
                 throws IOException {
             Configuration conf = job.getConfiguration();
             conf.set("mapred.output.dir", location);
-            
+
         }
-        
+
         @Override
         public void setStoreFuncUDFContextSignature(String signature) {
         }
-                
+
     }
-    
+
     @SuppressWarnings({ "unchecked" })
     public static class DummyOutputFormat
     extends OutputFormat<WritableComparable, Tuple> {
 
         public DummyOutputFormat() {
-            
+
         }
         @Override
         public void checkOutputSpecs(JobContext context) throws IOException,
@@ -656,9 +651,9 @@ public class TestMultiQueryBasic {
                 InterruptedException {
             return null;
         }
-        
+
     }
-    
+
     // --------------------------------------------------------------------------
     // Helper methods
 

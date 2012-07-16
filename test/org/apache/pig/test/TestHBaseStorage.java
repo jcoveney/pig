@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -18,12 +18,12 @@ package org.apache.pig.test;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
@@ -39,8 +39,8 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.hbase.HBaseStorage;
 import org.apache.pig.data.DataByteArray;
-import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.Tuple;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -55,7 +55,7 @@ public class TestHBaseStorage {
     private static final Log LOG = LogFactory.getLog(TestHBaseStorage.class);
     private static HBaseTestingUtility util;
     private static Configuration conf;
-    private static MiniCluster cluster; 
+    private static MiniCluster cluster;
     private static PigServer pig;
 
     final static int NUM_REGIONSERVERS = 1;
@@ -305,7 +305,7 @@ public class TestHBaseStorage {
         Assert.assertEquals(TEST_ROW_COUNT, count);
         LOG.info("LoadFromHBase done");
     }
-  
+
     /**
      *     * Test Load from hbase with map parameters and with a
      *     static column
@@ -347,7 +347,7 @@ public class TestHBaseStorage {
 
     /**
      * load from hbase test
-     * 
+     *
      * @throws IOException
      */
     @Test
@@ -382,7 +382,7 @@ public class TestHBaseStorage {
 
     /**
      * load from hbase test without hbase:// prefix
-     * 
+     *
      * @throws IOException
      */
     @Test
@@ -412,7 +412,7 @@ public class TestHBaseStorage {
 
     /**
      * load from hbase test including the row key as the first column
-     * 
+     *
      * @throws IOException
      */
     @Test
@@ -446,7 +446,7 @@ public class TestHBaseStorage {
 
     /**
      * Test Load from hbase with parameters lte and gte (01<=key<=98)
-     * 
+     *
      */
     @Test
     public void testLoadWithParameters_1() throws IOException {
@@ -641,7 +641,7 @@ public class TestHBaseStorage {
     /**
      * load from hbase 'TESTTABLE_1' using HBaseBinary format, and store it into
      * 'TESTTABLE_2' using HBaseBinaryFormat
-     * 
+     *
      * @throws IOException
      */
     @Test
@@ -713,7 +713,7 @@ public class TestHBaseStorage {
     /**
      * load from hbase 'TESTTABLE_1' using HBaseBinary format, and store it into
      * 'TESTTABLE_2' using UTF-8 Plain Text format
-     * 
+     *
      * @throws IOException
      */
     @Test
@@ -903,7 +903,7 @@ public class TestHBaseStorage {
 
     /**
      * Prepare a table in hbase for testing.
-     * 
+     *
      */
     private void prepareTable(String tableName, boolean initData,
             DataFormat format) throws IOException {

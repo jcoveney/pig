@@ -17,6 +17,9 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -58,9 +61,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import junit.framework.TestCase;
-
-public class TestPruneColumn extends TestCase {
+public class TestPruneColumn {
     private PigServer pigServer;
     File tmpFile1;
     File tmpFile2;
@@ -93,8 +94,7 @@ public class TestPruneColumn extends TestCase {
     }
 
     @Before
-    @Override
-    public void setUp() throws Exception{
+    public void setUp() throws Exception {
         Logger logger = Logger.getLogger(ColumnPruneVisitor.class);
         logger.removeAllAppenders();
         logger.setLevel(Level.INFO);
@@ -178,8 +178,7 @@ public class TestPruneColumn extends TestCase {
     }
 
     @After
-    @Override
-    public void tearDown() throws Exception{
+    public void tearDown() throws Exception {
         tmpFile1.delete();
         tmpFile2.delete();
         tmpFile3.delete();
@@ -195,8 +194,7 @@ public class TestPruneColumn extends TestCase {
         logFile.delete();
     }
 
-    public boolean checkLogFileMessage(String[] messages)
-    {
+    public boolean checkLogFileMessage(String[] messages) {
         BufferedReader reader = null;
 
         try {
@@ -2078,12 +2076,12 @@ public class TestPruneColumn extends TestCase {
         input1.delete();
         File input2 = File.createTempFile("tmp", "");
         input2.delete();
-        
+
         Util.createLocalInputFile(input1.getAbsolutePath(), new String[]
                 {"[key1#0,key2#5,key3#val3,key4#val4,key5#val5]"});
         Util.createLocalInputFile(input2.getAbsolutePath(), new String[]
                 {"[key1#0,key2#5,key3#val3,key4#val4,key5#val5]"});
-        
+
         pigServer.registerQuery("event_serve = LOAD '" + input1.getAbsolutePath() +
                 "' AS (s, m, l);");
         pigServer.registerQuery("cm_data_raw = LOAD '" + input2.getAbsolutePath() +
@@ -2094,12 +2092,12 @@ public class TestPruneColumn extends TestCase {
         pigServer.registerQuery("event_serve_project = FOREACH  event_serve GENERATE  s#'key3' AS event_guid, s#'key4' AS receive_time;");
         pigServer.registerQuery("event_serve_join = join cm_serve_final by (cm_event_guid), event_serve_project by (event_guid);");
         Iterator<Tuple> iter = pigServer.openIterator("event_serve_join");
-        
+
         String[] expected = new String[] {"(val3,val4,val5,val3,val4)"};
 
         Util.checkQueryOutputsAfterSortRecursive(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("event_serve_join")));
 
-        assertTrue(checkLogFileMessage(new String[]{"Map key required for event_serve: $0->[key4, key3]", 
+        assertTrue(checkLogFileMessage(new String[]{"Map key required for event_serve: $0->[key4, key3]",
                 "Map key required for cm_data_raw: $0->[key4, key3, key5]"}));
     }
 
@@ -2126,5 +2124,4 @@ public class TestPruneColumn extends TestCase {
         assertTrue(checkLogFileMessage(new String[]{"Map key required for event_serve: $0->[event_guid, receive_time, filter_key]",
                 "Map key required for raw: $0->[source, p_url, cm_serve_timestamp_ms, cm_serve_id, type]"}));
     }
-
 }

@@ -20,27 +20,29 @@ package org.apache.pig.test;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.*;
-
-import org.apache.pig.ExecType;
-import org.apache.pig.PigServer;
-import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
-import org.apache.pig.newplan.logical.relational.LOLoad;
-import org.apache.pig.newplan.logical.relational.LOForEach;
-import org.apache.pig.newplan.logical.relational.LOLimit;
-import org.apache.pig.newplan.logical.relational.LOStore;
-import org.apache.pig.newplan.logical.relational.LogicalPlan;
-import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
-import org.apache.pig.newplan.logical.rules.LimitOptimizer;
-import org.apache.pig.newplan.OperatorPlan;
-import org.apache.pig.newplan.optimizer.PlanOptimizer;
-import org.apache.pig.newplan.optimizer.Rule;
-import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.impl.PigContext;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Properties;
+import java.util.Set;
 
 import junit.framework.Assert;
 
-import org.junit.After;
+import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.newplan.OperatorPlan;
+import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
+import org.apache.pig.newplan.logical.relational.LOForEach;
+import org.apache.pig.newplan.logical.relational.LOLimit;
+import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LOStore;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.newplan.logical.rules.LimitOptimizer;
+import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
+import org.apache.pig.newplan.optimizer.PlanOptimizer;
+import org.apache.pig.newplan.optimizer.Rule;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -48,31 +50,26 @@ public class TestOptimizeLimit {
     final String FILE_BASE_LOCATION = "test/org/apache/pig/test/data/DotFiles/" ;
     static final int MAX_SIZE = 100000;
     PigContext pc = new PigContext( ExecType.LOCAL, new Properties() );
-  
+
     PigServer pigServer;
-    
+
     @Before
     public void setup() throws ExecException {
         pigServer = new PigServer( pc );
     }
-    
-    @After
-    public void tearDown() {
-        
-    }
-    
+
     void compareWithGoldenFile(LogicalPlan plan, String filename) throws Exception {
         String actualPlan = printLimitGraph(plan);
         System.out.println("We get:");
         System.out.println(actualPlan);
-        
+
         FileInputStream fis = new FileInputStream(filename);
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
         String goldenPlan = new String(b, 0, len);
         System.out.println("Expected:");
         System.out.println(goldenPlan);
-        
+
 		Assert.assertEquals(goldenPlan, actualPlan + "\n");
     }
 
@@ -87,10 +84,10 @@ public class TestOptimizeLimit {
     @Test
     // Merget limit into sort
 	public void testOPLimit1Optimizer() throws Exception {
-	    String query = "A = load 'myfile';" + 
+	    String query = "A = load 'myfile';" +
 	                   "B = order A by $0;" +
 	                   "C = limit B 100;" +
-                       "store C into 'empty';";  
+                       "store C into 'empty';";
 	    LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);;
 	    optimizePlan(newLogicalPlan);
 	    compareWithGoldenFile(newLogicalPlan, FILE_BASE_LOCATION + "new-optlimitplan1.dot");
@@ -99,8 +96,8 @@ public class TestOptimizeLimit {
 	@Test
 	// Merge limit into limit
 	public void testOPLimit2Optimizer() throws Exception {
-	    String query = "A = load 'myfile';" + 
-	                   "B = limit A 10;" + 
+	    String query = "A = load 'myfile';" +
+	                   "B = limit A 10;" +
 	                   "C = limit B 100;" + "store C into 'empty';";
 	    LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);;
 	    optimizePlan(newLogicalPlan);
@@ -123,7 +120,7 @@ public class TestOptimizeLimit {
 	@Test
 	// Duplicte limit with one input
 	public void testOPLimit4Optimizer() throws Exception {
-	    String query = "A = load 'myfile1';" + 
+	    String query = "A = load 'myfile1';" +
 	                   "B = group A by $0;" + "C = foreach B generate flatten(A);" + "D = limit C 100;" +
 	                   "store D into 'empty';";
 	    LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);;
@@ -134,7 +131,7 @@ public class TestOptimizeLimit {
 	@Test
 	// Move limit up
     public void testOPLimit5Optimizer() throws Exception {
-        String query = "A = load 'myfile1';" + 
+        String query = "A = load 'myfile1';" +
         "B = foreach A generate $0;" +
         "C = limit B 100;" + "store C into 'empty';" ;
 	    LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);;
@@ -142,12 +139,12 @@ public class TestOptimizeLimit {
         compareWithGoldenFile(newLogicalPlan, FILE_BASE_LOCATION + "new-optlimitplan5.dot");
         Assert.assertTrue(((LOLoad) newLogicalPlan.getSources().get(0)).getLimit() == 100);
     }
-	
+
     @Test
     // Multiple LOLimit
 	public void testOPLimit6Optimizer() throws Exception {
 	    String query = "A = load 'myfile';" +
-	    "B = limit A 50;" + 
+	    "B = limit A 50;" +
 	    "C = limit B 20;" +
 	    "D = limit C 100;" +  "store D into 'empty';";
 	    LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);;
@@ -155,39 +152,39 @@ public class TestOptimizeLimit {
 	    compareWithGoldenFile(newLogicalPlan, FILE_BASE_LOCATION + "new-optlimitplan6.dot");
         Assert.assertTrue(((LOLoad) newLogicalPlan.getSources().get(0)).getLimit() == 20);
 	}
-    
+
     @Test
     // Limit stay the same for ForEach with a flatten
     public void testOPLimit7Optimizer() throws Exception {
-        String query = "A = load 'myfile1';" + 
+        String query = "A = load 'myfile1';" +
         "B = foreach A generate flatten($0);" +
         "C = limit B 100;" + "store C into 'empty';";
 	    LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);;
 	    optimizePlan(newLogicalPlan);
         compareWithGoldenFile(newLogicalPlan, FILE_BASE_LOCATION + "new-optlimitplan7.dot");
     }
-    
+
     @Test
     //Limit in the local mode, need to make sure limit stays after a sort
     public void testOPLimit8Optimizer() throws Exception {
-        String query = "A = load 'myfile';" + 
+        String query = "A = load 'myfile';" +
         "B = order A by $0;" +
         "C = limit B 10;" + "store C into 'empty';";
 	    LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);;
 	    optimizePlan(newLogicalPlan);
        compareWithGoldenFile(newLogicalPlan, FILE_BASE_LOCATION + "new-optlimitplan8.dot");
-        
+
     }
-    
+
     @Test
     public void testOPLimit9Optimizer() throws Exception {
-        String query = "A = load 'myfile';" + 
+        String query = "A = load 'myfile';" +
         "B = order A by $0;" +
         "C = limit B 10;" + "store C into 'empty';";
 	    LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);;
 	    optimizePlan(newLogicalPlan);
        compareWithGoldenFile(newLogicalPlan, FILE_BASE_LOCATION + "new-optlimitplan9.dot");
-        
+
     }
 
     @Test
@@ -209,7 +206,7 @@ public class TestOptimizeLimit {
     	LogicalPlan plan = Util.buildLp(pigServer, query);
 	    optimizePlan(plan);
     }
-    
+
     @Test
     // See PIG-2570
     public void testLimitSoftLink() throws Exception {
@@ -228,36 +225,34 @@ public class TestOptimizeLimit {
         Assert.assertTrue(newLogicalPlan.getSoftLinkPredecessors(limit).get(0) instanceof LOStore);
     }
 
-
     public class MyPlanOptimizer extends LogicalPlanOptimizer {
         protected MyPlanOptimizer(OperatorPlan p,  int iterations) {
             super( p, iterations, new HashSet<String>() );
         }
-        
-        protected List<Set<Rule>> buildRuleSets() {            
+
+        protected List<Set<Rule>> buildRuleSets() {
             List<Set<Rule>> ls = new ArrayList<Set<Rule>>();
-            
+
             Set<Rule> s = null;
             Rule r = null;
-            
+
             s = new HashSet<Rule>();
             r = new LoadTypeCastInserter( "TypeCastInserter");
             s.add(r);
             ls.add(s);
-            
+
             s = new HashSet<Rule>();
             r = new LimitOptimizer("OptimizeLimit");
             s.add(r);
             ls.add(s);
-            
+
             return ls;
         }
-    }    
+    }
 
     private LogicalPlan optimizePlan(LogicalPlan plan) throws IOException {
         PlanOptimizer optimizer = new MyPlanOptimizer( plan, 3 );
         optimizer.optimize();
         return plan;
     }
-
 }

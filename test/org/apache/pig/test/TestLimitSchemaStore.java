@@ -28,21 +28,18 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestLimitSchemaStore{
-    
-    
     private PigServer pigServer;
 
     @Before
     public void setUp() throws Exception{
         pigServer = new PigServer(ExecType.LOCAL);
     }
-    
-    
+
     //PIG-2146
     @Test //end to end test
     public void testLimitStoreSchema1() throws Exception{
         Util.createLocalInputFile("student", new String[]{"joe smith:18:3.5","amy brown:25:2.5","jim fox:20:4.0","leo fu:55:3.0"});
-        
+
         pigServer.registerQuery("a = load 'student' using " + PigStorage.class.getName() + "(':') as (name, age, gpa);");
         pigServer.registerQuery("d = distinct a;");
         pigServer.registerQuery("lim = limit d 1;");
@@ -50,13 +47,11 @@ public class TestLimitSchemaStore{
         Util.deleteDirectory(new File(outFile));
         pigServer.store("lim", outFile,  "PigStorage('\\t', '-schema')");
         pigServer.dumpSchema("lim");
-        
+
         pigServer.registerQuery("b = LOAD '" + outFile + "' using PigStorage('\\t', '-schema');");
         Schema genSchema = pigServer.dumpSchema("b");
         System.err.println(genSchema);
         Assert.assertNotNull(genSchema);
-        
-    } 
-  
-      
+
+    }
 }

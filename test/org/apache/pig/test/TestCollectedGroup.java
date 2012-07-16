@@ -17,7 +17,10 @@
  */
 package org.apache.pig.test;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Iterator;
 import java.util.List;
 
@@ -27,37 +30,34 @@ import org.apache.pig.CollectableLoadFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompilerException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
+import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.test.utils.TestHelper;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompilerException;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
 import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
 public class TestCollectedGroup {
     private static final String INPUT_FILE = "MapSideGroupInput.txt";
-    
+
     private PigServer pigServer;
     private static MiniCluster cluster = MiniCluster.buildCluster();
 
     public TestCollectedGroup() throws ExecException, IOException{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
-    
+
     @Before
     public void setUp() throws Exception {
         createFiles();
@@ -70,21 +70,21 @@ public class TestCollectedGroup {
         w.println("100\tapple2\t74");
         w.println("200\torange1\t100");
         w.println("200\torange2\t89");
-        w.println("300\tstrawberry\t64");      
-        w.println("300\tstrawberry\t64");      
-        w.println("300\tstrawberry\t76");      
+        w.println("300\tstrawberry\t64");
+        w.println("300\tstrawberry\t64");
+        w.println("300\tstrawberry\t76");
         w.println("400\tpear\t78");
         w.close();
-        
+
         Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
     }
-    
+
     @After
     public void tearDown() throws Exception {
         new File(INPUT_FILE).delete();
         Util.deleteFile(cluster, INPUT_FILE);
     }
-    
+
     @Test
     public void testNonCollectableLoader() throws Exception{
         String query = "A = LOAD '" + INPUT_FILE + "' as (id, name, grade);" +
@@ -92,7 +92,7 @@ public class TestCollectedGroup {
         PigContext pc = new PigContext(ExecType.MAPREDUCE,cluster.getProperties());
         pc.connect();
         try {
-            Util.buildMRPlan(Util.buildPp(pigServer, query),pc);  
+            Util.buildMRPlan(Util.buildPp(pigServer, query),pc);
             Assert.fail("Must throw MRCompiler Exception");
         } catch (Exception e) {
             Assert.assertTrue(e instanceof MRCompilerException);
@@ -101,7 +101,7 @@ public class TestCollectedGroup {
 
     @Test
     public void testCollectedGrpSpecifiedInSingleQuotes1() throws Exception {
-    	String query = "A = LOAD '" + INPUT_FILE + "' as (id, name, grade);" + 
+    	String query = "A = LOAD '" + INPUT_FILE + "' as (id, name, grade);" +
     	               "B = group A by id using 'collected';" +
     	               "Store B into 'y';";
         LogicalPlan lp = Util.buildLp(pigServer, query );
@@ -109,7 +109,7 @@ public class TestCollectedGroup {
         LOCogroup grp = (LOCogroup)lp.getPredecessors( store ).get(0);
         Assert.assertEquals( LOCogroup.GROUPTYPE.COLLECTED, grp.getGroupType() );
     }
-    
+
     @Test
     public void testCollectedGrpSpecifiedInSingleQuotes2() throws Exception{
         String query = "A = LOAD '" + INPUT_FILE + "' as (id, name, grade);" +
@@ -120,12 +120,12 @@ public class TestCollectedGroup {
         LOCogroup grp = (LOCogroup)lp.getPredecessors( store ).get(0);
         Assert.assertEquals(LOCogroup.GROUPTYPE.REGULAR, grp.getGroupType());
     }
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     @Test
     public void testPOMapsideGroupNoNullPlans() throws IOException {
         POCollectedGroup pmg = new POCollectedGroup(new OperatorKey());
@@ -133,15 +133,15 @@ public class TestCollectedGroup {
 
         Assert.assertTrue(plans != null);
         Assert.assertTrue(plans.size() == 0);
-    }     
-    
-    @Test  
+    }
+
+    @Test
     public void testMapsideGroupParserNoSupportForMultipleInputs() throws IOException {
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (id, name, grade);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (id, name, grade);");
-    
+
         try {
             pigServer.registerQuery("C = group A by id, B by id using 'collected';");
             pigServer.openIterator( "C" );
@@ -151,13 +151,13 @@ public class TestCollectedGroup {
             Assert.assertTrue( e.getMessage().contains( msg ) );
         }
     }
-    
+
     @Test
     public void testMapsideGroupParserNoSupportForGroupAll() throws IOException {
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (id, name, grade);");
-    
+
         try {
             pigServer.registerQuery("B = group A all using 'collected';");
             pigServer.openIterator( "B" );
@@ -167,13 +167,13 @@ public class TestCollectedGroup {
             Assert.assertTrue( e.getMessage().contains( msg ) );
         }
     }
-     
+
     @Test
     public void testMapsideGroupParserNoSupportForByExpression() throws IOException {
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (id, name, grade);");
-    
+
         try {
             pigServer.registerQuery("B = group A by id*grade using 'collected';");
             pigServer.openIterator("B");
@@ -218,13 +218,13 @@ public class TestCollectedGroup {
             Assert.fail(e.getMessage());
         }
     }
- 
+
     @Test
     public void testMapsideGroupByMultipleColumns() throws IOException{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' using "+DummyCollectableLoader.class.getName() +"() as (id, name, grade);");
-        
+
         try {
             DataBag dbfrj = BagFactory.getInstance().newDefaultBag();
             DataBag dbshj = BagFactory.getInstance().newDefaultBag();
@@ -254,13 +254,13 @@ public class TestCollectedGroup {
             Assert.fail(e.getMessage());
         }
     }
-  
+
     @Test
     public void testMapsideGroupByStar() throws IOException{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' using "+DummyCollectableLoader.class.getName() +"() as (id, name, grade);");
-        
+
         try {
             DataBag dbfrj = BagFactory.getInstance().newDefaultBag();
             DataBag dbshj = BagFactory.getInstance().newDefaultBag();
@@ -296,6 +296,6 @@ public class TestCollectedGroup {
         @Override
         public void ensureAllKeyInstancesInSameSplit() throws IOException {
         }
-        
+
     }
 }

@@ -41,15 +41,12 @@ import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.junit.AfterClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
 public class TestCounters {
     String file = "input.txt";
 
     static MiniCluster cluster = MiniCluster.buildCluster();
-    
+
     final int MAX = 100*1000;
     Random r = new Random();
 
@@ -58,7 +55,7 @@ public class TestCounters {
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     @Test
     public void testMapOnly() throws IOException, ExecException {
         int count = 0;
@@ -75,7 +72,7 @@ public class TestCounters {
         pigServer.registerQuery("c = foreach b generate $0 - 50;");
         ExecJob job = pigServer.store("c", "output_map_only");
         PigStats pigStats = job.getStatistics();
-        
+
         //counting the no. of bytes in the output file
         //long filesize = cluster.getFileSystem().getFileStatus(new Path("output_map_only")).getLen();
         InputStream is = FileLocalizer.open(FileLocalizer.fullPath(
@@ -84,9 +81,9 @@ public class TestCounters {
 
         long filesize = 0;
         while(is.read() != -1) filesize++;
-        
+
         is.close();
-        
+
         cluster.getFileSystem().delete(new Path(file), true);
         cluster.getFileSystem().delete(new Path("output_map_only"), true);
 
@@ -97,7 +94,7 @@ public class TestCounters {
         JobGraph jg = pigStats.getJobGraph();
         Iterator<JobStats> iter = jg.iterator();
         while (iter.hasNext()) {
-            JobStats js = iter.next();                    
+            JobStats js = iter.next();
 
             System.out.println("Map input records : " + js.getMapInputRecords());
             assertEquals(MAX, js.getMapInputRecords());
@@ -128,14 +125,14 @@ public class TestCounters {
         pigServer.registerQuery("c = foreach b generate $0 - 50;");
         ExecJob job = pigServer.store("c", "output_map_only", "BinStorage");
         PigStats pigStats = job.getStatistics();
-        
+
         InputStream is = FileLocalizer.open(FileLocalizer.fullPath(
                 "output_map_only", pigServer.getPigContext()),
                 pigServer.getPigContext());
 
         long filesize = 0;
         while(is.read() != -1) filesize++;
-        
+
         is.close();
 
         cluster.getFileSystem().delete(new Path(file), true);
@@ -149,7 +146,7 @@ public class TestCounters {
         Iterator<JobStats> iter = jp.iterator();
         while (iter.hasNext()) {
             JobStats js = iter.next();
-        
+
             System.out.println("Map input records : " + js.getMapInputRecords());
             assertEquals(MAX, js.getMapInputRecords());
             System.out.println("Map output records : " + js.getMapOutputRecords());
@@ -157,7 +154,7 @@ public class TestCounters {
             assertEquals(0, js.getReduceInputRecords());
             assertEquals(0, js.getReduceOutputRecords());
         }
-            
+
         System.out.println("Hdfs bytes written : " + pigStats.getBytesWritten());
         assertEquals(filesize, pigStats.getBytesWritten());
     }
@@ -194,7 +191,7 @@ public class TestCounters {
 
         long filesize = 0;
         while(is.read() != -1) filesize++;
-        
+
         is.close();
 
         cluster.getFileSystem().delete(new Path(file), true);
@@ -252,9 +249,9 @@ public class TestCounters {
                 pigServer.getPigContext()), pigServer.getPigContext());
         long filesize = 0;
         while(is.read() != -1) filesize++;
-        
+
         is.close();
-        
+
         cluster.getFileSystem().delete(new Path(file), true);
         cluster.getFileSystem().delete(new Path("output"), true);
 
@@ -310,16 +307,16 @@ public class TestCounters {
                 pigServer.getPigContext()), pigServer.getPigContext());
         long filesize = 0;
         while(is.read() != -1) filesize++;
-        
+
         is.close();
- 
+
         cluster.getFileSystem().delete(new Path(file), true);
         cluster.getFileSystem().delete(new Path("output"), true);
 
         System.out.println("============================================");
         System.out.println("Test case MapCombineReduce");
         System.out.println("============================================");
-        
+
         JobGraph jp = pigStats.getJobGraph();
         Iterator<JobStats> iter = jp.iterator();
         while (iter.hasNext()) {
@@ -336,7 +333,7 @@ public class TestCounters {
         System.out.println("Hdfs bytes written : " + pigStats.getBytesWritten());
         assertEquals(filesize, pigStats.getBytesWritten());
     }
-     
+
     @Test
     public void testMapCombineReduceBinStorage() throws IOException, ExecException {
         int count = 0;
@@ -364,13 +361,13 @@ public class TestCounters {
 
         ExecJob job = pigServer.store("c", "output", "BinStorage");
         PigStats pigStats = job.getStatistics();
-        
+
         InputStream is = FileLocalizer.open(FileLocalizer.fullPath("output",
                 pigServer.getPigContext()), pigServer.getPigContext());
 
         long filesize = 0;
         while(is.read() != -1) filesize++;
-        
+
         is.close();
         cluster.getFileSystem().delete(new Path(file), true);
         cluster.getFileSystem().delete(new Path("output"), true);
@@ -378,7 +375,7 @@ public class TestCounters {
         System.out.println("============================================");
         System.out.println("Test case MapCombineReduce");
         System.out.println("============================================");
- 
+
         JobGraph jp = pigStats.getJobGraph();
         Iterator<JobStats> iter = jp.iterator();
         while (iter.hasNext()) {
@@ -412,7 +409,7 @@ public class TestCounters {
         }
         pw.close();
 
-        for(int i = 0; i < 10; i++) { 
+        for(int i = 0; i < 10; i++) {
             if(nos[i] > 0) count ++;
         }
 
@@ -423,27 +420,27 @@ public class TestCounters {
         pigServer.registerQuery("d = foreach c generate group, SUM(b.$1);");
         ExecJob job = pigServer.store("d", "output");
         PigStats pigStats = job.getStatistics();
-        
+
         InputStream is = FileLocalizer.open(FileLocalizer.fullPath("output",
                 pigServer.getPigContext()), pigServer.getPigContext());
         long filesize = 0;
         while(is.read() != -1) filesize++;
-        
+
         is.close();
-        
+
         cluster.getFileSystem().delete(new Path(file), true);
         cluster.getFileSystem().delete(new Path("output"), true);
-        
+
         System.out.println("============================================");
         System.out.println("Test case MultipleMRJobs");
         System.out.println("============================================");
-        
+
         JobGraph jp = pigStats.getJobGraph();
         JobStats js = (JobStats)jp.getSinks().get(0);
-        
+
         System.out.println("Job id: " + js.getName());
         System.out.println(jp.toString());
-        
+
         System.out.println("Map input records : " + js.getMapInputRecords());
         assertEquals(MAX, js.getMapInputRecords());
         System.out.println("Map output records : " + js.getMapOutputRecords());
@@ -452,12 +449,12 @@ public class TestCounters {
         assertEquals(count, js.getReduceInputRecords());
         System.out.println("Reduce output records : " + js.getReduceOutputRecords());
         assertEquals(count, js.getReduceOutputRecords());
-        
+
         System.out.println("Hdfs bytes written : " + js.getHdfsBytesWritten());
         assertEquals(filesize, js.getHdfsBytesWritten());
 
     }
-    
+
     @Test
     public void testMapOnlyMultiQueryStores() throws Exception {
         PrintWriter pw = new PrintWriter(Util.createInputFile(cluster, file));
@@ -466,8 +463,8 @@ public class TestCounters {
             pw.println(t);
         }
         pw.close();
-        
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, 
+
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE,
                 cluster.getProperties());
         pigServer.setBatchOn();
         pigServer.registerQuery("a = load '" + file + "';");
@@ -478,22 +475,22 @@ public class TestCounters {
         List<ExecJob> jobs = pigServer.executeBatch();
         PigStats stats = jobs.get(0).getStatistics();
         assertTrue(stats.getOutputLocations().size() == 2);
-        
+
         cluster.getFileSystem().delete(new Path(file), true);
         cluster.getFileSystem().delete(new Path("/tmp/outout1"), true);
         cluster.getFileSystem().delete(new Path("/tmp/outout2"), true);
 
         JobStats js = (JobStats)stats.getJobGraph().getSinks().get(0);
-        
+
         Map<String, Long> entry = js.getMultiStoreCounters();
         long counter = 0;
         for (Long val : entry.values()) {
             counter += val;
         }
-        
-        assertEquals(MAX, counter);       
-    }    
-    
+
+        assertEquals(MAX, counter);
+    }
+
     @Test
     public void testMultiQueryStores() throws Exception {
         int[] nums = new int[100];
@@ -504,13 +501,13 @@ public class TestCounters {
             nums[t]++;
         }
         pw.close();
-        
+
         int groups = 0;
         for (int i : nums) {
             if (i > 0) groups++;
         }
-        
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, 
+
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE,
                 cluster.getProperties());
         pigServer.setBatchOn();
         pigServer.registerQuery("a = load '" + file + "';");
@@ -524,29 +521,29 @@ public class TestCounters {
         pigServer.registerQuery("store g into '/tmp/outout2';");
         List<ExecJob> jobs = pigServer.executeBatch();
         PigStats stats = jobs.get(0).getStatistics();
-        
+
         assertTrue(stats.getOutputLocations().size() == 2);
-               
+
         cluster.getFileSystem().delete(new Path(file), true);
         cluster.getFileSystem().delete(new Path("/tmp/outout1"), true);
         cluster.getFileSystem().delete(new Path("/tmp/outout2"), true);
 
         JobStats js = (JobStats)stats.getJobGraph().getSinks().get(0);
-        
+
         Map<String, Long> entry = js.getMultiStoreCounters();
         long counter = 0;
         for (Long val : entry.values()) {
             counter += val;
         }
-        
-        assertEquals(groups, counter);       
-    }    
-    
-    /*    
+
+        assertEquals(groups, counter);
+    }
+
+    /*
      * IMPORTANT NOTE:
      * COMMENTED OUT BECAUSE COUNTERS DO NOT CURRENTLY WORK IN LOCAL MODE -
      * SEE PIG-1286 - UNCOMMENT WHEN IT IS FIXED
-     */ 
+     */
 //    @Test
 //    public void testLocal() throws IOException, ExecException {
 //        int count = 0;
@@ -565,7 +562,7 @@ public class TestCounters {
 //        }
 //        pw.close();
 //
-//        for(int i = 0; i < 10; i++) 
+//        for(int i = 0; i < 10; i++)
 //            if(nos[i] > 0)
 //                count ++;
 //
@@ -582,53 +579,53 @@ public class TestCounters {
 //        InputStream is = FileLocalizer.open(FileLocalizer.fullPath(out.getAbsolutePath(), pigServer.getPigContext()), ExecType.MAPREDUCE, pigServer.getPigContext().getDfs());
 //        long filesize = 0;
 //        while(is.read() != -1) filesize++;
-//        
+//
 //        is.close();
 //        out.delete();
-//        
+//
 //        //Map<String, Map<String, String>> stats = pigStats.getPigStats();
-//        
+//
 //        assertEquals(10, pigStats.getRecordsWritten());
 //        assertEquals(110, pigStats.getBytesWritten());
 //
 //    }
 
     @Test
-    public void testJoinInputCounters() throws Exception {        
+    public void testJoinInputCounters() throws Exception {
         testInputCounters("join");
     }
-    
+
     @Test
-    public void testCogroupInputCounters() throws Exception {        
+    public void testCogroupInputCounters() throws Exception {
         testInputCounters("cogroup");
     }
-    
+
     @Test
-    public void testSkewedInputCounters() throws Exception {        
+    public void testSkewedInputCounters() throws Exception {
         testInputCounters("skewed");
     }
-    
+
     @Test
-    public void testSelfJoinInputCounters() throws Exception {        
+    public void testSelfJoinInputCounters() throws Exception {
         testInputCounters("self-join");
     }
-    
+
     private static boolean multiInputCreated = false;
-    
+
     private static int count = 0;
-            
-    private void testInputCounters(String keyword) throws Exception {  
+
+    private void testInputCounters(String keyword) throws Exception {
         String file1 = "multi-input1.txt";
         String file2 = "multi-input2.txt";
-        
+
         String output = keyword;
-        
+
         if (keyword.equals("self-join")) {
             file2 = file1;
             keyword = "join";
         }
-         
-        final int MAX_NUM_RECORDS = 100; 
+
+        final int MAX_NUM_RECORDS = 100;
         if (!multiInputCreated) {
             PrintWriter pw = new PrintWriter(Util.createInputFile(cluster, file1));
             for (int i = 0; i < MAX_NUM_RECORDS; i++) {
@@ -636,7 +633,7 @@ public class TestCounters {
                 pw.println(t);
             }
             pw.close();
-                        
+
             PrintWriter pw2 = new PrintWriter(Util.createInputFile(cluster, file2));
             for (int i = 0; i < MAX_NUM_RECORDS; i++) {
                 int t = r.nextInt(100);
@@ -648,8 +645,8 @@ public class TestCounters {
             pw2.close();
             multiInputCreated = true;
         }
-        
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, 
+
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE,
                 cluster.getProperties());
         pigServer.setBatchOn();
         pigServer.registerQuery("a = load '" + file1 + "';");
@@ -660,7 +657,7 @@ public class TestCounters {
             pigServer.registerQuery("c = join a by $0, b by $0 using 'skewed';");
         }
         ExecJob job = pigServer.store("c", output + "_output");
-        
+
         PigStats stats = job.getStatistics();
         assertTrue(stats.isSuccessful());
         List<InputStats> inputs = stats.getInputStats();

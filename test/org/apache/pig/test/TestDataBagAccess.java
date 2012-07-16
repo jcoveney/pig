@@ -18,6 +18,11 @@
 
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,20 +46,14 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.MultiMap;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
-import junit.framework.TestCase;
 
 /**
  *
  */
-@RunWith(JUnit4.class)
-public class TestDataBagAccess extends TestCase {
+public class TestDataBagAccess {
     private PigServer pigServer;
 
     @Before
-    @Override
     public void setUp() throws Exception{
         pigServer = new PigServer(ExecType.LOCAL, new Properties());
     }

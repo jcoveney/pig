@@ -119,7 +119,7 @@ public class TestPOPartialAggPlan  {
 
         assertNull("POPartialAgg should be absent", findPOPartialAgg(mrp));
     }
-    
+
     private PhysicalOperator findPOPartialAgg(PhysicalPlan mapPlan) {
         Iterator<PhysicalOperator> it = mapPlan.iterator();
         while(it.hasNext()){
@@ -130,7 +130,4 @@ public class TestPOPartialAggPlan  {
         }
         return null;
     }
-
-
-
 }

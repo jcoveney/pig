@@ -17,6 +17,10 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -74,29 +78,25 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class TestStore extends junit.framework.TestCase {
+public class TestStore {
     POStore st;
     DataBag inpDB;
     static MiniCluster cluster = MiniCluster.buildCluster();
     PigContext pc;
     POProject proj;
     PigServer pig;
-        
+
     String inputFileName;
     String outputFileName;
-    
+
     private static final String DUMMY_STORE_CLASS_NAME
     = "org.apache.pig.test.TestStore\\$DummyStore";
 
     private static final String FAIL_UDF_NAME
     = "org.apache.pig.test.TestStore\\$FailUDF";
-    private static final String MAP_MAX_ATTEMPTS = "mapred.map.max.attempts"; 
-    
-    @Override
+    private static final String MAP_MAX_ATTEMPTS = "mapred.map.max.attempts";
+
     @Before
     public void setUp() throws Exception {
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -105,7 +105,6 @@ public class TestStore extends junit.framework.TestCase {
         outputFileName = "/tmp/TestStore-output-" + new Random().nextLong() + ".txt";
     }
 
-    @Override
     @After
     public void tearDown() throws Exception {
         Util.deleteFile(cluster, inputFileName);
@@ -128,7 +127,7 @@ public class TestStore extends junit.framework.TestCase {
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     @Test
     public void testValidation() throws Exception{
         String outputFileName = "test-output.txt";
@@ -141,12 +140,12 @@ public class TestStore extends junit.framework.TestCase {
         } catch (PlanValidationException e){
                 // Since output file is not present, validation should pass
                 // and not throw this exception.
-                fail("Store validation test failed.");                
+                fail("Store validation test failed.");
         } finally {
             Util.deleteFile(pig.getPigContext(), outputFileName);
         }
     }
-    
+
     @Test
     public void testValidationFailure() throws Exception{
         String input[] = new String[] { "some data" };
@@ -161,7 +160,7 @@ public class TestStore extends junit.framework.TestCase {
             new InputOutputFileValidator(lp, pig.getPigContext()).validate();
         } catch (FrontendException pve){
             // Since output file is present, validation should fail
-            // and throw this exception 
+            // and throw this exception
             assertEquals(6000,pve.getErrorCode());
             assertEquals(PigException.REMOTE_ENVIRONMENT, pve.getErrorSource());
             assertTrue(pve.getCause() instanceof IOException);
@@ -171,12 +170,12 @@ public class TestStore extends junit.framework.TestCase {
             Util.deleteFile(pig.getPigContext(), outputFileName);
         }
     }
-    
+
     @Test
     public void testStore() throws Exception {
         inpDB = GenRandomData.genRandSmallTupDataBag(new Random(), 10, 100);
         storeAndCopyLocally(inpDB);
-        
+
         int size = 0;
         BufferedReader br = new BufferedReader(new FileReader(outputFileName));
         for(String line=br.readLine();line!=null;line=br.readLine()){
@@ -184,7 +183,7 @@ public class TestStore extends junit.framework.TestCase {
             Tuple t = new DefaultTuple();
             t.append(flds[0].compareTo("")!=0 ? flds[0] : null);
             t.append(flds[1].compareTo("")!=0 ? Integer.parseInt(flds[1]) : null);
-            
+
             System.err.println("Simple data: ");
             System.err.println(line);
             System.err.println("t: ");
@@ -197,7 +196,7 @@ public class TestStore extends junit.framework.TestCase {
 
     /**
      * @param inpD
-     * @throws IOException 
+     * @throws IOException
      */
     private void setUpInputFileOnCluster(DataBag inpD) throws IOException {
         String[] data = new String[(int) inpD.size()];
@@ -205,10 +204,10 @@ public class TestStore extends junit.framework.TestCase {
         for (Tuple tuple : inpD) {
             data[i] = toDelimitedString(tuple, "\t");
             i++;
-        } 
+        }
         Util.createInputFile(cluster, inputFileName, data);
     }
-    
+
     @SuppressWarnings("unchecked")
     private String toDelimitedString(Tuple t, String delim) throws ExecException {
         StringBuilder buf = new StringBuilder();
@@ -224,7 +223,7 @@ public class TestStore extends junit.framework.TestCase {
                     buf.append(field.toString());
                 }
             }
-            
+
             if (i != t.size() - 1)
                 buf.append(delim);
         }
@@ -241,10 +240,10 @@ public class TestStore extends junit.framework.TestCase {
         for(String line=br.readLine();line!=null;line=br.readLine()){
             String[] flds = line.split(":",-1);
             Tuple t = new DefaultTuple();
-            
+
             ResourceFieldSchema bagfs = GenRandomData.getSmallTupDataBagFieldSchema();
             ResourceFieldSchema tuplefs = GenRandomData.getSmallTupleFieldSchema();
-            
+
             t.append(flds[0].compareTo("")!=0 ? ps.getLoadCaster().bytesToBag(flds[0].getBytes(), bagfs) : null);
             t.append(flds[1].compareTo("")!=0 ? new DataByteArray(flds[1].getBytes()) : null);
             t.append(flds[2].compareTo("")!=0 ? ps.getLoadCaster().bytesToCharArray(flds[2].getBytes()) : null);
@@ -275,24 +274,24 @@ public class TestStore extends junit.framework.TestCase {
             System.err.println(line);
             String[] flds = line.split(":",-1);
             Tuple t = new DefaultTuple();
-            
+
             ResourceFieldSchema stringfs = new ResourceFieldSchema();
             stringfs.setType(DataType.CHARARRAY);
             ResourceFieldSchema intfs = new ResourceFieldSchema();
             intfs.setType(DataType.INTEGER);
-            
+
             ResourceSchema tupleSchema = new ResourceSchema();
             tupleSchema.setFields(new ResourceFieldSchema[]{stringfs, intfs});
             ResourceFieldSchema tuplefs = new ResourceFieldSchema();
             tuplefs.setSchema(tupleSchema);
             tuplefs.setType(DataType.TUPLE);
-            
+
             ResourceSchema bagSchema = new ResourceSchema();
             bagSchema.setFields(new ResourceFieldSchema[]{tuplefs});
             ResourceFieldSchema bagfs = new ResourceFieldSchema();
             bagfs.setSchema(bagSchema);
             bagfs.setType(DataType.BAG);
-            
+
             t.append(flds[0].compareTo("")!=0 ? ps.getLoadCaster().bytesToBag(flds[0].getBytes(), bagfs) : null);
             t.append(flds[1].compareTo("")!=0 ? new DataByteArray(flds[1].getBytes()) : null);
             t.append(flds[2].compareTo("")!=0 ? ps.getLoadCaster().bytesToCharArray(flds[2].getBytes()) : null);
@@ -314,7 +313,7 @@ public class TestStore extends junit.framework.TestCase {
         String inputFileName = "testGetSchema-input.txt";
         String outputFileName = "testGetSchema-output.txt";
         try {
-            Util.createInputFile(pig.getPigContext(), 
+            Util.createInputFile(pig.getPigContext(),
                     inputFileName, input);
             String query = "a = load '" + inputFileName + "' as (c:chararray, " +
                     "i:int,d:double);store a into '" + outputFileName + "' using " +
@@ -322,12 +321,12 @@ public class TestStore extends junit.framework.TestCase {
             pig.setBatchOn();
             Util.registerMultiLineQuery(pig, query);
             pig.executeBatch();
-            ResourceSchema rs = new BinStorage().getSchema(outputFileName, 
+            ResourceSchema rs = new BinStorage().getSchema(outputFileName,
                     new Job(ConfigurationUtil.toConfiguration(pig.getPigContext().
                             getProperties())));
             Schema expectedSchema = Utils.getSchemaFromString(
                     "c:chararray,i:int,d:double");
-            Assert.assertTrue("Checking binstorage getSchema output", Schema.equals( 
+            Assert.assertTrue("Checking binstorage getSchema output", Schema.equals(
                     expectedSchema, Schema.getPigSchema(rs), true, true));
         } finally {
             Util.deleteFile(pig.getPigContext(), inputFileName);
@@ -372,20 +371,20 @@ public class TestStore extends junit.framework.TestCase {
         try {
             ExecType[] modes = new ExecType[] { ExecType.MAPREDUCE, ExecType.LOCAL};
             String[] inputData = new String[]{"hello\tworld", "bye\tworld"};
-            
+
             String script = "a = load '"+ inputFileName + "' as (a0:chararray, a1:chararray);" +
-            		"store a into '" + outputFileName + "' using " + 
+            		"store a into '" + outputFileName + "' using " +
             		DUMMY_STORE_CLASS_NAME + "();";
-            
+
             for (ExecType execType : modes) {
                 if(execType == ExecType.MAPREDUCE) {
-                    ps = new PigServer(ExecType.MAPREDUCE, 
+                    ps = new PigServer(ExecType.MAPREDUCE,
                             cluster.getProperties());
                     Util.deleteFile(ps.getPigContext(), inputFileName);
                     Util.deleteFile(ps.getPigContext(), outputFileName);
                     Util.deleteFile(ps.getPigContext(), storeSchemaOutputFile);
                 } else {
-                    Properties props = new Properties();                                          
+                    Properties props = new Properties();
                     props.setProperty(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
                     ps = new PigServer(ExecType.LOCAL, props);
                     Util.deleteFile(ps.getPigContext(), inputFileName);
@@ -393,13 +392,13 @@ public class TestStore extends junit.framework.TestCase {
                     Util.deleteFile(ps.getPigContext(), storeSchemaOutputFile);
                 }
                 ps.setBatchOn();
-                Util.createInputFile(ps.getPigContext(), 
+                Util.createInputFile(ps.getPigContext(),
                         inputFileName, inputData);
                 Util.registerMultiLineQuery(ps, script);
                 ps.executeBatch();
                 assertEquals(
                         "Checking if file indicating that storeSchema was " +
-                        "called exists in " + execType + " mode", true, 
+                        "called exists in " + execType + " mode", true,
                         Util.exists(ps.getPigContext(), storeSchemaOutputFile));
             }
         } catch (Exception e) {
@@ -411,7 +410,7 @@ public class TestStore extends junit.framework.TestCase {
             Util.deleteFile(ps.getPigContext(), storeSchemaOutputFile);
         }
     }
-    
+
     @Test
     public void testCleanupOnFailure() throws Exception {
         PigServer ps = null;
@@ -420,17 +419,17 @@ public class TestStore extends junit.framework.TestCase {
         try {
             ExecType[] modes = new ExecType[] { ExecType.LOCAL, ExecType.MAPREDUCE};
             String[] inputData = new String[]{"hello\tworld", "bye\tworld"};
-            
+
             String script = "a = load '"+ inputFileName + "';" +
-                    "store a into '" + outputFileName + "' using " + 
+                    "store a into '" + outputFileName + "' using " +
                     DUMMY_STORE_CLASS_NAME + "('true');";
-            
+
             for (ExecType execType : modes) {
                 if(execType == ExecType.MAPREDUCE) {
-                    ps = new PigServer(ExecType.MAPREDUCE, 
+                    ps = new PigServer(ExecType.MAPREDUCE,
                             cluster.getProperties());
                 } else {
-                    Properties props = new Properties();                                          
+                    Properties props = new Properties();
                     props.setProperty(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
                     ps = new PigServer(ExecType.LOCAL, props);
                 }
@@ -439,17 +438,17 @@ public class TestStore extends junit.framework.TestCase {
                 Util.deleteFile(ps.getPigContext(), cleanupFailFile);
                 Util.deleteFile(ps.getPigContext(), cleanupSuccessFile);
                 ps.setBatchOn();
-                Util.createInputFile(ps.getPigContext(), 
+                Util.createInputFile(ps.getPigContext(),
                         inputFileName, inputData);
                 Util.registerMultiLineQuery(ps, script);
                 ps.executeBatch();
                 assertEquals(
                         "Checking if file indicating that cleanupOnFailure failed " +
-                        " does not exists in " + execType + " mode", false, 
+                        " does not exists in " + execType + " mode", false,
                         Util.exists(ps.getPigContext(), cleanupFailFile));
                 assertEquals(
                         "Checking if file indicating that cleanupOnFailure was " +
-                        "successfully called exists in " + execType + " mode", true, 
+                        "successfully called exists in " + execType + " mode", true,
                         Util.exists(ps.getPigContext(), cleanupSuccessFile));
             }
         } catch (Exception e) {
@@ -462,8 +461,8 @@ public class TestStore extends junit.framework.TestCase {
             Util.deleteFile(ps.getPigContext(), cleanupSuccessFile);
         }
     }
-    
-    
+
+
     @Test
     public void testCleanupOnFailureMultiStore() throws Exception {
         PigServer ps = null;
@@ -473,26 +472,26 @@ public class TestStore extends junit.framework.TestCase {
         String cleanupFailFile1 = outputFileName1 + "_cleanupOnFailure_failed1";
         String cleanupSuccessFile2 = outputFileName2 + "_cleanupOnFailure_succeeded2";
         String cleanupFailFile2 = outputFileName2 + "_cleanupOnFailure_failed2";
-        
+
         try {
             ExecType[] modes = new ExecType[] { /*ExecType.LOCAL, */ExecType.MAPREDUCE};
             String[] inputData = new String[]{"hello\tworld", "bye\tworld"};
-            
+
             // though the second store should
             // not cause a failure, the first one does and the result should be
             // that both stores are considered to have failed
             String script = "a = load '"+ inputFileName + "';" +
-                    "store a into '" + outputFileName1 + "' using " + 
+                    "store a into '" + outputFileName1 + "' using " +
                     DUMMY_STORE_CLASS_NAME + "('true', '1');" +
-                    "store a into '" + outputFileName2 + "' using " + 
-                    DUMMY_STORE_CLASS_NAME + "('false', '2');"; 
-            
+                    "store a into '" + outputFileName2 + "' using " +
+                    DUMMY_STORE_CLASS_NAME + "('false', '2');";
+
             for (ExecType execType : modes) {
                 if(execType == ExecType.MAPREDUCE) {
-                    ps = new PigServer(ExecType.MAPREDUCE, 
+                    ps = new PigServer(ExecType.MAPREDUCE,
                             cluster.getProperties());
                 } else {
-                    Properties props = new Properties();                                          
+                    Properties props = new Properties();
                     props.setProperty(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
                     ps = new PigServer(ExecType.LOCAL, props);
                 }
@@ -504,25 +503,25 @@ public class TestStore extends junit.framework.TestCase {
                 Util.deleteFile(ps.getPigContext(), cleanupFailFile2);
                 Util.deleteFile(ps.getPigContext(), cleanupSuccessFile2);
                 ps.setBatchOn();
-                Util.createInputFile(ps.getPigContext(), 
+                Util.createInputFile(ps.getPigContext(),
                         inputFileName, inputData);
                 Util.registerMultiLineQuery(ps, script);
                 ps.executeBatch();
                 assertEquals(
                         "Checking if file indicating that cleanupOnFailure failed " +
-                        " does not exists in " + execType + " mode", false, 
+                        " does not exists in " + execType + " mode", false,
                         Util.exists(ps.getPigContext(), cleanupFailFile1));
                 assertEquals(
                         "Checking if file indicating that cleanupOnFailure failed " +
-                        " does not exists in " + execType + " mode", false, 
+                        " does not exists in " + execType + " mode", false,
                         Util.exists(ps.getPigContext(), cleanupFailFile2));
                 assertEquals(
                         "Checking if file indicating that cleanupOnFailure was " +
-                        "successfully called exists in " + execType + " mode", true, 
+                        "successfully called exists in " + execType + " mode", true,
                         Util.exists(ps.getPigContext(), cleanupSuccessFile1));
                 assertEquals(
                         "Checking if file indicating that cleanupOnFailure was " +
-                        "successfully called exists in " + execType + " mode", true, 
+                        "successfully called exists in " + execType + " mode", true,
                         Util.exists(ps.getPigContext(), cleanupSuccessFile2));
             }
         } catch (Exception e) {
@@ -538,7 +537,7 @@ public class TestStore extends junit.framework.TestCase {
             Util.deleteFile(ps.getPigContext(), cleanupSuccessFile2);
         }
     }
-    
+
     // Test that "_SUCCESS" file is created when "mapreduce.fileoutputcommitter.marksuccessfuljobs"
     // property is set to true
     // The test covers multi store and single store case in local and mapreduce mode
@@ -547,54 +546,54 @@ public class TestStore extends junit.framework.TestCase {
     @Test
     public void testSuccessFileCreation1() throws Exception {
         PigServer ps = null;
-        String[] files = new String[] { inputFileName, 
+        String[] files = new String[] { inputFileName,
                 outputFileName + "_1", outputFileName + "_2", outputFileName + "_3"};
         try {
             ExecType[] modes = new ExecType[] { ExecType.LOCAL, ExecType.MAPREDUCE};
             String[] inputData = new String[]{"hello\tworld", "hi\tworld", "bye\tworld"};
-            
+
             String multiStoreScript = "a = load '"+ inputFileName + "';" +
                     "b = filter a by $0 == 'hello';" +
                     "c = filter a by $0 == 'hi';" +
                     "d = filter a by $0 == 'bye';" +
                     "store b into '" + outputFileName + "_1';" +
-                    "store c into '" + outputFileName + "_2';" + 
+                    "store c into '" + outputFileName + "_2';" +
                     "store d into '" + outputFileName + "_3';";
-            
+
             String singleStoreScript =  "a = load '"+ inputFileName + "';" +
                 "store a into '" + outputFileName + "_1';" ;
-            
+
             for (ExecType execType : modes) {
                 for(boolean isPropertySet: new boolean[] { true, false}) {
                     for(boolean isMultiStore: new boolean[] { true, false}) {
-                        String script = (isMultiStore ? multiStoreScript : 
+                        String script = (isMultiStore ? multiStoreScript :
                             singleStoreScript);
                         // since we will be switching between map red and local modes
                         // we will need to make sure filelocalizer is reset before each
                         // run.
                         FileLocalizer.setInitialized(false);
                         if(execType == ExecType.MAPREDUCE) {
-                            ps = new PigServer(ExecType.MAPREDUCE, 
+                            ps = new PigServer(ExecType.MAPREDUCE,
                                     cluster.getProperties());
                         } else {
-                            Properties props = new Properties();                                          
+                            Properties props = new Properties();
                             props.setProperty(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
                             ps = new PigServer(ExecType.LOCAL, props);
                         }
                         ps.getPigContext().getProperties().setProperty(
-                                MapReduceLauncher.SUCCESSFUL_JOB_OUTPUT_DIR_MARKER, 
+                                MapReduceLauncher.SUCCESSFUL_JOB_OUTPUT_DIR_MARKER,
                                 Boolean.toString(isPropertySet));
                         cleanupFiles(ps, files);
                         ps.setBatchOn();
-                        Util.createInputFile(ps.getPigContext(), 
+                        Util.createInputFile(ps.getPigContext(),
                                 inputFileName, inputData);
                         Util.registerMultiLineQuery(ps, script);
                         ps.executeBatch();
                         for(int i = 1; i <= (isMultiStore ? 3 : 1); i++) {
-                            String sucFile = outputFileName + "_" + i + "/" + 
+                            String sucFile = outputFileName + "_" + i + "/" +
                                                MapReduceLauncher.SUCCEEDED_FILE_NAME;
-                            assertEquals("Checking if _SUCCESS file exists in " + 
-                                    execType + " mode", isPropertySet, 
+                            assertEquals("Checking if _SUCCESS file exists in " +
+                                    execType + " mode", isPropertySet,
                                     Util.exists(ps.getPigContext(), sucFile));
                         }
                     }
@@ -605,7 +604,7 @@ public class TestStore extends junit.framework.TestCase {
         }
     }
 
-    // Test _SUCCESS file is NOT created when job fails and when 
+    // Test _SUCCESS file is NOT created when job fails and when
     // "mapreduce.fileoutputcommitter.marksuccessfuljobs" property is set to true
     // The test covers multi store and single store case in local and mapreduce mode
     // The test also checks that "_SUCCESS" file is NOT created when the property
@@ -613,7 +612,7 @@ public class TestStore extends junit.framework.TestCase {
     @Test
     public void testSuccessFileCreation2() throws Exception {
         PigServer ps = null;
-        String[] files = new String[] { inputFileName, 
+        String[] files = new String[] { inputFileName,
                 outputFileName + "_1", outputFileName + "_2", outputFileName + "_3"};
         try {
             ExecType[] modes = new ExecType[] { ExecType.LOCAL, ExecType.MAPREDUCE};
@@ -621,46 +620,46 @@ public class TestStore extends junit.framework.TestCase {
             System.err.println("XXX: " + TestStore.FailUDF.class.getName());
             String multiStoreScript = "a = load '"+ inputFileName + "';" +
                     "b = filter a by $0 == 'hello';" +
-                    "b = foreach b generate " + FAIL_UDF_NAME + "($0);" + 
+                    "b = foreach b generate " + FAIL_UDF_NAME + "($0);" +
                     "c = filter a by $0 == 'hi';" +
                     "d = filter a by $0 == 'bye';" +
                     "store b into '" + outputFileName + "_1';" +
-                    "store c into '" + outputFileName + "_2';" + 
+                    "store c into '" + outputFileName + "_2';" +
                     "store d into '" + outputFileName + "_3';";
-            
+
             String singleStoreScript =  "a = load '"+ inputFileName + "';" +
-                "b = foreach a generate " + FAIL_UDF_NAME + "($0);" + 
+                "b = foreach a generate " + FAIL_UDF_NAME + "($0);" +
                 "store b into '" + outputFileName + "_1';" ;
-            
+
             for (ExecType execType : modes) {
                 for(boolean isPropertySet: new boolean[] { true, false}) {
                     for(boolean isMultiStore: new boolean[] { true, false}) {
-                        String script = (isMultiStore ? multiStoreScript : 
+                        String script = (isMultiStore ? multiStoreScript :
                             singleStoreScript);
                         // since we will be switching between map red and local modes
                         // we will need to make sure filelocalizer is reset before each
                         // run.
                         FileLocalizer.setInitialized(false);
                         if(execType == ExecType.MAPREDUCE) {
-                            // since the job is guaranteed to fail, let's set 
+                            // since the job is guaranteed to fail, let's set
                             // number of retries to 1.
                             Properties props = cluster.getProperties();
                             props.setProperty(MAP_MAX_ATTEMPTS, "1");
                             ps = new PigServer(ExecType.MAPREDUCE, props);
                         } else {
-                            Properties props = new Properties();                                          
+                            Properties props = new Properties();
                             props.setProperty(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
-                            // since the job is guaranteed to fail, let's set 
+                            // since the job is guaranteed to fail, let's set
                             // number of retries to 1.
                             props.setProperty(MAP_MAX_ATTEMPTS, "1");
                             ps = new PigServer(ExecType.LOCAL, props);
                         }
                         ps.getPigContext().getProperties().setProperty(
-                                MapReduceLauncher.SUCCESSFUL_JOB_OUTPUT_DIR_MARKER, 
+                                MapReduceLauncher.SUCCESSFUL_JOB_OUTPUT_DIR_MARKER,
                                 Boolean.toString(isPropertySet));
                         cleanupFiles(ps, files);
                         ps.setBatchOn();
-                        Util.createInputFile(ps.getPigContext(), 
+                        Util.createInputFile(ps.getPigContext(),
                                 inputFileName, inputData);
                         Util.registerMultiLineQuery(ps, script);
                         try {
@@ -672,10 +671,10 @@ public class TestStore extends junit.framework.TestCase {
                             }
                         }
                         for(int i = 1; i <= (isMultiStore ? 3 : 1); i++) {
-                            String sucFile = outputFileName + "_" + i + "/" + 
+                            String sucFile = outputFileName + "_" + i + "/" +
                                                MapReduceLauncher.SUCCEEDED_FILE_NAME;
-                            assertEquals("Checking if _SUCCESS file exists in " + 
-                                    execType + " mode", false, 
+                            assertEquals("Checking if _SUCCESS file exists in " +
+                                    execType + " mode", false,
                                     Util.exists(ps.getPigContext(), sucFile));
                         }
                     }
@@ -693,30 +692,30 @@ public class TestStore extends junit.framework.TestCase {
         public String exec(Tuple input) throws IOException {
             throw new IOException("FailUDFException");
         }
-        
+
     }
     private void cleanupFiles(PigServer ps, String... files) throws IOException {
         for(String file:files) {
             Util.deleteFile(ps.getPigContext(), file);
-        }    
+        }
     }
-    
-    
+
+
     public static class DummyStore extends PigStorage implements StoreMetadata{
 
         private boolean failInPutNext = false;
-        
+
         private String outputFileSuffix= "";
 
         public DummyStore(String failInPutNextStr) {
             failInPutNext = Boolean.parseBoolean(failInPutNextStr);
         }
-        
+
         public DummyStore(String failInPutNextStr, String outputFileSuffix) {
             failInPutNext = Boolean.parseBoolean(failInPutNextStr);
             this.outputFileSuffix = outputFileSuffix;
         }
-        
+
         public DummyStore() {
         }
 
@@ -743,7 +742,7 @@ public class TestStore extends junit.framework.TestCase {
 	            // not creating the marker file below fails the test
 	            throw new IOException("" + resultPath + " not available in storeSchema");
             }
-            
+
             // create a file to test that this method got called - if it gets called
             // multiple times, the create will throw an Exception
             fs.create(
@@ -755,29 +754,29 @@ public class TestStore extends junit.framework.TestCase {
         public void cleanupOnFailure(String location, Job job)
                 throws IOException {
             super.cleanupOnFailure(location, job);
-            
+
             // check that the output file location is not present
             Configuration conf = job.getConfiguration();
             FileSystem fs = FileSystem.get(conf);
             if(fs.exists(new Path(location))) {
                 // create a file to inidicate that the cleanup did not happen
-                fs.create(new Path(location + "_cleanupOnFailure_failed" + 
+                fs.create(new Path(location + "_cleanupOnFailure_failed" +
                         outputFileSuffix), false);
             }
             // create a file to test that this method got called successfully
-            // if it gets called multiple times, the create will throw an Exception 
+            // if it gets called multiple times, the create will throw an Exception
             fs.create(
-                    new Path(location + "_cleanupOnFailure_succeeded" + 
+                    new Path(location + "_cleanupOnFailure_succeeded" +
                             outputFileSuffix), false);
         }
 
         @Override
         public void storeStatistics(ResourceStatistics stats, String location,
                 Job job) throws IOException {
-            
+
         }
     }
-    
+
     private void checkStorePath(String orig, String expected) throws Exception {
         checkStorePath(orig, expected, false);
     }
@@ -788,21 +787,21 @@ public class TestStore extends junit.framework.TestCase {
         DataStorage dfs = pc.getDfs();
         dfs.setActiveContainer(dfs.asContainer("/tmp"));
         Map<String, String> fileNameMap = new HashMap<String, String>();
-        
+
         QueryParserDriver builder = new QueryParserDriver(pc, "Test-Store", fileNameMap);
-        
+
         String query = "a = load 'foo';" + "store a into '"+orig+"';";
         LogicalPlan lp = builder.parse(query);
 
         Assert.assertTrue(lp.size()>1);
         Operator op = lp.getSinks().get(0);
-        
+
         Assert.assertTrue(op instanceof LOStore);
         LOStore store = (LOStore)op;
 
         String p = store.getFileSpec().getFileName();
         p = p.replaceAll("hdfs://[0-9a-zA-Z:\\.]*/","/");
-        
+
         if (isTmp) {
             Assert.assertTrue(p.matches("/tmp.*"));
         } else {

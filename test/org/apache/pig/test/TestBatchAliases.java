@@ -17,12 +17,13 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
 
 import junit.framework.Assert;
-import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -31,22 +32,18 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-@RunWith(JUnit4.class)
-public class TestBatchAliases extends TestCase {
+
+public class TestBatchAliases {
 
     private PigServer myPig;
 
-    @Override
     @Before
     public void setUp() throws Exception {
         System.setProperty("opt.multiquery", ""+true);
         myPig = new PigServer(ExecType.LOCAL, new Properties());
         deleteOutputFiles();
     }
-    
-    @Override
+
     @After
     public void tearDown() throws Exception {
         deleteOutputFiles();

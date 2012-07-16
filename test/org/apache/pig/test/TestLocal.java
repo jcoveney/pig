@@ -17,6 +17,8 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -25,8 +27,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.Iterator;
-
-import junit.framework.TestCase;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -46,16 +46,14 @@ import org.apache.pig.test.utils.TestHelper;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestLocal extends TestCase {
+public class TestLocal {
 
     private Log log = LogFactory.getLog(getClass());
-    
 
     private PigServer pig;
-    
+
     @Before
-    @Override
-    protected void setUp() throws Exception {
+    public void setUp() throws Exception {
         //pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         pig = new PigServer("local");
     }
@@ -64,7 +62,7 @@ public class TestLocal extends TestCase {
     public void testBigGroupAll() throws Throwable {
 
         int LOOP_COUNT = 4*1024;
-        File tmpFile = File.createTempFile( this.getName(), ".txt");
+        File tmpFile = File.createTempFile( getClass().getName(), ".txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
             ps.println(i);
@@ -79,7 +77,7 @@ public class TestLocal extends TestCase {
     public void testBigGroupAllWithNull() throws Throwable {
 
         int LOOP_COUNT = 4*1024;
-        File tmpFile = File.createTempFile( this.getName(), ".txt");
+        File tmpFile = File.createTempFile( getClass().getName(), ".txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         long nonNullCnt = 0;
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -112,7 +110,7 @@ public class TestLocal extends TestCase {
         return  DataType.toDouble(t.get(0));
     }
 
-    
+
     static public class MyApply extends EvalFunc<DataBag> {
         String field0 = "Got";
         public MyApply() {}
@@ -165,14 +163,14 @@ public class TestLocal extends TestCase {
         public void setNulls(boolean hasNulls ) { this.hasNulls=hasNulls; }
 
         /**
-         * 
+         *
          */
         public MyStorage() {
             // initialize delimiter to be "-" for output
             // since that is the delimiter in the tests below
             super("-");
         }
-        
+
         @Override
         public Tuple getNext() throws IOException {
             if (count < COUNT) {
@@ -242,7 +240,7 @@ public class TestLocal extends TestCase {
         String[][] data = genDataSetFile1( 10, true );
         storeFunction( data);
     }
-   
+
     public void storeFunction(String[][] data) throws Throwable {
 
         File tmpFile=TestHelper.createTempFile(data) ;
@@ -315,7 +313,7 @@ public class TestLocal extends TestCase {
         assertEquals( MyStorage.COUNT, count );
         tmpFile.delete();
     }
-    
+
     @Test
     public void testQualifiedFunctionsWithNulls() throws Throwable {
 
@@ -354,7 +352,7 @@ public class TestLocal extends TestCase {
         assertEquals( MyStorage.COUNT, count );
         tmpFile.delete();
     }
-    
+
 
     @Test
     public void testDefinedFunctions() throws Throwable {
@@ -477,11 +475,11 @@ public class TestLocal extends TestCase {
      *           3  3
      *           4  4
      *           5  5
-     *           6   
+     *           6
      *           7  7
-     *               
+     *
      *           9  9
-     *           
+     *
      */
     private String[][] genDataSetFile1( int dataLength, boolean hasNulls ) throws IOException {
 
@@ -498,7 +496,7 @@ public class TestLocal extends TestCase {
                     data[i][1] = new Integer(i).toString();
 
              } else if ( i == 6 ) {
-                   
+
                     data[i][0] = new Integer(i).toString();
                     data[i][1] = "";
 

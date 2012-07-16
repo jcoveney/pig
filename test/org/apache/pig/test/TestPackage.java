@@ -17,8 +17,6 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.assertEquals;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,7 +32,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
@@ -42,20 +39,9 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.TestHelper;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 public class TestPackage extends junit.framework.TestCase {
-
-    @Before
-    public void setUp() throws Exception {
-    }
-
-    @After
-    public void tearDown() throws Exception {
-    }
-    
     private void runTest(Object key, boolean inner[], byte keyType) throws ExecException, IOException {
         Random r = new Random();
         DataBag db1 = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
@@ -81,14 +67,14 @@ public class TestPackage extends junit.framework.TestCase {
         pop.setInner(inner);
         PigNullableWritable k = HDataType.getWritableComparableTypes(key, keyType);
         pop.attachInput(k, db.iterator());
-        
+
         // we are not doing any optimization to remove
         // parts of the "value" which are present in the "key" in this
-        // unit test - so set up the "keyInfo" accordingly in 
+        // unit test - so set up the "keyInfo" accordingly in
         // the POPackage
-        Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo = 
+        Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo =
             new HashMap<Integer, Pair<Boolean, Map<Integer,Integer>>>();
-        Pair<Boolean, Map<Integer, Integer>> p = 
+        Pair<Boolean, Map<Integer, Integer>> p =
             new Pair<Boolean, Map<Integer, Integer>>(false, new HashMap<Integer, Integer>());
         keyInfo.put(0, p);
         keyInfo.put(1, p);
@@ -126,13 +112,13 @@ public class TestPackage extends junit.framework.TestCase {
             runTest(GenRandomData.genRandDBA(r),inner, DataType.BYTEARRAY);
             break;
         case DataType.BIGCHARARRAY: {
-			String s = GenRandomData.genRandString(r);			
+			String s = GenRandomData.genRandString(r);
 			for(;s.length() < 65535;) {
 				s += GenRandomData.genRandString(r);
 			}
 			runTest(s,inner, DataType.CHARARRAY);
         	break;
-        }        	
+        }
         case DataType.CHARARRAY:
             runTest(GenRandomData.genRandString(r),inner, DataType.CHARARRAY);
             break;
@@ -176,7 +162,7 @@ public class TestPackage extends junit.framework.TestCase {
             boolean[] inner1 = { false , false };
             for (int i = 0; i < NUM_TRIALS; i++)
                 pickTest(b, inner1);
-            
+
             boolean[] inner2 = { true , false };
             for (int i = 0; i < NUM_TRIALS; i++)
                 pickTest(b, inner2);

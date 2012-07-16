@@ -17,7 +17,9 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -37,13 +39,9 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-
 import org.junit.AfterClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
 public class TestSampleOptimizer {
 
     static PigContext pc;
@@ -62,7 +60,7 @@ public class TestSampleOptimizer {
     public static void oneTimeTearDown() throws Exception {
         MiniCluster.buildCluster().shutDown();
     }
-    
+
     @Test
     public void testOptimizerFired() throws Exception{
         String query = " A = load 'input' using PigStorage('\t');" +
@@ -76,9 +74,9 @@ public class TestSampleOptimizer {
             mrOper = mrPlan.getSuccessors(mrOper).get(0);
             ++count;
         }
-        
+
         // Before optimizer visits, number of MR jobs = 3.
-        assertEquals(3,count);   
+        assertEquals(3,count);
 
         SampleOptimizer so = new SampleOptimizer(mrPlan, pc);
         so.visit();
@@ -89,7 +87,7 @@ public class TestSampleOptimizer {
             mrOper = mrPlan.getSuccessors(mrOper).get(0);
             ++count;
         }
-        
+
         // After optimizer visits, number of MR jobs = 2.
         assertEquals(2,count);
 
@@ -119,7 +117,7 @@ public class TestSampleOptimizer {
         while(mrPlan.getSuccessors(mrOper) != null) {
             mrOper = mrPlan.getSuccessors(mrOper).get(0);
             ++count;
-        }        
+        }
         // Before optimizer visits, number of MR jobs = 3.
         assertEquals(3,count);
 
@@ -131,8 +129,8 @@ public class TestSampleOptimizer {
         while(mrPlan.getSuccessors(mrOper) != null) {
             mrOper = mrPlan.getSuccessors(mrOper).get(0);
             ++count;
-        }        
-        
+        }
+
         // After optimizer visits, number of MR jobs = 3. Since here
         // optimizer is not fired.
         assertEquals(3,count);
@@ -168,8 +166,8 @@ public class TestSampleOptimizer {
         }
         ps.close();
 
-        pigServer.registerQuery("A = LOAD '" 
-                + Util.generateURI(tmpFile.toString(), pigServer.getPigContext()) 
+        pigServer.registerQuery("A = LOAD '"
+                + Util.generateURI(tmpFile.toString(), pigServer.getPigContext())
                 + "' using PigStorage() AS (num:int);");
         pigServer.registerQuery("B = order A by num desc;");
         Iterator<Tuple> result = pigServer.openIterator("B");
@@ -178,18 +176,18 @@ public class TestSampleOptimizer {
         while (result.hasNext())
         {
             Integer curNum  = (Integer)result.next().get(0);
-            if (null != prevNum) 
+            if (null != prevNum)
                 assertTrue(curNum.compareTo(prevNum) <= 0 );
 
             prevNum = curNum;
         }
         tmpFile.delete();
     }
-    
+
     @Test
     public void testPoissonSampleOptimizer() throws Exception {
-        String query = " A = load 'input' using PigStorage('\t');" + 
-        "B = load 'input' using PigStorage('\t');" + 
+        String query = " A = load 'input' using PigStorage('\t');" +
+        "B = load 'input' using PigStorage('\t');" +
         " C = join A by $0, B by $0 using 'skewed';" +
         "store C into 'output';";
         PhysicalPlan pp = Util.buildPp(pigServer, query);
@@ -200,7 +198,7 @@ public class TestSampleOptimizer {
         while(mrPlan.getSuccessors(mrOper) != null) {
             mrOper = mrPlan.getSuccessors(mrOper).get(0);
             ++count;
-        }        
+        }
         // Before optimizer visits, number of MR jobs = 3.
         assertEquals(3,count);
 
@@ -212,25 +210,25 @@ public class TestSampleOptimizer {
         while(mrPlan.getSuccessors(mrOper) != null) {
             mrOper = mrPlan.getSuccessors(mrOper).get(0);
             ++count;
-        }        
+        }
         // After optimizer visits, number of MR jobs = 2
         assertEquals(2,count);
     }
-    
+
     @Test
     public void testOrderByUDFSet() throws Exception {
-        String query = "a = load 'input1' using BinStorage();" + 
+        String query = "a = load 'input1' using BinStorage();" +
         "b = order a by $0;" + "store b into 'output';";
-        
+
         PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
-        
+
         int count = 1;
         MapReduceOper mrOper = mrPlan.getRoots().get(0);
         while(mrPlan.getSuccessors(mrOper) != null) {
             mrOper = mrPlan.getSuccessors(mrOper).get(0);
             ++count;
-        }        
+        }
         // Before optimizer visits, number of MR jobs = 3.
         assertEquals(3,count);
 
@@ -252,7 +250,7 @@ public class TestSampleOptimizer {
             assertTrue(mrOper.UDFs.contains("BinStorage"));
             assertTrue(mrOper.UDFs.contains("org.apache.pig.builtin.PigStorage"));
             ++count;
-        }        
+        }
         // After optimizer visits, number of MR jobs = 2
         assertEquals(2,count);
     }

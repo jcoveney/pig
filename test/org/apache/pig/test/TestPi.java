@@ -18,57 +18,45 @@
 
 package org.apache.pig.test;
 
-import org.apache.pig.ExecType;
-import org.apache.pig.PigServer;
-
-import org.apache.pig.data.DataType;
-import org.apache.pig.data.Tuple;
-
-import org.apache.pig.impl.io.FileLocalizer;
-
-import org.apache.pig.backend.executionengine.ExecException;
-
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
-import junit.framework.TestCase;
+import static org.junit.Assert.assertEquals;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.Random;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.DataType;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.io.FileLocalizer;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.Test;
 /*
  * Testcase aimed at testing pig with large file sizes and filter and group functions
 */
-@RunWith(JUnit4.class)
-public class TestPi extends TestCase {
-    
+public class TestPi {
+
     private final Log log = LogFactory.getLog(getClass());
 
-    File datFile;
+    private File datFile;
     private long defaultBlockSize = (new Configuration()).getLong("dfs.block.size", 0);
-    
+
     private long total = ((defaultBlockSize >> 20) / 10) << 20;
     private int inCircle = 0;
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniCluster cluster = MiniCluster.buildCluster();
 
     private long totalLength = 0, totalLengthTest = 0;
 
-    
-    
-    PigServer pig;
-    String fileName, tmpFile1;
-    
-    @Override
+    private PigServer pig;
+    private String fileName, tmpFile1;
+
     @Before
     public void setUp() throws Exception{
 
@@ -76,19 +64,19 @@ public class TestPi extends TestCase {
         log.info("Default block size = " + defaultBlockSize);
         log.info("Total no. of iterations to run for test data = " + total);
         datFile = File.createTempFile("PiTest", ".dat");
-        
+
         FileOutputStream dat = new FileOutputStream(datFile);
-        
+
         Random rand = new Random();
-        
+
         for(int i = 0; i < total; i++) {
             StringBuffer sb = new StringBuffer();
-            
+
             Double x = new Double(rand.nextDouble());
             Double y = new Double(rand.nextDouble());
             double x1 = x.doubleValue() - 0.5;
             double y1 = y.doubleValue() - 0.5;
-            double sq_dist = (x1*x1) + (y1*y1); 
+            double sq_dist = (x1*x1) + (y1*y1);
             if(sq_dist <= 0.25) {
                 inCircle ++;
 
@@ -97,13 +85,13 @@ public class TestPi extends TestCase {
             totalLength += String.valueOf(sq_dist).length();
 
             sb.append(x.toString() + ":" + y.toString() + "\n");
-            
+
             dat.write(sb.toString().getBytes());
-                        
+
         }
-        
+
         dat.close();
-        
+
         try {
             pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         }
@@ -112,27 +100,21 @@ public class TestPi extends TestCase {
             ioe.initCause(e);
             throw ioe;
         }
-        
+
         fileName = "'" + FileLocalizer.hadoopify(datFile.toString(), pig.getPigContext()) + "'";
         tmpFile1 = "'" + FileLocalizer.getTemporaryPath(pig.getPigContext()).toString() + "'";
 
         datFile.delete();
     }
-    
-    @Override
-    @After
-    public void tearDown() throws Exception {
-        
-    }
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     @Test
     public void testPi () throws Exception {
-        
+
         pig.registerQuery("A = load " + fileName + " using PigStorage(':');");
         pig.registerQuery("B = foreach A generate $0 - '0.5' as d1, $1 - '0.5' as d2;");
         pig.registerQuery("C = foreach B generate $0 * $0 as m1, $1 * $1 as m2;");
@@ -147,33 +129,28 @@ public class TestPi extends TestCase {
 
         pig.registerQuery("J = foreach F generate COUNT($1);");
         pig.registerQuery("K = foreach G generate COUNT($1);");
-        
+
 
         Iterator <Tuple> Total = pig.openIterator("J");
         Iterator <Tuple> InCircle = pig.openIterator("K");
 
-        
+
         int totalPoints = DataType.toInteger(Total.next().get(0));
         int inCirclePoints = DataType.toInteger(InCircle.next().get(0));
 
         log.info("Value of PI = " + 4 * (double)inCircle / (double)total);
         log.info("Value of PI (From Test data) = " + 4 * (double)inCirclePoints / (double)totalPoints);
-        
-        
+
+
         Iterator <Tuple> lengthTest = pig.openIterator("D");
-        
+
         while(lengthTest.hasNext()) {
             Tuple temp = lengthTest.next();
             totalLengthTest += temp.get(0).toString().length();
         }
-        
+
         assertEquals(totalPoints, total);
         assertEquals(inCirclePoints, inCircle);
         assertEquals(totalLengthTest, totalLength);
-
-        
-
-            
     }
-
 }

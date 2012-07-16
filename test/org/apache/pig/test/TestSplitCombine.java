@@ -18,22 +18,18 @@
 package org.apache.pig.test;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
+
+import junit.framework.Assert;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.PathFilter;
-import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputFormat;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.impl.plan.OperatorKey;
-
-import junit.framework.Assert;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -458,7 +454,7 @@ public class TestSplitCombine {
             index++;
         }
     }
-    
+
     private void checkLocations(String[] actual, String[] expected) {
         HashSet<String> expectedSet = new HashSet<String>();
         for (String str : expected)

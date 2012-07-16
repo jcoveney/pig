@@ -20,17 +20,17 @@ package org.apache.pig.test;
 
 import static org.apache.pig.ExecType.LOCAL;
 import static org.apache.pig.ExecType.MAPREDUCE;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.Properties;
 
-import junit.framework.TestCase;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.pig.PigServer;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.builtin.mock.Storage;
@@ -39,11 +39,8 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class TestParser extends TestCase {
+public class TestParser {
 
 protected final Log log = LogFactory.getLog(getClass());
 
@@ -53,7 +50,6 @@ protected final Log log = LogFactory.getLog(getClass());
     protected PigServer pigServer;
 
     @Before
-    @Override
     public void setUp() throws Exception {
 
         String execTypeString = System.getProperty("test.exectype");
@@ -68,7 +64,6 @@ protected final Log log = LogFactory.getLog(getClass());
         }
     }
 
-    @Override
     @After
     public void tearDown() throws Exception {
         pigServer.shutdown();
@@ -83,9 +78,6 @@ protected final Log log = LogFactory.getLog(getClass());
     @Test
     public void testLoadingNonexistentFile() throws ExecException, IOException {
         try {
-            // FIXME : this should be tested in all modes
-            if(execType == ExecType.LOCAL)
-                return;
             pigServer.registerQuery("vals = load 'nonexistentfile';");
             pigServer.openIterator("vals");
             fail("Loading a  nonexistent file should throw an IOException at parse time");

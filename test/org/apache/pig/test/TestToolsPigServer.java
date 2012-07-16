@@ -18,12 +18,15 @@
 
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
-
-import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.backend.executionengine.ExecJob;
@@ -31,22 +34,17 @@ import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.tools.ToolsPigServer;
-
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class TestToolsPigServer extends TestCase {
+public class TestToolsPigServer {
     private ToolsPigServer pig = null;
     static MiniCluster cluster = MiniCluster.buildCluster();
     private File stdOutRedirectedFile;
 
     @Before
-    @Override
     public void setUp() throws Exception{
         pig = new ToolsPigServer(ExecType.MAPREDUCE, cluster.getProperties());
         stdOutRedirectedFile = new File("stdout.redirected");
@@ -58,19 +56,18 @@ public class TestToolsPigServer extends TestCase {
             fail("Unable to create input files:" + e.getMessage());
         }
     }
-    
+
     @After
-    @Override
     public void tearDown() throws Exception{
         pig = null;
         stdOutRedirectedFile.delete();
     }
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     @Test
     public void testToolsPigServer() throws Exception {
         Util.createInputFile(cluster, "input", new String[] {

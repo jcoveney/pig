@@ -18,9 +18,12 @@
 
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.Iterator;
 
 import org.apache.pig.ExecType;
@@ -28,18 +31,18 @@ import org.apache.pig.data.Tuple;
 import org.junit.Test;
 
 public class TestPigSplit extends PigExecTestCase {
-	
+
     /**
      * filename of input in each of the tests
      */
     String inputFileName;
-    
+
     public TestPigSplit() {
         // by default let's test in map-red mode, user can
         // override this by setting ant property "test.exectype"
         execType = ExecType.MAPREDUCE;
     }
-    
+
     private void createInput(String[] data) throws IOException {
         if(execType == ExecType.MAPREDUCE) {
             Util.createInputFile(cluster, inputFileName, data);
@@ -49,7 +52,7 @@ public class TestPigSplit extends PigExecTestCase {
             throw new IOException("unknown exectype:" + execType.toString());
         }
     }
-    
+
     /* (non-Javadoc)
      * @see org.apache.pig.test.PigExecTestCase#tearDown()
      */
@@ -63,11 +66,11 @@ public class TestPigSplit extends PigExecTestCase {
             throw new IOException("unknown exectype:" + execType.toString());
         }
     }
-    
+
 	public void notestLongEvalSpec() throws Exception{
 		inputFileName = "notestLongEvalSpec-input.txt";
 		createInput(new String[] {"0\ta"});
-		
+
 		pigServer.registerQuery("a = load '" + inputFileName + "';");
 		for (int i=0; i< 500; i++){
 			pigServer.registerQuery("a = filter a by $0 == '1';");
@@ -77,7 +80,7 @@ public class TestPigSplit extends PigExecTestCase {
 			throw new Exception();
 		}
 	}
-	
+
     @Test
     public void testSchemaWithSplit() throws Exception {
         inputFileName = "testSchemaWithSplit-input.txt";
@@ -114,7 +117,7 @@ public class TestPigSplit extends PigExecTestCase {
         for (int i=0; i< 500; i++) {
             input[i] = ("0\ta");
         }
-        createInput(input);        
+        createInput(input);
         pigServer.registerQuery("a = load '" + inputFileName + "';");
         pigServer.registerQuery("a = filter a by $0 == '1';");
 

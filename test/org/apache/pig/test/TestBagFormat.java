@@ -18,7 +18,8 @@
 
 package org.apache.pig.test;
 
-import junit.framework.TestCase;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
@@ -26,10 +27,12 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.util.BagFormat;
+import org.junit.Test;
 
-public class TestBagFormat extends TestCase {
+public class TestBagFormat  {
 
-    public static void testBagFormat() {
+    @Test
+    public void testBagFormat() {
         try {
             DataBag bag = BagFactory.getInstance().newDefaultBag();
 

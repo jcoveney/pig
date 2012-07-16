@@ -17,17 +17,14 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.Iterator;
 import java.util.Random;
-
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -36,38 +33,35 @@ import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.Test;
 
-
-
-import junit.framework.TestCase;
-
-@RunWith(JUnit4.class)
-public class TestInfixArithmetic extends TestCase {
+public class TestInfixArithmetic {
 
     private final Log log = LogFactory.getLog(getClass());
 
-    private static int LOOP_COUNT = 1024;    
+    private static int LOOP_COUNT = 1024;
     static MiniCluster cluster = MiniCluster.buildCluster();
 
     private PigServer pig;
-    
+
     @Before
-    @Override
     public void setUp() throws Exception {
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     Boolean[] nullFlags = new Boolean[] { false, true };
 
     @Test
     public void testAdd() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
-        
+
         for (int i = 0; i < nullFlags.length; i++) {
             System.err.println("Testing with nulls: " + nullFlags[i]);
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -89,11 +83,11 @@ public class TestInfixArithmetic extends TestCase {
                     assertTrue(second.equals(first + first));
                 } else {
                     assertEquals(null, second);
-                }                    
+                }
             }
-        }        
+        }
     }
- 
+
     @Test
     public void testSubtract() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
@@ -118,11 +112,11 @@ public class TestInfixArithmetic extends TestCase {
                     assertTrue(second.equals(0.0));
                 } else {
                     assertEquals(null, second);
-                }                    
+                }
             }
         }
     }
- 
+
     @Test
     public void testMultiply() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
@@ -147,11 +141,11 @@ public class TestInfixArithmetic extends TestCase {
                     assertTrue(second.equals(first * first));
                 } else {
                     assertEquals(null, second);
-                }                    
+                }
             }
         }
     }
-    
+
     @Test
     public void testDivide() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
@@ -176,11 +170,11 @@ public class TestInfixArithmetic extends TestCase {
                     assertTrue(second.equals(1.0));
                 } else {
                     assertEquals(null, second);
-                }                    
+                }
             }
         }
     }
-    
+
     private void generateInput(PrintStream ps, boolean withNulls) {
         if(withNulls) {
             // inject nulls randomly
@@ -194,7 +188,7 @@ public class TestInfixArithmetic extends TestCase {
                     ps.println(":");
                 } else {
                     ps.println(i + ":" + i);
-                }            
+                }
             }
         } else {
             for(int i = 1; i < LOOP_COUNT; i++) {
@@ -202,5 +196,5 @@ public class TestInfixArithmetic extends TestCase {
             }
         }
         ps.close();
-    }    
+    }
 }

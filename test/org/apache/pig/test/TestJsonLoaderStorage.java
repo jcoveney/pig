@@ -30,20 +30,17 @@ import org.apache.pig.data.Tuple;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
 public class TestJsonLoaderStorage {
     private static PigServer pigServer;
     File jsonFile;
-    
+
     @BeforeClass
     public static void setUp() throws Exception{
         removeOutput();
         pigServer = new PigServer(ExecType.LOCAL);
     }
-    
+
     private static void removeOutput() {
         File outputDir = new File("jsonStorage1.json");
         if (outputDir.exists()) {
@@ -52,81 +49,81 @@ public class TestJsonLoaderStorage {
             outputDir.delete();
         }
     }
-    
+
     @Test
     public void testJsonStorage1() throws Exception{
         removeOutput();
-        
+
         pigServer.registerScript("test/org/apache/pig/test/data/jsonStorage1.pig");
-        
+
         File resultFile = new File("jsonStorage1.json/part-m-00000");
-        
+
         String result = Util.readFile(resultFile);
         String expected = Util.readFile(new File("test/org/apache/pig/test/data/jsonStorage1.result"));
         Assert.assertTrue(result.equals(expected));
-        
+
         File schemaFile = new File("jsonStorage1.json/.pig_schema");
         result = Util.readFile(schemaFile);
         expected = Util.readFile(new File("test/org/apache/pig/test/data/jsonStorage1.schema"));
         Assert.assertTrue(result.equals(expected));
     }
-    
+
     @Test
     public void testJsonLoader1() throws Exception{
-        
+
         File tmpFile = File.createTempFile("tmp", null);
         tmpFile.delete();
-        
+
         pigServer.registerQuery("a = load 'jsonStorage1.json' using JsonLoader();");
         pigServer.store("a", tmpFile.getCanonicalPath());
-        
+
         String result = Util.readFile(new File(tmpFile.getCanonicalPath()+"/part-m-00000"));
         String expected = Util.readFile(new File("test/org/apache/pig/test/data/jsonStorage1.txt"));
         Assert.assertTrue(result.equals(expected));
     }
-    
+
     @Test
     public void testJsonLoader2() throws Exception{
-        
+
         File tmpFile = File.createTempFile("tmp", null);
         tmpFile.delete();
-        
+
         File schemaFile = new File("test/org/apache/pig/test/data/jsonStorage1.schema");
-        
-        pigServer.registerQuery("a = load 'jsonStorage1.json' using" + 
+
+        pigServer.registerQuery("a = load 'jsonStorage1.json' using" +
         		" JsonLoader('a0:int,a1:{(a10:int,a11:chararray)},a2:(a20:double,a21:bytearray),a3:[chararray]');");
         pigServer.store("a", tmpFile.getCanonicalPath());
-        
+
         String result = Util.readFile(new File(tmpFile.getCanonicalPath()+"/part-m-00000"));
         String expected = Util.readFile(new File("test/org/apache/pig/test/data/jsonStorage1.txt"));
         Assert.assertTrue(result.equals(expected));
     }
-    
+
     @Test
     public void testJsonStorage2() throws Exception{
-        
+
         File inputFile = File.createTempFile("tmp", null);
         PrintWriter pw = new PrintWriter(new FileWriter(inputFile));
         pw.println("\t\t\t");
         pw.close();
-        
+
         File interFile = File.createTempFile("tmp", null);
         interFile.delete();
-        
+
         pigServer.registerQuery("a = load '" + inputFile.getCanonicalPath() + "' as (a0:int, a1:chararray, a2, a3:(a30:int));");
         pigServer.store("a", interFile.getCanonicalPath(), "JsonStorage");
-        
+
         pigServer.registerQuery("b = load '" + interFile.getCanonicalPath() + "' using JsonLoader();");
         Iterator<Tuple> iter = pigServer.openIterator("b");
-        
+
         Tuple t = iter.next();
-        
+
         Assert.assertTrue(t.size()==4);
         Assert.assertTrue(t.get(0)==null);
         Assert.assertTrue(t.get(1)==null);
         Assert.assertTrue(t.get(2)==null);
         Assert.assertTrue(t.get(3)==null);
-        
+
         Assert.assertFalse(iter.hasNext());
     }
 

@@ -25,7 +25,6 @@ import junit.framework.Assert;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.junit.AfterClass;
 import org.junit.Test;
 
@@ -63,7 +62,7 @@ public class TestNestedForeach {
 		String[] expected = new String[] {"({(2),(3)})", "({(7)})"};
 
         Util.checkQueryOutputsAfterSortRecursive(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(pig.dumpSchema("c")));
-    
+
 	}
 
 	@Test
@@ -81,7 +80,7 @@ public class TestNestedForeach {
 		pig.registerQuery("c = foreach b { c1 = foreach a generate 2 * a1; generate c1; }\n");
 
 		Iterator<Tuple> iter = pig.openIterator("c");
-		
+
         String[] expected = new String[] {"({(4),(6)})", "({(14)})"};
 
         Util.checkQueryOutputsAfterSortRecursive(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(pig.dumpSchema("c")));
@@ -102,7 +101,7 @@ public class TestNestedForeach {
 		pig.registerQuery("c = foreach b { c1 = foreach a generate UPPER(a1); generate c1; }\n");
 
 		Iterator<Tuple> iter = pig.openIterator("c");
-		
+
         String[] expected = new String[] {"({(HELLO),(WORLD)})", "({(PIG)})"};
 
         Util.checkQueryOutputsAfterSortRecursive(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(pig.dumpSchema("c")));
@@ -123,8 +122,8 @@ public class TestNestedForeach {
 		pig.registerQuery("c = foreach b { c1 = foreach a generate FLATTEN(TOKENIZE(a1)); generate c1; }\n");
 
 		Iterator<Tuple> iter = pig.openIterator("c");
-		
-        String[] expected = new String[] {"({(hello),(world),(pig),(hello),(pig)})", 
+
+        String[] expected = new String[] {"({(hello),(world),(pig),(hello),(pig)})",
                 "({(hadoop),(world)})"};
 
         Util.checkQueryOutputsAfterSortRecursive(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(pig.dumpSchema("c")));
@@ -181,7 +180,7 @@ public class TestNestedForeach {
 		t = iter.next();
 		Assert.assertTrue(t.toString().equals("({(7)})"));
 	}
-	
+
 	// See PIG-2563
 	@Test
     public void testNestedForeach() throws Exception {

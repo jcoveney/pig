@@ -18,12 +18,20 @@
 package org.apache.pig.test;
 
 import static org.apache.pig.newplan.logical.relational.LOTestHelper.newLOLoad;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
-import java.io.* ;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.Properties;
 
-import org.apache.pig.ExecType; 
+import junit.framework.Assert;
+
+import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
@@ -44,49 +52,42 @@ import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.rules.InputOutputFileValidator;
-
 import org.junit.AfterClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-import junit.framework.Assert;
-import junit.framework.TestCase;
+public class TestInputOutputFileValidator {
 
-@RunWith(JUnit4.class)
-public class TestInputOutputFileValidator extends TestCase {
-    
-    
+
     private static MiniCluster cluster = MiniCluster.buildCluster();
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     @Test
     public void testLocalModeInputPositive() throws Throwable {
         PigContext ctx = new PigContext(ExecType.LOCAL, new Properties()) ;
         ctx.connect() ;
-        
+
         String inputfile = generateTempFile().getAbsolutePath() ;
         String outputfile = generateNonExistenceTempFile().getAbsolutePath() ;
 
-        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getFs()) ;        
+        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getFs()) ;
         InputOutputFileValidator executor = new InputOutputFileValidator(plan, ctx) ;
         executor.validate() ;
     }
-    
-       
+
+
     @Test
     public void testLocalModeNegative2() throws Throwable {
         PigContext ctx = new PigContext(ExecType.LOCAL, new Properties()) ;
         ctx.connect() ;
-        
+
         String inputfile = generateTempFile().getAbsolutePath() ;
         String outputfile = generateTempFile().getAbsolutePath() ;
 
-        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;        
-        
+        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;
+
         InputOutputFileValidator executor = new InputOutputFileValidator(plan, ctx) ;
         try {
             executor.validate() ;
@@ -94,33 +95,33 @@ public class TestInputOutputFileValidator extends TestCase {
         } catch (Exception pve) {
             //good
         }
-        
+
     }
-        
+
     @Test
     public void testMapReduceModeInputPositive() throws Throwable {
-        PigContext ctx = new PigContext(ExecType.MAPREDUCE, cluster.getProperties()) ;       
+        PigContext ctx = new PigContext(ExecType.MAPREDUCE, cluster.getProperties()) ;
         ctx.connect() ;
-        
+
         String inputfile = createHadoopTempFile(ctx) ;
         String outputfile = createHadoopNonExistenceTempFile(ctx) ;
 
-        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;                     
-        
+        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;
+
         InputOutputFileValidator executor = new InputOutputFileValidator(plan, ctx) ;
         executor.validate() ;
     }
-    
+
     @Test
     public void testMapReduceModeInputNegative2() throws Throwable {
-        PigContext ctx = new PigContext(ExecType.MAPREDUCE, cluster.getProperties()) ;       
+        PigContext ctx = new PigContext(ExecType.MAPREDUCE, cluster.getProperties()) ;
         ctx.connect() ;
-        
+
         String inputfile = createHadoopTempFile(ctx) ;
         String outputfile = createHadoopTempFile(ctx) ;
 
-        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;                     
-        
+        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;
+
         InputOutputFileValidator executor = new InputOutputFileValidator(plan, ctx) ;
         try {
             executor.validate() ;
@@ -129,7 +130,7 @@ public class TestInputOutputFileValidator extends TestCase {
             //good
         }
     }
-    
+
     /**
      * Testcase to ensure Input output validation allows store to a location
      * that does not exist when using {@link PigServer#store(String, String)}
@@ -172,10 +173,10 @@ public class TestInputOutputFileValidator extends TestCase {
             }
         }
     }
-    
+
     /**
      * Test case to test that Input output file validation catches the case
-     * where the output file exists when using 
+     * where the output file exists when using
      * {@link PigServer#store(String, String)}
      * @throws Exception
      */
@@ -236,10 +237,10 @@ public class TestInputOutputFileValidator extends TestCase {
         	assertTrue(pe.getMessage().contains("Exception from DummyStorer."));
         }
     }
- 
-        
+
+
     private LogicalPlan genNewLoadStorePlan(String inputFile,
-                                            String outputFile, DataStorage dfs) 
+                                            String outputFile, DataStorage dfs)
                                         throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
         FileSpec filespec1 =
@@ -247,17 +248,17 @@ public class TestInputOutputFileValidator extends TestCase {
         FileSpec filespec2 =
             new FileSpec(outputFile, new FuncSpec("org.apache.pig.builtin.PigStorage"));
         LOLoad load = newLOLoad( filespec1, null, plan,
-                ConfigurationUtil.toConfiguration(dfs.getConfiguration())) ;       
+                ConfigurationUtil.toConfiguration(dfs.getConfiguration())) ;
         LOStore store = new LOStore(plan, filespec2, (StoreFuncInterface)PigContext.instantiateFuncFromSpec(filespec2.getFuncSpec()), null) ;
-        
+
         plan.add(load) ;
         plan.add(store) ;
-        
-        plan.connect(load, store) ;     
-        
-        return plan ;    
+
+        plan.connect(load, store) ;
+
+        return plan ;
     }
-    
+
     private File generateTempFile() throws Throwable {
         File fp1 = File.createTempFile("file", ".txt") ;
         BufferedWriter bw = new BufferedWriter(new FileWriter(fp1)) ;
@@ -266,45 +267,45 @@ public class TestInputOutputFileValidator extends TestCase {
         fp1.deleteOnExit() ;
         return fp1 ;
     }
-    
+
     private File generateNonExistenceTempFile() throws Throwable {
         File fp1 = File.createTempFile("file", ".txt") ;
         fp1.delete() ;
         return fp1 ;
     }
-    
+
     private String createHadoopTempFile(PigContext ctx) throws Throwable {
-        
+
         File fp1 = generateTempFile() ;
-                
+
         ElementDescriptor localElem =
-            ctx.getLfs().asElement(fp1.getAbsolutePath());           
-            
+            ctx.getLfs().asElement(fp1.getAbsolutePath());
+
         String path = fp1.getAbsolutePath();
         if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
             path = FileLocalizer.parseCygPath(path, FileLocalizer.STYLE_UNIX);
-            
+
         ElementDescriptor distribElem = ctx.getDfs().asElement(path) ;
-    
+
         localElem.copy(distribElem, null, false);
-            
+
         return distribElem.toString();
     }
-    
+
     private String createHadoopNonExistenceTempFile(PigContext ctx) throws Throwable {
-        
-        File fp1 = generateTempFile() ;         
-         
+
+        File fp1 = generateTempFile() ;
+
         String path = fp1.getAbsolutePath();
         if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
             path = FileLocalizer.parseCygPath(path, FileLocalizer.STYLE_UNIX);
-        
+
         ElementDescriptor distribElem = ctx.getDfs().asElement(path) ;
-        
+
         if (distribElem.exists()) {
             distribElem.delete() ;
-        }   
-            
+        }
+
         return distribElem.toString();
     }
 

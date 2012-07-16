@@ -18,82 +18,69 @@
 
 package org.apache.pig.test;
 
-import org.apache.pig.ExecType;
-import org.apache.pig.PigServer;
-
-import org.apache.pig.data.DataType;
-import org.apache.pig.data.Tuple;
-
-import org.apache.pig.impl.io.FileLocalizer;
-
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
-import junit.framework.TestCase;
+import static org.junit.Assert.assertEquals;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.Random;
 
-import org.apache.pig.backend.executionengine.ExecException;
-
 import org.apache.hadoop.conf.Configuration;
-//This class tests pig behavior with large file spanning multiple blocks along with group and count functions
-//Order and Distinct functions are also tested.
-//This test would take a long time because of the large test files.
+import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.DataType;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.io.FileLocalizer;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.Test;
 
-@RunWith(JUnit4.class)
-public class TestLargeFile extends TestCase {
-    
+public class TestLargeFile {
+
     File datFile;
-    
+
     private long defaultBlockSize = (new Configuration()).getLong("dfs.block.size", 0);
-        
+
     private long total = defaultBlockSize >> 1;
     private int max_rand = 500;
 //    private double sum = 0.0, sumIn = 0.0;
     static MiniCluster cluster = MiniCluster.buildCluster();
-    
+
     Integer [] COUNT = new Integer[max_rand];
 
-    
+
     PigServer pig;
     String fileName, tmpFile1;
-    
-    @Override
+
     @Before
     public void setUp() throws Exception{
 
         System.out.println("Generating test data...");
         System.out.println("Default block size = " + defaultBlockSize);
         System.out.println("Total no. of iterations to run for the test data = " + total);
-        
+
         datFile = File.createTempFile("StoreTest", ".dat");
-        
+
         FileOutputStream dat = new FileOutputStream(datFile);
-        
+
         Random rand = new Random();
-        
+
         for(int i = 0; i < max_rand; i++) {
             COUNT[i] = 0;
         }
-        
-        
+
+
         for(long i = 0; i < total; i++) {
 
             Integer x = new Integer(rand.nextInt(max_rand));
             COUNT[x.intValue()] ++;
             dat.write((x.toString() + "\n").getBytes());
         }
-        
+
         dat.close();
-    
+
         try {
             pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         }
@@ -107,19 +94,12 @@ public class TestLargeFile extends TestCase {
 
         datFile.delete();
     }
-    
-    @Override
-    @After
-    public void tearDown() throws Exception {
-
-        
-    }
 
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     @Test
     public void testLargeFile () throws Exception {
         System.out.println("Running testLargeFile...");
@@ -128,34 +108,34 @@ public class TestLargeFile extends TestCase {
         pig.store("A", tmpFile1, "BinStorage()");
 //        pig.store("A", tmpFile1);
         pig.registerQuery("B = foreach A generate group, COUNT($1);");
-        
+
         Iterator <Tuple> B = pig.openIterator("B");
-        
+
         while(B.hasNext()) {
             Tuple temp = B.next();
             int index = DataType.toInteger(temp.get(0));
             int value = DataType.toInteger(temp.get(1));
             System.out.println("COUNT [" + index + "] = " + COUNT[index] + " B[" + index + "] = " + value);
-            
+
             assertEquals(COUNT[index].intValue(), value);
-            
+
         }
-                
+
     }
-    
+
     @Test
     public void testOrder () throws Exception {
         System.out.println("Running testOrder...");
         int N = 0, Nplus1 = 0;
         pig.registerQuery("A = load " + fileName + ";");
         pig.registerQuery("B = order A by $0;");
-        
+
         Iterator <Tuple> B = pig.openIterator("B");
-        
+
         if(B.hasNext()) {
             N = DataType.toInteger(B.next().get(0));
         }
-        
+
         while(B.hasNext()) {
             int flag = 0;
             Nplus1 = DataType.toInteger(B.next().get(0));
@@ -163,25 +143,25 @@ public class TestLargeFile extends TestCase {
                 flag = 1;
             }
             assertEquals(flag, 1);
-            
+
             N = Nplus1;
-            
+
         }
-        
-        
+
+
     }
-    
+
     @Test
     public void testDistinct () throws Exception {
         System.out.println("Running testDistinct...");
         pig.registerQuery("A = load " + fileName + ";");
         pig.registerQuery("B = distinct A;");
-        
+
         Iterator <Tuple> B = pig.openIterator("B");
-        
+
         Integer [] COUNT_Test = new Integer [max_rand];
         Integer [] COUNT_Data = new Integer [max_rand];
-        
+
         for(int i = 0; i < max_rand; i++) {
             COUNT_Test[i] = 0;
             if (COUNT[i] > 0) {
@@ -190,16 +170,16 @@ public class TestLargeFile extends TestCase {
                 COUNT_Data[i] = 0;
             }
         }
-        
+
         while(B.hasNext()) {
             int temp = DataType.toInteger(B.next().get(0));
             COUNT_Test[temp] ++;
         }
-        
+
         for(int i = 0; i < max_rand; i++) {
             assertEquals(COUNT_Test[i].intValue(), COUNT_Data[i].intValue());
         }
-        
+
     }
 
 }

@@ -18,19 +18,21 @@
 
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
-import junit.framework.TestCase;
-
-import org.apache.pig.ExecType;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.DataType;
@@ -39,15 +41,11 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.test.utils.MyUDFReturnMap;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class TestUDF extends TestCase {
+public class TestUDF {
 
 	static String[] ScriptStatement = {
 			"A = LOAD 'test/org/apache/pig/test/data/passwd' USING PigStorage();",
@@ -57,7 +55,6 @@ public class TestUDF extends TestCase {
 
 	static MiniCluster cluster = MiniCluster.buildCluster();
 
-	@Override
 	@Before
 	public void setUp() throws Exception {
             FileLocalizer.setInitialized(false);
@@ -74,7 +71,7 @@ public class TestUDF extends TestCase {
 	public static void oneTimeTearDown() throws Exception {
 	    cluster.shutDown();
 	}
-	
+
 	@Test
 	public void testUDFReturnMap_LocalMode() {
 		try {
@@ -120,7 +117,7 @@ public class TestUDF extends TestCase {
 			fail();
 		}
 	}
-	
+
 	@Test
 	public void testUDFMultiLevelOutputSchema() {
         try {
@@ -228,9 +225,8 @@ public class TestUDF extends TestCase {
         }
     }
 
-	@Override
-	@After
-	public void tearDown() throws Exception {
+	@AfterClass
+	public static void tearDown() throws Exception {
 		TempScriptFile.delete();
 	}
 

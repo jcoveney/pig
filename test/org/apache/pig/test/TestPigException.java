@@ -19,6 +19,7 @@
 package org.apache.pig.test;
 
 import junit.framework.Assert;
+
 import org.apache.pig.PigException;
 import org.apache.pig.impl.util.LogUtils;
 import org.junit.Test;
@@ -32,11 +33,11 @@ public class TestPigException {
 
     @Test
     public void testNestedException() {
-        PigException innermost = new PigException("innermost", 
+        PigException innermost = new PigException("innermost",
                 NONZERO_ERRORCODE);
-        PigException inner = new PigException("inner", 
+        PigException inner = new PigException("inner",
                 NONZERO_ERRORCODE, innermost);
-        PigException outer = new PigException("outer", 
+        PigException outer = new PigException("outer",
                 NONZERO_ERRORCODE, inner);
         Assert.assertEquals(innermost.getMessage(),
                 LogUtils.getPigException(outer).getMessage());
@@ -44,12 +45,12 @@ public class TestPigException {
 
     @Test
     public void testStickyNestedException() {
-        PigException innermost = new PigException("innermost", 
+        PigException innermost = new PigException("innermost",
                 NONZERO_ERRORCODE);
-        PigException inner = new PigException("inner", 
+        PigException inner = new PigException("inner",
                 NONZERO_ERRORCODE, innermost);
         inner.setMarkedAsShowToUser(true);
-        PigException outer = new PigException("outer", 
+        PigException outer = new PigException("outer",
                 NONZERO_ERRORCODE, inner);
         Assert.assertEquals(inner.getMessage(),
                 LogUtils.getPigException(outer).getMessage());

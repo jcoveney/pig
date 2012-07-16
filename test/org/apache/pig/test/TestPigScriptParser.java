@@ -17,6 +17,9 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -26,7 +29,6 @@ import java.util.List;
 import java.util.Properties;
 
 import junit.framework.Assert;
-import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -40,7 +42,7 @@ import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.junit.Test;
 
-public class TestPigScriptParser extends TestCase {
+public class TestPigScriptParser {
 
     @Test
     public void testParserWithEscapeCharacters() throws Exception {
@@ -49,29 +51,29 @@ public class TestPigScriptParser extends TestCase {
         PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties()) ;
         PigServer pigServer = new PigServer( pigContext );
         pigContext.connect();
-        
+
         String tempFile = this.prepareTempFile() ;
-        
+
     	String query = String.format("A = LOAD '%s' ;", Util.encodeEscape(tempFile)) ;
         // Start the real parsing job
         {
         	// Initial statement
-        	Util.buildLp(pigServer, query); 
+        	Util.buildLp(pigServer, query);
         }
-        
+
         {
         	// Normal condition
         	String q = query + "B = filter A by $0 eq 'This is a test string' ;" ;
-        	checkParsedConstContent(pigServer, pigContext, q, "This is a test string") ;	
+        	checkParsedConstContent(pigServer, pigContext, q, "This is a test string") ;
         }
-        
+
         {
         	// single-quote condition
         	String q = query + "B = filter A by $0 eq 'This is a test \\'string' ;" ;
         	checkParsedConstContent(pigServer, pigContext,
-        	                        q, "This is a test 'string") ;	
+        	                        q, "This is a test 'string") ;
         }
-        
+
         {
             // escaping dot
             // the reason we have 4 backslashes below is we really want to put two backslashes but
@@ -80,24 +82,24 @@ public class TestPigScriptParser extends TestCase {
             // \\.string
             String q = query + "B = filter A by $0 eq 'This is a test \\\\.string' ;" ;
             checkParsedConstContent(pigServer, pigContext,
-                                    q, "This is a test \\.string") ;  
+                                    q, "This is a test \\.string") ;
         }
-        
+
         {
         	// newline condition
         	String q = query + "B = filter A by $0 eq 'This is a test \\nstring' ;" ;
-        	checkParsedConstContent(pigServer, pigContext, 
-        	                        q, "This is a test \nstring") ;	
+        	checkParsedConstContent(pigServer, pigContext,
+        	                        q, "This is a test \nstring") ;
         }
-        
+
         {
         	// Unicode
         	String q = query + "B = filter A by $0 eq 'This is a test \\uD30C\\uC774string' ;" ;
         	checkParsedConstContent(pigServer, pigContext,
-        	                        q, "This is a test \uD30C\uC774string") ;	
+        	                        q, "This is a test \uD30C\uC774string") ;
         }
     }
-    
+
     @Test
     public void testDefineUDF() throws Exception {
         String inputData[] = {
@@ -108,7 +110,7 @@ public class TestPigScriptParser extends TestCase {
                 "wwwJxyzMcom/sports"
         };
         File f = Util.createFile(inputData);
-        String[] queryLines = new String[] { 
+        String[] queryLines = new String[] {
                 // the reason we have 4 backslashes below is we really want to put two backslashes but
                 // since this is to be represented in a Java String, we escape each backslash with one more
                 // backslash - hence 4. In a pig script in a file, this would be
@@ -128,7 +130,7 @@ public class TestPigScriptParser extends TestCase {
             assertEquals(expectedResults[i++], t.get(0));
         }
     }
-    
+
    @Test
 	public void testSplitWithNotEvalCondition() throws Exception {
 	    String defineQ = "define minelogs org.apache.pig.test.RegexGroupCount('www\\\\.xyz\\\\.com/sports');";
@@ -142,11 +144,11 @@ public class TestPigScriptParser extends TestCase {
 	        ps.registerQuery(defineSplit);
 	    }catch(FrontendException e)
 	    {
-	        Assert.fail(e.getMessage());	
+	        Assert.fail(e.getMessage());
 	    }
 	}
 
-    
+
     @Test
     public void testErrorMessageUndefinedAliasInGroupByStatement() throws Exception {
         String queryA = "A = load 'nosuchfile'  using PigStorage() as (f1:chararray,f2:chararray);";
@@ -162,7 +164,7 @@ public class TestPigScriptParser extends TestCase {
         }
         Assert.fail();
     }
-    
+
 	private void checkParsedConstContent(PigServer pigServer,
                                              PigContext pigContext,
                                              String query,
@@ -178,15 +180,15 @@ public class TestPigScriptParser extends TestCase {
         Operator compRootOne = comparisonPlanRoots.get(0);
         Operator compRootTwo = comparisonPlanRoots.get(1);
 
-        
+
         // Here is the actual check logic
         if (compRootOne instanceof ConstantExpression) {
-            assertTrue("Must be equal", 
+            assertTrue("Must be equal",
                         ((String)((ConstantExpression)compRootOne).getValue()).equals(expectedContent)) ;
-        } 
+        }
         // If not left, it must be right.
         else {
-            assertTrue("Must be equal", 
+            assertTrue("Must be equal",
                         ((String)((ConstantExpression)compRootTwo).getValue()).equals(expectedContent)) ;
         }
     }

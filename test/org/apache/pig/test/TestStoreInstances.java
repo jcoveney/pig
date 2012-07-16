@@ -42,18 +42,16 @@ import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.parser.ParserException;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-
 /**
  * Test to ensure that same instance of store func is used for multiple
  *  backend tasks. This enables sharing of information between putNext and
  *  output committer
- * 
+ *
  */
 public class TestStoreInstances  {
     static MiniCluster cluster ;
@@ -62,11 +60,6 @@ public class TestStoreInstances  {
     @Before
     public void setUp() throws Exception {
         FileLocalizer.setInitialized(false);
-    }
-
-
-    @After
-    public void tearDown() throws Exception {
     }
 
     @BeforeClass
@@ -104,7 +97,7 @@ public class TestStoreInstances  {
         for(ExecType execType : execTypes){
             System.err.println("Starting test mode " + execType);
             if(execType == ExecType.MAPREDUCE) {
-                pig = new PigServer(ExecType.MAPREDUCE, 
+                pig = new PigServer(ExecType.MAPREDUCE,
                         cluster.getProperties());
             }else{
                 pig = new PigServer(ExecType.LOCAL);
@@ -114,14 +107,14 @@ public class TestStoreInstances  {
             pig.setBatchOn();
             String query =
                 "  l1 = load '" + INP_FILE_2NUMS + "' as (i : int, j : int);" +
-                " store l1 into '" + outFile + "' using " + CHECK_INSTANCE_STORE_FUNC + 
+                " store l1 into '" + outFile + "' using " + CHECK_INSTANCE_STORE_FUNC +
                 ";";
             Util.registerMultiLineQuery(pig, query);
             List<ExecJob> execJobs = pig.executeBatch();
             assertEquals("num jobs", 1, execJobs.size());
             assertEquals("status ", JOB_STATUS.COMPLETED, execJobs.get(0).getStatus());
         }
-            
+
     }
 
 
@@ -160,7 +153,7 @@ public class TestStoreInstances  {
                 throws IOException {
             Configuration conf = job.getConfiguration();
             conf.set("mapred.output.dir", location);
-            
+
         }
 
 
@@ -190,8 +183,6 @@ public class TestStoreInstances  {
      * OutputCommitter class that checks number of rows written by store func
      */
     public static class OutputCommitterTestInstances extends FileOutputCommitter {
-
-
         private ArrayList<Tuple> outRows;
 
         public OutputCommitterTestInstances(ArrayList<Tuple> outRows,
@@ -200,7 +191,7 @@ public class TestStoreInstances  {
             this.outRows = outRows;
         }
 
-   
+
         @Override
         public void commitTask(TaskAttemptContext arg0) {
             System.err.println("OutputCommitterTestInstances commitTask called");
@@ -208,13 +199,8 @@ public class TestStoreInstances  {
         }
 
         @Override
-        public boolean needsTaskCommit(TaskAttemptContext arg0)
-        throws IOException {
+        public boolean needsTaskCommit(TaskAttemptContext arg0) throws IOException {
             return true;
         }
-
-
     }
-
-
 }

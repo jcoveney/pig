@@ -17,6 +17,9 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -26,8 +29,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import junit.framework.TestCase;
-
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.DataType;
@@ -36,15 +37,12 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class TestOrderBy extends TestCase {
+public class TestOrderBy {
     private static final int DATALEN = 1024;
     private String[][] DATA = new String[2][DATALEN];
     static MiniCluster cluster = MiniCluster.buildCluster();
-    
+
     private PigServer pig;
     private File tmpFile;
 
@@ -56,7 +54,7 @@ public class TestOrderBy extends TestCase {
         }
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
-    
+
     @Before
     public void setUp() throws Exception {
         tmpFile = File.createTempFile("test", "txt");
@@ -66,17 +64,17 @@ public class TestOrderBy extends TestCase {
         }
         ps.close();
     }
-    
+
     @After
     public void tearDown() throws Exception {
         tmpFile.delete();
     }
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     private void verify(String query, boolean descending) throws Exception {
         pig.registerQuery(query);
         Iterator<Tuple> it = pig.openIterator("myid");
@@ -141,7 +139,7 @@ public class TestOrderBy extends TestCase {
 
     @Test
     public void testTopLevelOrderBy_Col21_Using() throws Exception {
-        // col2/col1 ascending - 
+        // col2/col1 ascending -
         verify("myid = order (load 'file:" + tmpFile +
             "') BY $2, $1 USING org.apache.pig.test.OrdAsc;", true);
         verify("myid = order (load 'file:" + tmpFile +
@@ -177,26 +175,26 @@ public class TestOrderBy extends TestCase {
     @Test
     public void testNestedOrderBy_Star_Using() throws Exception {
         verify("myid = foreach (group (load 'file:" + tmpFile +
-            "') by $0) { D = ORDER $1 BY * USING " + 
+            "') by $0) { D = ORDER $1 BY * USING " +
             "org.apache.pig.test.OrdAsc; generate flatten(D); };", false);
         verify("myid = foreach (group (load 'file:" + tmpFile +
-            "') by $0) { D = ORDER $1 BY * USING " + 
+            "') by $0) { D = ORDER $1 BY * USING " +
             "org.apache.pig.test.OrdDesc; generate flatten(D); };", true);
         verify("myid = foreach (group (load 'file:" + tmpFile +
-            "') by $0) { D = ORDER $1 BY * USING " + 
+            "') by $0) { D = ORDER $1 BY * USING " +
             "org.apache.pig.test.OrdDescNumeric; generate flatten(D); };", true);
     }
 
     @Test
     public void testNestedOrderBy_Col1_Using() throws Exception {
         verify("myid = foreach (group (load 'file:" + tmpFile +
-            "') by $0) { D = ORDER $1 BY $1 USING " + 
+            "') by $0) { D = ORDER $1 BY $1 USING " +
             "org.apache.pig.test.OrdAsc; generate flatten(D); };", false);
         verify("myid = foreach (group (load 'file:" + tmpFile +
-            "') by $0) { D = ORDER $1 BY $1 USING " + 
+            "') by $0) { D = ORDER $1 BY $1 USING " +
             "org.apache.pig.test.OrdDesc; generate flatten(D); };", true);
         verify("myid = foreach (group (load 'file:" + tmpFile +
-                "') by $0) { D = ORDER $1 BY $1 USING " + 
+                "') by $0) { D = ORDER $1 BY $1 USING " +
                 "org.apache.pig.test.OrdDescNumeric; generate flatten(D); };",
                 true);
     }
@@ -217,7 +215,7 @@ public class TestOrderBy extends TestCase {
 
     @Test
     public void testNestedOrderBy_Col21_Using() throws Exception {
-        // col2/col1 ascending - 
+        // col2/col1 ascending -
         verify("myid = foreach (group (load 'file:" + tmpFile +
                 "') by $0) { D = ORDER $1 BY $2, $1 USING " +
                 "org.apache.pig.test.OrdAsc; generate flatten(D); };", true);
@@ -229,8 +227,8 @@ public class TestOrderBy extends TestCase {
                 "org.apache.pig.test.OrdDescNumeric; generate flatten(D); };",
                 false);
     }
-    
-    
+
+
     // this test case is for JIRA_1034
     @Test
     public void testOrderByGroup() throws Exception{
@@ -240,7 +238,7 @@ public class TestOrderBy extends TestCase {
     		ps.println(i);
     	}
     	ps.close();
-         
+
     	pig.registerQuery("a = load 'file:" + tmpFile +"' as (f1:int);");
     	pig.registerQuery("b = group a by $0;");
     	pig.registerQuery("c = order b by group;");
@@ -253,7 +251,7 @@ public class TestOrderBy extends TestCase {
     	}
     	assertEquals(count, 100);
     }
-    
+
     @Test
     public void testOrderByBooleanColumn() throws Exception {
         File tmpFile = genDataSetFileForOrderByBooleanColumn();
@@ -268,7 +266,7 @@ public class TestOrderBy extends TestCase {
         expectedResults.add(Util.buildTuple("value5", Boolean.TRUE));
         expectedResults.add(Util.buildTuple("value8", Boolean.TRUE));
         expectedResults.add(Util.buildTuple("value9", Boolean.TRUE));
-        
+
         pig.registerQuery("blah = load '"
                 + Util.generateURI(tmpFile.toString(), pig.getPigContext())
                 + "' as (data:chararray, test:boolean);");
@@ -282,7 +280,7 @@ public class TestOrderBy extends TestCase {
         }
         assertEquals(expectedItr.hasNext(), actualItr.hasNext());
     }
-    
+
     private File genDataSetFileForOrderByBooleanColumn() throws IOException {
 
         File fp1 = File.createTempFile("order_by_boolean", "txt");
@@ -302,5 +300,4 @@ public class TestOrderBy extends TestCase {
 
         return fp1;
     }
-
 }

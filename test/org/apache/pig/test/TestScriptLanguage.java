@@ -17,12 +17,11 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -31,29 +30,18 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.PigContext;
-import org.apache.pig.scripting.BoundScript;
-import org.apache.pig.scripting.Pig;
 import org.apache.pig.scripting.ScriptEngine;
-import org.apache.pig.scripting.ScriptPigContext;
-import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestScriptLanguage {
 
     static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer;
-    
-    @BeforeClass
-    public static void setUpBeforeClass() throws Exception {
-        
-    }
 
     @AfterClass
     public static void tearDownAfterClass() throws Exception {
@@ -70,7 +58,7 @@ public class TestScriptLanguage {
         Util.deleteFile(cluster, "simple_out");
         Util.deleteFile(cluster, "simple_out2");
     }
-    
+
     @Test
     public void firstTest() throws Exception {
         String[] script = {
@@ -92,23 +80,23 @@ public class TestScriptLanguage {
                 "2\t4",
                 "3\t5"
         };
-        
+
         Util.createInputFile(cluster, "simple_table", input);
         Util.createLocalInputFile( "testScript.py", script);
-        
+
         ScriptEngine scriptEngine = ScriptEngine.getInstance("jython");
         Map<String, List<PigStats>> statsMap = scriptEngine.run(pigServer.getPigContext(), "testScript.py");
-        assertEquals(1, statsMap.size());        
-        Iterator<List<PigStats>> it = statsMap.values().iterator();      
+        assertEquals(1, statsMap.size());
+        Iterator<List<PigStats>> it = statsMap.values().iterator();
         PigStats stats = it.next().get(0);
         assertTrue(stats.isSuccessful());
         assertEquals(1, stats.getNumberJobs());
         String name = stats.getOutputNames().get(0);
         assertEquals("simple_out", name);
         assertEquals(12, stats.getBytesWritten());
-        assertEquals(3, stats.getRecordWritten());     
+        assertEquals(3, stats.getRecordWritten());
     }
-    
+
     @Test
     public void secondTest() throws Exception {
         String[] script = {
@@ -130,30 +118,30 @@ public class TestScriptLanguage {
                 "2\t4",
                 "3\t5"
         };
-        
+
         String[] pigLatin = {
                 "-- ensure comment parsed correctly",
                 "a = load '$input';",
                 "store a into '$output';"
         };
-        
+
         Util.createInputFile(cluster, "simple_table_6", input);
         Util.createLocalInputFile( "testScript.py", script);
         Util.createLocalInputFile( "testScript.pig", pigLatin);
-        
+
         ScriptEngine scriptEngine = ScriptEngine.getInstance("jython");
         Map<String, List<PigStats>> statsMap = scriptEngine.run(pigServer.getPigContext(), "testScript.py");
-        assertEquals(1, statsMap.size());        
-        Iterator<List<PigStats>> it = statsMap.values().iterator();      
+        assertEquals(1, statsMap.size());
+        Iterator<List<PigStats>> it = statsMap.values().iterator();
         PigStats stats = it.next().get(0);
         assertTrue(stats.isSuccessful());
         assertEquals(1, stats.getNumberJobs());
         String name = stats.getOutputNames().get(0);
         assertEquals("simple_out", name);
         assertEquals(12, stats.getBytesWritten());
-        assertEquals(3, stats.getRecordWritten());     
+        assertEquals(3, stats.getRecordWritten());
     }
-    
+
     @Test
     public void firstParallelTest() throws Exception {
         String[] script = {
@@ -173,10 +161,10 @@ public class TestScriptLanguage {
                 "2\t4",
                 "3\t5"
         };
-        
+
         Util.createInputFile(cluster, "simple_table_1", input);
         Util.createLocalInputFile( "testScript.py", script);
-        
+
         ScriptEngine scriptEngine = ScriptEngine.getInstance("jython");
         Map<String, List<PigStats>> statsMap = scriptEngine.run(pigServer.getPigContext(), "testScript.py");
         assertEquals(1, statsMap.size());
@@ -187,10 +175,10 @@ public class TestScriptLanguage {
             assertTrue(stats.isSuccessful());
             assertEquals(1, stats.getNumberJobs());
             assertEquals(12, stats.getBytesWritten());
-            assertEquals(3, stats.getRecordWritten());     
+            assertEquals(3, stats.getRecordWritten());
         }
     }
-    
+
     @Test
     public void pigRunnerTest() throws Exception {
         String[] script = {
@@ -211,27 +199,27 @@ public class TestScriptLanguage {
                 "2\t4",
                 "3\t5"
         };
-        
+
         Util.createInputFile(cluster, "simple_table_2", input);
         Util.createLocalInputFile( "testScript.py", script);
-          
+
         String[] args = { "-g", "jython", "testScript.py" };
-        
+
         PigStats mainStats = PigRunner.run(args, new TestPigRunner.TestNotificationListener());
         assertTrue(mainStats.isEmbedded());
         assertTrue(mainStats.isSuccessful());
         Map<String, List<PigStats>> statsMap = mainStats.getAllStats();
-        assertEquals(1, statsMap.size());        
-        Iterator<List<PigStats>> it = statsMap.values().iterator();      
+        assertEquals(1, statsMap.size());
+        Iterator<List<PigStats>> it = statsMap.values().iterator();
         PigStats stats = it.next().get(0);
         assertTrue(stats.isSuccessful());
         assertEquals(1, stats.getNumberJobs());
         String name = stats.getOutputNames().get(0);
         assertEquals("simple_out", name);
         assertEquals(12, stats.getBytesWritten());
-        assertEquals(3, stats.getRecordWritten());     
+        assertEquals(3, stats.getRecordWritten());
     }
-    
+
     @Test
     public void runParallelTest() throws Exception {
         String[] script = {
@@ -251,10 +239,10 @@ public class TestScriptLanguage {
                 "2\t4",
                 "3\t5"
         };
-        
+
         Util.createInputFile(cluster, "simple_table_3", input);
         Util.createLocalInputFile( "testScript.py", script);
-        
+
         String[] args = { "-g", "jython", "testScript.py" };
         PigStats mainStats = PigRunner.run(args, new TestPigRunner.TestNotificationListener());
         assertTrue(mainStats.isEmbedded());
@@ -268,10 +256,10 @@ public class TestScriptLanguage {
             assertTrue(stats.isSuccessful());
             assertEquals(1, stats.getNumberJobs());
             assertEquals(12, stats.getBytesWritten());
-            assertEquals(3, stats.getRecordWritten());     
+            assertEquals(3, stats.getRecordWritten());
         }
     }
-    
+
     @Test
     public void runParallelTest2() throws Exception {
         String[] script = {
@@ -291,10 +279,10 @@ public class TestScriptLanguage {
         String[] input = {
                 "1\t3"
         };
-        
+
         Util.createInputFile(cluster, "simple_table_7", input);
         Util.createLocalInputFile( "testScript.py", script);
-        
+
         String[] args = { "-g", "jython", "testScript.py" };
         PigStats mainStats = PigRunner.run(args, new TestPigRunner.TestNotificationListener());
         assertTrue(mainStats.isEmbedded());
@@ -317,7 +305,7 @@ public class TestScriptLanguage {
         assertTrue(results[1] != null);
         assertTrue(!results[0].equals(results[1]));
     }
-    
+
     @Test
     public void runLoopTest() throws Exception {
         String[] script = {
@@ -335,10 +323,10 @@ public class TestScriptLanguage {
                 "2\t4",
                 "3\t5"
         };
-        
+
         Util.createInputFile(cluster, "simple_table_4", input);
         Util.createLocalInputFile( "testScript.py", script);
-        
+
         String[] args = { "-g", "jython", "testScript.py" };
         PigStats mainStats = PigRunner.run(args, new TestPigRunner.TestNotificationListener());
         assertTrue(mainStats.isEmbedded());
@@ -352,10 +340,10 @@ public class TestScriptLanguage {
             assertTrue(stats.isSuccessful());
             assertEquals(1, stats.getNumberJobs());
             assertEquals(12, stats.getBytesWritten());
-            assertEquals(3, stats.getRecordWritten());     
+            assertEquals(3, stats.getRecordWritten());
         }
     }
-    
+
     @Test
     public void bindLocalVariableTest() throws Exception {
         String[] script = {
@@ -382,23 +370,23 @@ public class TestScriptLanguage {
                 "2\t4",
                 "3\t5"
         };
-        
+
         Util.createInputFile(cluster, "simple_table_5", input);
         Util.createLocalInputFile( "testScript.py", script);
-        
+
         ScriptEngine scriptEngine = ScriptEngine.getInstance("jython");
         Map<String, List<PigStats>> statsMap = scriptEngine.run(pigServer.getPigContext(), "testScript.py");
-        assertEquals(1, statsMap.size());        
-        Iterator<List<PigStats>> it = statsMap.values().iterator();      
+        assertEquals(1, statsMap.size());
+        Iterator<List<PigStats>> it = statsMap.values().iterator();
         PigStats stats = it.next().get(0);
         assertTrue(stats.isSuccessful());
         assertEquals(1, stats.getNumberJobs());
         String name = stats.getOutputNames().get(0);
         assertEquals("simple_out", name);
         assertEquals(12, stats.getBytesWritten());
-        assertEquals(3, stats.getRecordWritten());     
+        assertEquals(3, stats.getRecordWritten());
     }
-    
+
     @Test
     public void bindLocalVariableTest2() throws Exception {
         String[] script = {
@@ -421,23 +409,23 @@ public class TestScriptLanguage {
                 "2$4",
                 "3$5"
         };
-        
+
         Util.createInputFile(cluster, "bindLocalVariableTest2", input);
         Util.createLocalInputFile("testScript.py", script);
-        
+
         ScriptEngine scriptEngine = ScriptEngine.getInstance("jython");
         Map<String, List<PigStats>> statsMap = scriptEngine.run(pigServer.getPigContext(), "testScript.py");
-        assertEquals(1, statsMap.size());        
-        Iterator<List<PigStats>> it = statsMap.values().iterator();      
+        assertEquals(1, statsMap.size());
+        Iterator<List<PigStats>> it = statsMap.values().iterator();
         PigStats stats = it.next().get(0);
         assertTrue(stats.isSuccessful());
         assertEquals(1, stats.getNumberJobs());
         String name = stats.getOutputNames().get(0);
         assertEquals("simple_out", name);
         assertEquals(12, stats.getBytesWritten());
-        assertEquals(3, stats.getRecordWritten());     
+        assertEquals(3, stats.getRecordWritten());
     }
-    
+
     @Test
     public void bindNonStringVariableTest() throws Exception {
         String[] script = {
@@ -462,24 +450,24 @@ public class TestScriptLanguage {
                 "2\t4",
                 "3\t5"
         };
-        
+
         Util.deleteFile(cluster, "simple_table");
         Util.createInputFile(cluster, "simple_table", input);
         Util.createLocalInputFile( "testScript.py", script);
-        
+
         ScriptEngine scriptEngine = ScriptEngine.getInstance("jython");
         Map<String, List<PigStats>> statsMap = scriptEngine.run(pigServer.getPigContext(), "testScript.py");
-        assertEquals(1, statsMap.size());        
-        Iterator<List<PigStats>> it = statsMap.values().iterator();      
+        assertEquals(1, statsMap.size());
+        Iterator<List<PigStats>> it = statsMap.values().iterator();
         PigStats stats = it.next().get(0);
         assertTrue(stats.isSuccessful());
         assertEquals(1, stats.getNumberJobs());
         String name = stats.getOutputNames().get(0);
         assertEquals("simple_out", name);
         assertEquals(4, stats.getBytesWritten());
-        assertEquals(1, stats.getRecordWritten());     
+        assertEquals(1, stats.getRecordWritten());
     }
-    
+
     @Test
     public void fsTest() throws Exception {
         String[] script = {
@@ -491,16 +479,16 @@ public class TestScriptLanguage {
                 "else:",
                 "\traise 'fs command failed'"
         };
- 
+
         Util.createLocalInputFile( "testScript.py", script);
-        
+
         String[] args = { "-x", "local", "testScript.py"};
         PigStats stats = PigRunner.run(args, null);
         assertFalse(stats.isSuccessful());
         //assertTrue(stats.getErrorCode() == 1121);
-        //assertTrue(stats.getReturnCode() == PigRunner.ReturnCode.PIG_EXCEPTION);   
+        //assertTrue(stats.getReturnCode() == PigRunner.ReturnCode.PIG_EXCEPTION);
     }
-    
+
     @Test
     public void NegativeTest() throws Exception {
         String[] script = {
@@ -510,14 +498,14 @@ public class TestScriptLanguage {
         };
 
         Util.createLocalInputFile( "testScript.py", script);
-        
+
         String[] args = { "-x", "local", "testScript.py"};
         PigStats stats = PigRunner.run(args, null);
         assertFalse(stats.isSuccessful());
         assertTrue(stats.getErrorCode() == 1121);
-        assertTrue(stats.getReturnCode() == PigRunner.ReturnCode.PIG_EXCEPTION);        
+        assertTrue(stats.getReturnCode() == PigRunner.ReturnCode.PIG_EXCEPTION);
     }
-   
+
     @Test
     public void NegativeTest2() throws Exception {
         String[] script = {
@@ -527,14 +515,14 @@ public class TestScriptLanguage {
         };
 
         Util.createLocalInputFile( "testScript.py", script);
-        
+
         String[] args = { "-x", "local", "testScript.py"};
         PigStats stats = PigRunner.run(args, null);
         assertFalse(stats.isSuccessful());
         assertTrue(stats.getErrorCode() == 1121);
         assertTrue(stats.getReturnCode() == PigRunner.ReturnCode.PIG_EXCEPTION);
     }
-    
+
     @Test // PIG-2056
     public void NegativeTest3() throws Exception {
         String[] script = {
@@ -548,21 +536,21 @@ public class TestScriptLanguage {
         };
 
         File pyFile = Util.createLocalInputFile( "testScript.py", script);
-        
+
         String[] args = { "-x", "local", "testScript.py"};
         PigStats stats = PigRunner.run(args, null);
         assertFalse(stats.isSuccessful());
         assertTrue(stats.getErrorCode() == 1121);
         assertTrue(stats.getReturnCode() == PigRunner.ReturnCode.PIG_EXCEPTION);
-        
+
         String expected = "Python Error. Traceback (most recent call last):\n" +
             "  File \"" + pyFile.getAbsolutePath() + "\", line 7";
 
         String msg = stats.getErrorMessage();
         Util.checkErrorMessageContainsExpected(msg, expected);
-        
+
     }
-    
+
     @Test
     public void testFixNonEscapedDollarSign() throws Exception {
         java.lang.reflect.Method fixNonEscapedDollarSign = Class.forName(
@@ -570,24 +558,24 @@ public class TestScriptLanguage {
                 "fixNonEscapedDollarSign", new Class[] { String.class });
 
         fixNonEscapedDollarSign.setAccessible(true);
-        
+
         String s = (String)fixNonEscapedDollarSign.invoke(null, "abc$py$");
         assertEquals("abc\\\\$py\\\\$", s);
 
         s = (String)fixNonEscapedDollarSign.invoke(null, "$abc$py");
         assertEquals("\\\\$abc\\\\$py", s);
-        
+
         s = (String)fixNonEscapedDollarSign.invoke(null, "$");
         assertEquals("\\\\$", s);
-        
+
         s = (String)fixNonEscapedDollarSign.invoke(null, "$$abc");
         assertEquals("\\\\$\\\\$abc", s);
     }
-    
+
     // See PIG-2291
     @Test
     public void testDumpInScript() throws Exception{
-    	
+
     	  String[] script = {
                   "#!/usr/bin/python",
                   "from org.apache.pig.scripting import *",
@@ -607,20 +595,20 @@ public class TestScriptLanguage {
                 "2\t4",
                 "3\t5"
         };
-        
+
         String[] pigLatin = {
                 "a = load '$input' as (a0:int,a1:int);",
                 "store a into '$output';",
                 "dump a"
         };
-        
+
         Util.createInputFile(cluster, "testDumpInScript_table", input);
         Util.createLocalInputFile( "testScript.py", script);
         Util.createLocalInputFile( "testScript.pig", pigLatin);
-        
+
         ScriptEngine scriptEngine = ScriptEngine.getInstance("jython");
         Map<String, List<PigStats>> statsMap = scriptEngine.run(pigServer.getPigContext(), "testScript.py");
-        Iterator<List<PigStats>> it = statsMap.values().iterator();  
+        Iterator<List<PigStats>> it = statsMap.values().iterator();
         PigStats stats = it.next().get(0);
         assertTrue(stats.isSuccessful());
     }
@@ -654,7 +642,7 @@ public class TestScriptLanguage {
 		PigStats stats = it.next().get(0);
 		assertTrue(stats.isSuccessful());
 	}
-	
+
     @Test
     public void testPyShouldNotFailScriptIfExitCodeIs0() throws Exception {
         String[] script = {
@@ -669,8 +657,7 @@ public class TestScriptLanguage {
         Util.createLocalInputFile( "testScript.py", script);
         ScriptEngine scriptEngine = ScriptEngine.getInstance("jython");
         Map<String, List<PigStats>> statsMap = scriptEngine.run(pigServer.getPigContext(), "testScript.py");
-        assertEquals(0, statsMap.size());        
+        assertEquals(0, statsMap.size());
 
    }
-
 }

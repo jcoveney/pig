@@ -34,7 +34,6 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.ConfigurationValidator;
@@ -42,7 +41,6 @@ import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.logical.rules.GroupByConstParallelSetter;
 import org.apache.pig.newplan.optimizer.Rule;
-import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
@@ -55,7 +53,6 @@ public class TestGroupConstParallel {
     private static final String INPUT_FILE = "TestGroupConstParallelInp";
     private static MiniCluster cluster = MiniCluster.buildCluster();
 
-    
     @BeforeClass
     public static void oneTimeSetup() throws Exception{
         String[] input = {
@@ -80,30 +77,30 @@ public class TestGroupConstParallel {
     public void testGroupAllWithParallel() throws Exception {
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster
                 .getProperties());
-        
-        
+
+
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:chararray);");
         pigServer.registerQuery("B = group A all parallel 5;");
         {
             Iterator<Tuple> iter = pigServer.openIterator("B");
-            List<Tuple> expectedRes = 
+            List<Tuple> expectedRes =
                 Util.getTuplesFromConstantTupleStrings(
                         new String[] {
                                 "('all',{('one'),('two'),('two')})"
                         });
             Util.checkQueryOutputsAfterSort(iter, expectedRes);
-            
+
             JobGraph jGraph = PigStats.get().getJobGraph();
             assertEquals(1, jGraph.size());
-            // find added map-only concatenate job 
+            // find added map-only concatenate job
             JobStats js = (JobStats)jGraph.getSources().get(0);
-            assertEquals(1, js.getNumberMaps());   
-            assertEquals(1, js.getNumberReduces()); 
+            assertEquals(1, js.getNumberMaps());
+            assertEquals(1, js.getNumberReduces());
         }
 
     }
-    
-    
+
+
     /**
      * Test parallelism for group by constant
      * @throws Throwable
@@ -113,24 +110,24 @@ public class TestGroupConstParallel {
         PigContext pc = new PigContext(ExecType.MAPREDUCE, cluster.getProperties());
         pc.defaultParallel = 100;
         pc.connect();
-        
+
         String query = "a = load 'input';\n" + "b = group a by 1;" + "store b into 'output';";
         PigServer pigServer = new PigServer( ExecType.MAPREDUCE, cluster.getProperties() );
         PhysicalPlan pp = Util.buildPp( pigServer, query );
-        
+
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         ConfigurationValidator.validatePigProperties(pc.getProperties());
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
         JobControlCompiler jcc = new JobControlCompiler(pc, conf);
-        
+
         JobControl jobControl = jcc.compile(mrPlan, "Test");
         Job job = jobControl.getWaitingJobs().get(0);
         int parallel = job.getJobConf().getNumReduceTasks();
 
         assertEquals("parallism", 1, parallel);
     }
-    
+
     /**
      *  Test parallelism for group by column
      * @throws Throwable
@@ -140,40 +137,40 @@ public class TestGroupConstParallel {
         PigContext pc = new PigContext(ExecType.MAPREDUCE, cluster.getProperties());
         pc.defaultParallel = 100;
         pc.connect();
-        
+
         PigServer pigServer = new PigServer( ExecType.MAPREDUCE, cluster.getProperties() );
         String query =  "a = load 'input';\n" + "b = group a by $0;" + "store b into 'output';";
-        
+
         PhysicalPlan pp = Util.buildPp( pigServer, query );
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         ConfigurationValidator.validatePigProperties(pc.getProperties());
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
         JobControlCompiler jcc = new JobControlCompiler(pc, conf);
-        
+
         JobControl jobControl = jcc.compile(mrPlan, "Test");
         Job job = jobControl.getWaitingJobs().get(0);
         int parallel = job.getJobConf().getNumReduceTasks();
-        
+
         assertEquals("parallism", 100, parallel);
     }
 
     public class MyPlanOptimizer extends LogicalPlanOptimizer {
 
         protected MyPlanOptimizer(OperatorPlan p,  int iterations) {
-            super(p, iterations, null);                 
+            super(p, iterations, null);
         }
-        
-        protected List<Set<Rule>> buildRuleSets() {            
+
+        protected List<Set<Rule>> buildRuleSets() {
             List<Set<Rule>> ls = new ArrayList<Set<Rule>>();
-            
+
             Rule r = new GroupByConstParallelSetter("GroupByConstParallelSetter");
             Set<Rule> s = new HashSet<Rule>();
-            s.add(r);            
+            s.add(r);
             ls.add(s);
-            
+
             return ls;
         }
-    }    
+    }
 
 }

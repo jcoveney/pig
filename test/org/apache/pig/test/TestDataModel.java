@@ -17,35 +17,42 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
-
-import org.junit.Test;
 
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.*;
+import org.apache.pig.data.BagFactory;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
+import org.apache.pig.data.InternalMap;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
+import org.junit.Test;
 
 /**
  * This class will exercise the basic Pig data model and members. It tests for proper behavior in
  * assigment and comparision, as well as function application.
- * 
- * @author dnm
  */
-public class TestDataModel extends junit.framework.TestCase {
+public class TestDataModel {
 
     @Test
     public void testDatum() throws Exception {
@@ -191,22 +198,22 @@ public class TestDataModel extends junit.framework.TestCase {
             assertTrue("isa Integer", o instanceof Integer);
             Integer ii = (Integer)o;
             assertEquals(new Integer(42), ii);
-            
+
             o = after.get(4);
             assertTrue("isa Long", o instanceof Long);
             Long l = (Long)o;
             assertEquals(new Long(5000000000L), l);
-            
+
             o = after.get(5);
             assertTrue("isa Float", o instanceof Float);
             Float f = (Float)o;
             assertEquals(new Float(3.141592654), f);
-            
+
             o = after.get(6);
             assertTrue("isa Double", o instanceof Double);
             Double d = (Double)o;
-            assertEquals(2.99792458e8, d);
-            
+            assertEquals(new Double(2.99792458e8), d);
+
             o = after.get(7);
             assertTrue("isa Boolean", o instanceof Boolean);
             Boolean bool = (Boolean)o;
@@ -247,13 +254,13 @@ public class TestDataModel extends junit.framework.TestCase {
 
         FileInputStream fis = new FileInputStream(file);
         DataInput in = new DataInputStream(fis);
- 
+
         Tuple after = tf.newTuple();
         after.readFields(in);
 
         Object o = after.get(0);
         assertTrue("isa InternalMap", o instanceof InternalMap);
-        
+
         InternalMap m = (InternalMap)o;
         assertEquals("world", (String)m.get(new Integer(1)));
         assertEquals("all", (String)m.get(new Long(3L)));
@@ -287,12 +294,12 @@ public class TestDataModel extends junit.framework.TestCase {
         t3.set(0, new DataByteArray("hello world"));
         t3.set(1, new Integer(1));
         t3.set(2, new Long(4));
-        assertFalse("different size", t1.hashCode() == t3.hashCode()); 
+        assertFalse("different size", t1.hashCode() == t3.hashCode());
 
         Tuple t4 = tf.newTuple(2);
         t4.set(0, new DataByteArray("hello world"));
         t4.set(1, new Integer(2));
-        assertFalse("same size, different data", t1.hashCode() == t4.hashCode()); 
+        assertFalse("same size, different data", t1.hashCode() == t4.hashCode());
 
         // Make sure we can take the hash code of all the types.
         Tuple t5 = giveMeOneOfEach();
@@ -305,7 +312,7 @@ public class TestDataModel extends junit.framework.TestCase {
 
         Tuple t1 = tf.newTuple();
         Tuple t2 = tf.newTuple();
-    
+
         t1.append(new Integer(3));
         t2.append(new Integer(3));
 
@@ -428,7 +435,7 @@ public class TestDataModel extends junit.framework.TestCase {
 
         assertEquals("same data", ba1.hashCode(), ba2.hashCode());
 
-        assertFalse("different data", ba1.hashCode() == ba3.hashCode()); 
+        assertFalse("different data", ba1.hashCode() == ba3.hashCode());
     }
 
     @Test
@@ -439,7 +446,7 @@ public class TestDataModel extends junit.framework.TestCase {
 
         assertTrue("same data", ba1.equals(ba2));
 
-        assertFalse("different data", ba1.equals(ba3)); 
+        assertFalse("different data", ba1.equals(ba3));
     }
 
     @Test
@@ -468,7 +475,7 @@ public class TestDataModel extends junit.framework.TestCase {
             ba2.compareTo(ba1) > 0);
 
     }
-    
+
     @Test
     public void testIntegerConversionErr() throws Exception {
     	List list = new ArrayList();
@@ -521,7 +528,7 @@ public class TestDataModel extends junit.framework.TestCase {
         db1.append(db2);
         assertTrue("appends as expected", db1.equals(expected));
     }
-    
+
     @Test
     public void testByteArrayAppendMore() throws Exception {
         DataByteArray expected = new DataByteArray("hello world!");
@@ -531,7 +538,7 @@ public class TestDataModel extends junit.framework.TestCase {
         db1.append(db2).append(db3);
         assertTrue("appends as expected", db1.equals(expected));
     }
-    
+
     @Test
     public void testByteArrayAppendBytes() throws Exception {
         DataByteArray expected = new DataByteArray("hello world");
@@ -540,7 +547,7 @@ public class TestDataModel extends junit.framework.TestCase {
         db1.append(db2);
         assertTrue("appends as expected", db1.equals(expected));
     }
-    
+
     @Test
     public void testByteArrayAppendString() throws Exception {
         DataByteArray expected = new DataByteArray("hello world");

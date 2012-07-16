@@ -17,38 +17,35 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Properties;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-
-
+import org.apache.log4j.FileAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.SimpleLayout;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigServer;
-import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.io.TFileStorage;
 import org.apache.pig.impl.io.InterStorage;
+import org.apache.pig.impl.io.TFileStorage;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-
-import org.apache.log4j.FileAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.SimpleLayout;
 
 public class TestTmpFileCompression {
     private PigServer pigServer;
@@ -274,7 +271,7 @@ public class TestTmpFileCompression {
         }));
     }
 
-    
+
     // PIG-1977
     @Test
     public void testTFileRecordReader() throws Exception {
@@ -283,34 +280,34 @@ public class TestTmpFileCompression {
             w.println("1\tthis is a test for compression of temp files");
         }
         w.close();
-        
+
         Util.copyFromLocalToCluster(cluster, "1.txt", "1.txt");
-        
+
         PrintWriter w1 = new PrintWriter(new FileWriter("tfile.pig"));
         w1.println("A = load '1.txt' as (a0:int, a1:chararray);");
         w1.println("B = group A by a0;");
         w1.println("store B into 'tfile' using org.apache.pig.impl.io.TFileStorage();");
         w1.close();
-        
+
         PrintWriter w2 = new PrintWriter(new FileWriter("tfile2.pig"));
         w2.println("A = load 'tfile' using org.apache.pig.impl.io.TFileStorage() as (a:int, b:bag{(b0:int, b1:chararray)});");
         w2.println("B = foreach A generate flatten($1);");
         w2.println("store B into '2.txt';");
         w2.close();
-        
+
         try {
             String[] args = { "-Dpig.tmpfilecompression.codec=gz",
                     "-Dtfile.io.chunk.size=100", "tfile.pig" };
             PigStats stats = PigRunner.run(args, null);
-     
+
             assertTrue(stats.isSuccessful());
- 
+
             String[] args2 = { "-Dpig.tmpfilecompression.codec=gz",
                     "-Dtfile.io.chunk.size=100", "tfile2.pig" };
             PigStats stats2 = PigRunner.run(args2, null);
 
             assertTrue(stats2.isSuccessful());
-            
+
             OutputStats os = stats2.result("B");
             Iterator<Tuple> iter = os.iterator();
             int count = 0;
@@ -320,11 +317,11 @@ public class TestTmpFileCompression {
                 assertEquals(expected, iter.next().toString());
             }
             assertEquals(30, count);
-            
+
         } finally {
-            new File("tfile.pig").delete(); 
-            new File("tfile2.pig").delete(); 
-            new File("1.txt").delete(); 
+            new File("tfile.pig").delete();
+            new File("tfile2.pig").delete();
+            new File("1.txt").delete();
         }
     }
 }

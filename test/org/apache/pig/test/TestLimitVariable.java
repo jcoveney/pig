@@ -61,11 +61,11 @@ public class TestLimitVariable {
 
     @Test
     public void testLimitVariable1() throws IOException {
-        String query = 
-            "a = load '" + inputFile.getName() + "';" + 
-            "b = group a all;" + 
-            "c = foreach b generate COUNT(a) as sum;" + 
-            "d = order a by $0 DESC;" + 
+        String query =
+            "a = load '" + inputFile.getName() + "';" +
+            "b = group a all;" +
+            "c = foreach b generate COUNT(a) as sum;" +
+            "d = order a by $0 DESC;" +
             "e = limit d c.sum/2;" // return top half of the tuples
             ;
 
@@ -76,17 +76,17 @@ public class TestLimitVariable {
                 "(6,15)", "(5,10)", "(4,11)" });
         Util.checkQueryOutputs(it, expectedRes);
     }
-    
+
     @Test
     public void testLimitVariable2() throws IOException {
-        String query = 
+        String query =
             "a = load '" + inputFile.getName() + "' as (id, num);" +
             "b = filter a by id == 2;" + // only 1 tuple returned (2,3)
             "c = order a by id ASC;" +
             "d = limit c b.num;" + // test bytearray to long implicit cast
             "e = limit c b.num * 2;" // return all (6) tuples
             ;
-        
+
         Util.registerMultiLineQuery(pigServer, query);
         Iterator<Tuple> itD = pigServer.openIterator("d");
         List<Tuple> expectedResD = Util.getTuplesFromConstantTupleStrings(new String[] {
@@ -98,14 +98,14 @@ public class TestLimitVariable {
                 "(1,11)", "(2,3)", "(3,10)", "(4,11)", "(5,10)", "(6,15)" });
         Util.checkQueryOutputs(itE, expectedResE);
     }
-    
+
     @Test
     public void testLimitVariable3() throws IOException {
         String query =
             "a = load '" + inputFile.getName() + "' ;" +
-            "b = group a all;" + 
-            "c = foreach b generate COUNT(a) as sum;" + 
-            "d = order a by $0 ASC;" + 
+            "b = group a all;" +
+            "c = foreach b generate COUNT(a) as sum;" +
+            "d = order a by $0 ASC;" +
             "e = limit d 1 * c.sum;" // return all the tuples, test for PIG-2156
             ;
 
@@ -118,11 +118,11 @@ public class TestLimitVariable {
 
     @Test(expected=FrontendException.class)
     public void testLimitVariableException1() throws Throwable {
-        String query = 
-            "a = load '" + inputFile.getName() + "';" + 
-            "b = group a all;" + 
-            "c = foreach b generate COUNT(a) as sum;" + 
-            "d = order a by $0 DESC;" + 
+        String query =
+            "a = load '" + inputFile.getName() + "';" +
+            "b = group a all;" +
+            "c = foreach b generate COUNT(a) as sum;" +
+            "d = order a by $0 DESC;" +
             "e = limit d $0;" // reference to non scalar context is not allowed
             ;
 
@@ -134,18 +134,18 @@ public class TestLimitVariable {
             throw fe;
         }
     }
-    
+
     @Test(expected=FrontendException.class)
     public void testLimitVariableException2() throws Throwable {
-        String query = 
+        String query =
             // num is a chararray
-            "a = load '" + inputFile.getName() + "' as (id:int, num:chararray);" + 
-            "b = filter a by num == '3';" + 
-            "c = foreach b generate num as falsenum;" + 
-            "d = order a by id DESC;" + 
+            "a = load '" + inputFile.getName() + "' as (id:int, num:chararray);" +
+            "b = filter a by num == '3';" +
+            "c = foreach b generate num as falsenum;" +
+            "d = order a by id DESC;" +
             "e = limit d c.falsenum;" // expression must be Long or Integer
             ;
-        
+
         Util.registerMultiLineQuery(pigServer, query);
         try {
             pigServer.openIterator("e");
@@ -155,13 +155,13 @@ public class TestLimitVariable {
             throw fe;
         }
     }
-    
+
     @Test
     public void testNestedLimitVariable1() throws Throwable {
-        String query = 
+        String query =
             // does not work without schema because Util returns typed tuples
-            "a = load '" + inputFile.getName() + "' as (id:int, num:int);" + 
-            "b = group a by num;" + 
+            "a = load '" + inputFile.getName() + "' as (id:int, num:int);" +
+            "b = group a by num;" +
             "c = foreach b generate COUNT(a) as ntup;" +
             "d = group c all;" +
             "e = foreach d generate MIN(c.ntup) AS min;" +
@@ -171,7 +171,7 @@ public class TestLimitVariable {
             " generate FLATTEN(h);" +
             "}"
             ;
-        
+
         Util.registerMultiLineQuery(pigServer, query);
         Iterator<Tuple> it = pigServer.openIterator("f");
 

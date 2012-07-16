@@ -18,6 +18,9 @@
 package org.apache.pig.test;
 
 import static org.apache.pig.ExecType.MAPREDUCE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -34,17 +37,13 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
-import junit.framework.TestCase;
 
 /**
  * Test PORelationToExprProject which is a special project
  * introduced to handle the following case:
  * This project is Project(*) introduced after a relational operator
  * to supply a bag as output (as an expression). This project is either
- * providing the bag as input to a successor expression operator or is 
+ * providing the bag as input to a successor expression operator or is
  * itself the leaf in a inner plan
  * If the predecessor relational operator sends an EOP
  * then send an empty bag first to signal "empty" output
@@ -56,13 +55,12 @@ import junit.framework.TestCase;
  * a = load 'baginp.txt' as (b:bag{t:tuple()}); b = foreach a generate $0; dump b;
  * will go through a regular project (without the following flag)
  */
-@RunWith(JUnit4.class)
-public class TestRelationToExprProject extends TestCase {
+public class TestRelationToExprProject {
 
     private static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer;
-    private static final String TEST_FILTER_COUNT3_INPUT="test/org/apache/pig/test/data/TestRelationToExprProjectInput.txt"; 
-    
+    private static final String TEST_FILTER_COUNT3_INPUT="test/org/apache/pig/test/data/TestRelationToExprProjectInput.txt";
+
     /* (non-Javadoc)
      * @see junit.framework.TestCase#setUp()
      */
@@ -70,7 +68,7 @@ public class TestRelationToExprProject extends TestCase {
     public void setUp() throws Exception {
         pigServer = new PigServer(MAPREDUCE, cluster.getProperties());
     }
-    
+
     /* (non-Javadoc)
      * @see junit.framework.TestCase#tearDown()
      */
@@ -78,19 +76,19 @@ public class TestRelationToExprProject extends TestCase {
     public void tearDown() throws Exception {
         pigServer.shutdown();
     }
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     // based on the script provided in the jira issue:PIG-514
     // tests that when a filter inside a foreach filters away all tuples
     // for a group, an empty bag is still provided to udfs whose
     // input is the filter
     @Test
     public void testFilterCount1() throws IOException, ParserException {
-        
+
         String[] inputData = new String[] {"1\t1\t3","1\t2\t3", "2\t1\t3", "2\t1\t3"};
         Util.createInputFile(cluster, "test.txt", inputData);
         String script = "test   = load 'test.txt' as (col1: int, col2: int, col3: int);" +
@@ -124,7 +122,7 @@ public class TestRelationToExprProject extends TestCase {
         }
         Util.deleteFile(cluster, "test.txt");
     }
-    
+
     // based on jira PIG-710
     // tests that when a filter inside a foreach filters away all tuples
     // for a group, an empty bag is still provided to udfs whose
@@ -151,7 +149,7 @@ public class TestRelationToExprProject extends TestCase {
         		"                group," +
         		"                matchedcount as matchedcount," +
         		"                A.str;" +
-        		"        };";  
+        		"        };";
         Util.registerMultiLineQuery(pigServer, query);
         Iterator<Tuple> it = pigServer.openIterator("Cfiltered");
         Map<String, Tuple> expected = new HashMap<String, Tuple>();
@@ -168,7 +166,7 @@ public class TestRelationToExprProject extends TestCase {
         assertEquals(4, i);
         Util.deleteFile(cluster, "filterbug.data");
     }
-    
+
     // based on jira PIG-739
     // tests that when a filter inside a foreach filters away all tuples
     // for a group, an empty bag is still provided to udfs whose
@@ -188,7 +186,7 @@ public class TestRelationToExprProject extends TestCase {
         		"TESTDATA_AGG_2 = foreach TESTDATA_AGG_1 generate COUNT(TESTDATA_AGG);" ;
         Util.registerMultiLineQuery(pigServer, query);
         Iterator<Tuple> it = pigServer.openIterator("TESTDATA_AGG_2");
-        
+
         int i = 0;
         while(it.hasNext()) {
             Tuple actual = it.next();
@@ -198,13 +196,13 @@ public class TestRelationToExprProject extends TestCase {
         assertEquals(1, i);
         Util.deleteFile(cluster, "testdata");
     }
-    
+
     // test case where RelationToExprProject is present in the
     // single inner plan of foreach - this will test that it does
     // send an EOP eventually for each input of the foreach
     @Test
     public void testFilter1() throws IOException, ParserException {
-        
+
         String[] inputData = new String[] {"1\t1\t3","1\t2\t3", "2\t1\t3", "2\t1\t3", "3\t4\t4"};
         Util.createInputFile(cluster, "test.txt", inputData);
         String script = "test   = load 'test.txt' as (col1: int, col2: int, col3: int);" +
@@ -237,7 +235,7 @@ public class TestRelationToExprProject extends TestCase {
         }
         Util.deleteFile(cluster, "test.txt");
     }
-    
+
     // test case where RelationToExprProject is present in a
     // different inner plan along with another plan to project the group
     // in foreach - this will test that reset() correctly resets
@@ -245,7 +243,7 @@ public class TestRelationToExprProject extends TestCase {
     // input has been seen on a fresh input from foreach.
     @Test
     public void testFilter2() throws IOException, ParserException {
-        
+
         String[] inputData = new String[] {"1\t1\t3","1\t2\t3", "2\t1\t3", "2\t1\t3", "3\t4\t4"};
         Util.createInputFile(cluster, "test.txt", inputData);
         String script = "test   = load 'test.txt' as (col1: int, col2: int, col3: int);" +
@@ -279,6 +277,4 @@ public class TestRelationToExprProject extends TestCase {
         }
         Util.deleteFile(cluster, "test.txt");
     }
-
-    
 }

@@ -17,24 +17,24 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
-import java.util.Map;
 import java.util.Random;
 
-import junit.framework.TestCase;
-
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.DataType;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.BinaryComparisonOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.*;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PORegexp;
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.junit.Before;
 import org.junit.Test;
 
-
-public class TestRegexp extends TestCase{
+public class TestRegexp {
 
     Random r = new Random();
     ConstantExpression lt, rt;
@@ -60,13 +60,13 @@ public class TestRegexp extends TestCase{
         Result res = op.getNext(new Boolean(true));
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertTrue((Boolean)res.result);
-        
+
         // test with null in lhs
         lt.setValue(null);
         rt.setValue(".*s.y.*");
         res = op.getNext(new Boolean(true));
         assertEquals(null, (Boolean)res.result);
-        
+
         // test with null in rhs
         lt.setValue(new String(
         "The quick sly fox jumped over the lazy brown dog"));
@@ -85,4 +85,3 @@ public class TestRegexp extends TestCase{
         assertFalse((Boolean)res.result);
     }
 }
-

@@ -17,6 +17,10 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -33,20 +37,17 @@ import org.apache.pig.test.utils.ScriptSchemaTestLoader;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 /**
- * 
+ *
  * Tests that the LOLoad class sets the script schema correctly as expected.<br/>
  * This way of passing the script schema is not an optimal solution but will be
  * used currently inorder not to break code by adding new methods the to
  * LoadFunc or other Classes. For more information please see
  * https://issues.apache.org/jira/browse/PIG-1717
- * 
+ *
  */
-@RunWith(JUnit4.class)
-public class TestLOLoadDeterminedSchema extends junit.framework.TestCase {
+public class TestLOLoadDeterminedSchema {
 
 	PigContext pc;
 	PigServer server;
@@ -58,7 +59,7 @@ public class TestLOLoadDeterminedSchema extends junit.framework.TestCase {
 	 * Loads a test file using ScriptSchemaTestLoader with a user defined schema
 	 * a,b,c.<br/>
 	 * Then tests the the ScriptSchemaTestLoader found the schema.
-	 * 
+	 *
 	 * @throws IOException
 	 */
 	@Test
@@ -87,7 +88,6 @@ public class TestLOLoadDeterminedSchema extends junit.framework.TestCase {
 
 	}
 
-	@Override
 	@Before
 	public void setUp() throws Exception {
 		FileLocalizer.deleteTempFiles();
@@ -114,7 +114,6 @@ public class TestLOLoadDeterminedSchema extends junit.framework.TestCase {
 
 	}
 
-	@Override
 	@After
 	public void tearDown() throws Exception {
 		if (baseDir.exists())

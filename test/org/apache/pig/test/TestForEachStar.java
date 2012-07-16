@@ -17,23 +17,20 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.List;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.parser.ParserException;
-import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -52,17 +49,6 @@ public class TestForEachStar {
     public static void oneTimeTearDown() throws Exception {
         new File(INPUT_FILE).delete();
     }
- 
-    
-    @Before
-    public void setUp() throws Exception {
-
-    }
-  
-
-    @After
-    public void tearDown() throws Exception {
-    }
 
     @Test
     public void testForeachStarSchemaUnkown() throws IOException, ParserException{
@@ -70,12 +56,12 @@ public class TestForEachStar {
         String query =
             "  l1 = load '" + INPUT_FILE + "' ;"
             + "f1 = foreach l1 generate * ;"
-        ; 
+        ;
         Util.registerMultiLineQuery(pig, query);
         pig.explain("f1",System.out);
         Iterator<Tuple> it = pig.openIterator("f1");
-        
-        
+
+
         Tuple expectedResCharArray = (Tuple)Util.getPigConstant("('one','two')");
         Tuple expectedRes = TupleFactory.getInstance().newTuple();
         for(Object field :  expectedResCharArray.getAll() ){
@@ -84,7 +70,4 @@ public class TestForEachStar {
         assertTrue("has output", it.hasNext());
         assertEquals(expectedRes, it.next());
     }
-    
-    
-    
 }

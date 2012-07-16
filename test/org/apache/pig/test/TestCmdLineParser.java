@@ -17,21 +17,19 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
+
 import java.text.ParseException;
 
-import junit.framework.AssertionFailedError;
-import junit.framework.TestCase;
-
+import org.apache.pig.tools.cmdline.CmdLineParser;
 import org.junit.Test;
 
-import org.apache.pig.tools.cmdline.CmdLineParser;
-
-public class TestCmdLineParser extends TestCase
-{
+public class TestCmdLineParser {
 
 @Test
-public void testRegisterDash()
-{
+public void testRegisterDash() {
     String[] args = {"a", "b", "c"};
     CmdLineParser p = new CmdLineParser(args);
     try {
@@ -44,8 +42,7 @@ public void testRegisterDash()
 }
 
 @Test
-public void testDoubleRegisterShort()
-{
+public void testDoubleRegisterShort() {
     String[] args = {"a", "b", "c"};
     CmdLineParser p = new CmdLineParser(args);
     try {
@@ -59,8 +56,7 @@ public void testDoubleRegisterShort()
 }
 
 @Test
-public void testDoubleRegisterLong()
-{
+public void testDoubleRegisterLong() {
     String[] args = {"a", "b", "c"};
     CmdLineParser p = new CmdLineParser(args);
     try {
@@ -74,8 +70,7 @@ public void testDoubleRegisterLong()
 }
 
 @Test
-public void testRegister()
-{
+public void testRegister() {
     String[] args = {"a", "b", "c"};
     CmdLineParser p = new CmdLineParser(args);
     p.registerOpt('a', "alpha", CmdLineParser.ValueExpected.NOT_ACCEPTED);
@@ -84,8 +79,7 @@ public void testRegister()
 }
 
 @Test
-public void testParseNoArgs() throws ParseException
-{
+public void testParseNoArgs() throws ParseException {
     String[] args = {};
     CmdLineParser p = new CmdLineParser(args);
     p.registerOpt('a', "alpha", CmdLineParser.ValueExpected.NOT_ACCEPTED);
@@ -93,8 +87,7 @@ public void testParseNoArgs() throws ParseException
 }
 
 @Test
-public void testParseNoDash() throws ParseException
-{
+public void testParseNoDash() throws ParseException {
     String[] args = {"a"};
     CmdLineParser p = new CmdLineParser(args);
     p.registerOpt('a', "alpha", CmdLineParser.ValueExpected.NOT_ACCEPTED);
@@ -104,8 +97,7 @@ public void testParseNoDash() throws ParseException
 }
 
 @Test
-public void testParseLongShortNoLeftover() throws ParseException
-{
+public void testParseLongShortNoLeftover() throws ParseException {
     String[] args = {"-a", "--beta", "beth", "--c"};
     CmdLineParser p = new CmdLineParser(args);
     p.registerOpt('a', "alpha", CmdLineParser.ValueExpected.NOT_ACCEPTED);
@@ -121,8 +113,7 @@ public void testParseLongShortNoLeftover() throws ParseException
 }
 
 @Test
-public void testParseLongShortLeftover1() throws ParseException
-{
+public void testParseLongShortLeftover1() throws ParseException {
     String[] args = {"-a", "--beta", "beth", "--c", "gimel", "-", "hi", "i'm", "left",
     "over"};
     CmdLineParser p = new CmdLineParser(args);
@@ -141,8 +132,7 @@ public void testParseLongShortLeftover1() throws ParseException
 
 // has two dashes instead of one for end of args
 @Test
-public void testParseLongShortLeftover2() throws ParseException
-{
+public void testParseLongShortLeftover2() throws ParseException {
     String[] args = {"-a", "-beta", "beth", "--c", "gimel", "--", "hi", "i'm", "left",
     "over"};
     CmdLineParser p = new CmdLineParser(args);
@@ -160,8 +150,7 @@ public void testParseLongShortLeftover2() throws ParseException
 }
 
 @Test
-public void testParseLongShortLeftover3() throws ParseException
-{
+public void testParseLongShortLeftover3() throws ParseException {
     String[] args = {"-a", "--beta", "5", "--c", "--"};
     CmdLineParser p = new CmdLineParser(args);
     p.registerOpt('a', "alpha", CmdLineParser.ValueExpected.NOT_ACCEPTED);
@@ -179,8 +168,7 @@ public void testParseLongShortLeftover3() throws ParseException
 }
 
 @Test
-public void testParseValueNotAcceptedProvided1() throws ParseException
-{
+public void testParseValueNotAcceptedProvided1() throws ParseException {
     String[] args = {"-a", "aleph"};
     CmdLineParser p = new CmdLineParser(args);
     p.registerOpt('a', "alpha", CmdLineParser.ValueExpected.NOT_ACCEPTED);
@@ -191,8 +179,7 @@ public void testParseValueNotAcceptedProvided1() throws ParseException
 }
 
 @Test
-public void testParseValueNotAcceptedProvided2() throws ParseException
-{
+public void testParseValueNotAcceptedProvided2() throws ParseException {
     String[] args = {"-alpha", "aleph"};
     CmdLineParser p = new CmdLineParser(args);
     p.registerOpt('a', "alpha", CmdLineParser.ValueExpected.NOT_ACCEPTED);
@@ -203,8 +190,7 @@ public void testParseValueNotAcceptedProvided2() throws ParseException
 }
 
 @Test
-public void testParseValueRequiredNotProvided1()
-{
+public void testParseValueRequiredNotProvided1() {
     String[] args = {"-a"};
     CmdLineParser p = new CmdLineParser(args);
     p.registerOpt('a', "alpha", CmdLineParser.ValueExpected.REQUIRED);
@@ -218,8 +204,7 @@ public void testParseValueRequiredNotProvided1()
 }
 
 @Test
-public void testParseValueRequiredNotProvided2()
-{
+public void testParseValueRequiredNotProvided2() {
     String[] args = {"--alpha", "-b"};
     CmdLineParser p = new CmdLineParser(args);
     p.registerOpt('a', "alpha", CmdLineParser.ValueExpected.REQUIRED);
@@ -234,8 +219,7 @@ public void testParseValueRequiredNotProvided2()
 }
 
 @Test
-public void testParseValueStrForInt() throws ParseException
-{
+public void testParseValueStrForInt() throws ParseException {
     String[] args = {"-alpha", "b"};
     CmdLineParser p = new CmdLineParser(args);
     p.registerOpt('a', "alpha", CmdLineParser.ValueExpected.REQUIRED);
@@ -248,8 +232,7 @@ public void testParseValueStrForInt() throws ParseException
 }
 
 @Test
-public void testParseUnknownShort()
-{
+public void testParseUnknownShort() {
     String[] args = {"-alpha", "b", "-z"};
     CmdLineParser p = new CmdLineParser(args);
     p.registerOpt('a', "alpha", CmdLineParser.ValueExpected.REQUIRED);
@@ -265,8 +248,7 @@ public void testParseUnknownShort()
 }
 
 @Test
-public void testParseUnknownLong()
-{
+public void testParseUnknownLong() {
     String[] args = {"--zeta"};
     CmdLineParser p = new CmdLineParser(args);
     p.registerOpt('a', "alpha", CmdLineParser.ValueExpected.REQUIRED);
@@ -280,4 +262,3 @@ public void testParseUnknownLong()
 }
 
 }
-

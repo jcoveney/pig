@@ -57,15 +57,15 @@ public class TestMergeJoinOuter {
     private static final String INPUT_FILE2 = "testMergeJoinInput2.txt";
     private PigServer pigServer;
     private static MiniCluster cluster = MiniCluster.buildCluster();
-    
+
     public TestMergeJoinOuter() throws ExecException{
-        
+
         Properties props = cluster.getProperties();
         props.setProperty("mapred.map.max.attempts", "1");
         props.setProperty("mapred.reduce.max.attempts", "1");
         pigServer = new PigServer(ExecType.MAPREDUCE, props);
     }
-    
+
     @Before
     public void setUp() throws Exception {
         int LOOP_SIZE = 3;
@@ -77,10 +77,10 @@ public class TestMergeJoinOuter {
                 input[k++] = si + "\t" + j;
         }
         Util.createInputFile(cluster, INPUT_FILE1, input);
-        
+
         Util.createInputFile(cluster, INPUT_FILE2, new String[]{"2\t2","2\t3","3\t1","4\t1","4\t3"});
     }
-    
+
     @After
     public void tearDown() throws Exception {
         Util.deleteFile(cluster, INPUT_FILE1);
@@ -91,11 +91,11 @@ public class TestMergeJoinOuter {
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     @Test
     public void testCompilation(){
         try{
-            String query = "A = LOAD 'data1' using "+ DummyCollectableLoader.class.getName() +"() as (id, name, grade);" + 
+            String query = "A = LOAD 'data1' using "+ DummyCollectableLoader.class.getName() +"() as (id, name, grade);" +
             "B = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);" +
             "C = join A by id left, B by id using 'merge';" +
             "store C into 'out';";
@@ -113,8 +113,8 @@ public class TestMergeJoinOuter {
             assertTrue(phyOp instanceof POForEach);
             assertEquals(1,phyOp.getInputs().size());
             assertTrue(phyOp.getInputs().get(0) instanceof POMergeCogroup);
-            
-            MROperPlan mrPlan = Util.buildMRPlan(phyP,pc);            
+
+            MROperPlan mrPlan = Util.buildMRPlan(phyP,pc);
             assertEquals(2,mrPlan.size());
 
             Iterator<MapReduceOper> itr = mrPlan.iterator();
@@ -150,7 +150,7 @@ public class TestMergeJoinOuter {
         pc.connect();
         boolean exceptionCaught = false;
         try{
-            Util.buildPp(pigServer, query);   
+            Util.buildPp(pigServer, query);
         }catch (java.lang.reflect.InvocationTargetException e){
         	FrontendException ex = (FrontendException)e.getTargetException();
             assertEquals(1103,ex.getErrorCode());
@@ -158,10 +158,10 @@ public class TestMergeJoinOuter {
         }
         assertTrue(exceptionCaught);
     }
-    
+
     @Test
     public void testLeftOuter() throws IOException {
-        
+
         pigServer.registerQuery("A = LOAD '"+INPUT_FILE1+"' using "+ DummyCollectableLoader.class.getName() +"() as (c1:chararray, c2:chararray);");
         pigServer.registerQuery("B = LOAD '"+INPUT_FILE2+"' using "+ DummyIndexableLoader.class.getName() +"() as (c1:chararray, c2:chararray);");
 
@@ -180,22 +180,22 @@ public class TestMergeJoinOuter {
                             "(3,3,3,1)",
                             "(3,1,3,1)",
                             "(3,2,3,1)"};
-        
+
         for(String result : results)
             assertEquals(result, iter.next().toString());
-        
+
         assertFalse(iter.hasNext());
 
     }
-    
+
     @Test
     public void testRightOuter() throws IOException{
-        
+
         pigServer.registerQuery("A = LOAD '"+INPUT_FILE1+"' using "+ DummyCollectableLoader.class.getName() +"() as (c1:chararray, c2:chararray);");
         pigServer.registerQuery("B = LOAD '"+INPUT_FILE2+"' using "+ DummyIndexableLoader.class.getName() +"() as (c1:chararray, c2:chararray);");
         pigServer.registerQuery("C = join A by c1 right, B by c1 using 'merge';");
         Iterator<Tuple> iter = pigServer.openIterator("C");
-        
+
         String[] results = {"(2,2,2,2)",
                             "(2,2,2,3)",
                             "(2,1,2,2)",
@@ -207,23 +207,23 @@ public class TestMergeJoinOuter {
                             "(3,2,3,1)",
                             "(,,4,1)",
                             "(,,4,3)"};
-        
+
         for(String result : results)
             assertEquals(result, iter.next().toString());
-        
+
         assertFalse(iter.hasNext());
 
     }
-    
+
     @Test
     public void testFullOuter() throws IOException{
-        
+
         pigServer.registerQuery("A = LOAD '"+INPUT_FILE1+"' using "+ DummyCollectableLoader.class.getName() +"() as (c1:chararray, c2:chararray);");
         pigServer.registerQuery("B = LOAD '"+INPUT_FILE2+"' using "+ DummyIndexableLoader.class.getName() +"() as (c1:chararray, c2:chararray);");
         pigServer.registerQuery("C = join A by c1 full, B by c1 using 'merge';");
 
         Iterator<Tuple> iter = pigServer.openIterator("C");
-        
+
         String[] results = {"(1,1,,)",
                             "(1,2,,)",
                             "(1,3,,)",
@@ -238,10 +238,10 @@ public class TestMergeJoinOuter {
                             "(3,2,3,1)",
                             "(,,4,1)",
                             "(,,4,3)"};
-        
+
         for(String result : results)
             assertEquals(result, iter.next().toString());
-        
+
         assertFalse(iter.hasNext());
     }
 }

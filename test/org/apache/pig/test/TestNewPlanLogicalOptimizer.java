@@ -18,7 +18,6 @@
 package org.apache.pig.test;
 
 import static org.apache.pig.newplan.logical.relational.LOTestHelper.newLOLoad;
-
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -43,23 +42,21 @@ import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOJoin;
+import org.apache.pig.newplan.logical.relational.LOJoin.JOINTYPE;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
-import org.apache.pig.newplan.logical.relational.LOJoin.JOINTYPE;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 import org.junit.Before;
 import org.junit.Test;
-
-import junit.framework.TestCase;
 
 /**
  * Test end to end logical optimizations.
  */
 public class TestNewPlanLogicalOptimizer {
-    
+
     Configuration conf = null;
-    
+
     @Before
     public void setUp() throws Exception {
         PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
@@ -68,7 +65,7 @@ public class TestNewPlanLogicalOptimizer {
                 ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration())
                 );
     }
-    
+
     @Test
     public void testFilterPushDown() throws IOException {
         // A logical plan for:
@@ -77,7 +74,7 @@ public class TestNewPlanLogicalOptimizer {
         // C = join A on x, B on a;
         // D = filter C by x = a and x = 0 and b = 1 and y = b;
         // store D into 'whatever';
-        
+
         // A = load
         LogicalPlan lp = new LogicalPlan();
         {
@@ -89,7 +86,7 @@ public class TestNewPlanLogicalOptimizer {
         	LOLoad A = newLOLoad(new FileSpec("bla", new FuncSpec("PigStorage", "\t")), aschema, lp, conf);
         	A.setAlias("A");
         	lp.add(A);
-	        
+
         	// B = load
         	LogicalSchema bschema = new LogicalSchema();
         	bschema.addField(new LogicalSchema.LogicalFieldSchema(
@@ -99,7 +96,7 @@ public class TestNewPlanLogicalOptimizer {
         	LOLoad B = newLOLoad(new FileSpec("morebla", new FuncSpec("PigStorage", "\t")), bschema, lp, conf);
         	B.setAlias("B");
         	lp.add(B);
-	        
+
         	// C = join
         	LogicalSchema cschema = new LogicalSchema();
         	cschema.addField(new LogicalSchema.LogicalFieldSchema(
@@ -110,7 +107,7 @@ public class TestNewPlanLogicalOptimizer {
             	"a", null, DataType.BYTEARRAY));
         	cschema.addField(new LogicalSchema.LogicalFieldSchema(
             	"b", null, DataType.BYTEARRAY));
-        	MultiMap<Integer, LogicalExpressionPlan> mm = 
+        	MultiMap<Integer, LogicalExpressionPlan> mm =
                 new MultiMap<Integer, LogicalExpressionPlan>();
         	LogicalExpressionPlan aprojplan = new LogicalExpressionPlan();
         	LOJoin C = new LOJoin(lp, mm, JOINTYPE.HASH, new boolean[] {true, true});
@@ -119,12 +116,12 @@ public class TestNewPlanLogicalOptimizer {
         	new ProjectExpression(bprojplan, 1, 0, C);
         	mm.put(0, aprojplan);
         	mm.put(1, bprojplan);
-        	
+
         	C.setAlias("C");
         	lp.add(C);
         	lp.connect(A, C);
         	lp.connect(B, C);
-        
+
         	// D = filter
         	LogicalExpressionPlan filterPlan = new LogicalExpressionPlan();
         	LOFilter D = new LOFilter(lp, filterPlan);
@@ -143,17 +140,17 @@ public class TestNewPlanLogicalOptimizer {
         	ProjectExpression fy = new ProjectExpression(filterPlan, 0, 1, D);
         	EqualExpression eq4 = new EqualExpression(filterPlan, fy, fanotherb);
         	new AndExpression(filterPlan, and2, eq4);
-        	
+
         	D.setAlias("D");
         	// Connect D to B, since the transform has happened.
         	lp.add(D);
         	lp.connect(C, D);
         }
-        
+
         System.out.println(lp);
         LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer(lp, 500, null);
         optimizer.optimize();
-        
+
         LogicalPlan expected = new LogicalPlan();
         {
             // A = load
@@ -164,7 +161,7 @@ public class TestNewPlanLogicalOptimizer {
             	"y", null, DataType.BYTEARRAY));
         	LOLoad A = newLOLoad(new FileSpec("bla", new FuncSpec("PigStorage", "\t")), aschema, expected, conf);
         	expected.add(A);
-        	
+
         	// DA = filter
         	LogicalExpressionPlan DAfilterPlan = new LogicalExpressionPlan();
         	LOFilter DA = new LOFilter(expected, DAfilterPlan);
@@ -172,16 +169,16 @@ public class TestNewPlanLogicalOptimizer {
         	fx.neverUseForRealSetFieldSchema(new LogicalFieldSchema(null, null, DataType.BYTEARRAY));
         	ConstantExpression fc0 = new ConstantExpression(DAfilterPlan, new Integer(0));
         	new EqualExpression(DAfilterPlan, fx, fc0);
-        	
+
         	DA.neverUseForRealSetSchema(aschema);
         	expected.add(DA);
         	expected.connect(A, DA);
-	        
+
         	// A = foreach
             LOForEach foreachA = org.apache.pig.newplan.logical.Util.addForEachAfter(expected, DA, 0, new HashSet<Integer>());
             foreachA.setAlias("A");
             foreachA.neverUseForRealSetSchema(aschema);
-        	
+
         	// B = load
         	LogicalSchema bschema = new LogicalSchema();
         	bschema.addField(new LogicalSchema.LogicalFieldSchema(
@@ -190,7 +187,7 @@ public class TestNewPlanLogicalOptimizer {
             	"b", null, DataType.BYTEARRAY));
         	LOLoad B = newLOLoad(new FileSpec("morebla", new FuncSpec("PigStorage", "\t")), bschema, expected, conf);
         	expected.add(B);
-        	
+
         	// DB = filter
         	LogicalExpressionPlan DBfilterPlan = new LogicalExpressionPlan();
             LOFilter DB = new LOFilter(expected, DBfilterPlan);
@@ -202,12 +199,12 @@ public class TestNewPlanLogicalOptimizer {
         	DB.neverUseForRealSetSchema(bschema);
         	expected.add(DB);
         	expected.connect(B, DB);
-	        
+
             // B = foreach
             LOForEach foreachB = org.apache.pig.newplan.logical.Util.addForEachAfter(expected, DB, 0, new HashSet<Integer>());
             foreachB.setAlias("B");
             foreachB.neverUseForRealSetSchema(bschema);
-            
+
         	// C = join
         	LogicalSchema cschema = new LogicalSchema();
         	cschema.addField(new LogicalSchema.LogicalFieldSchema(
@@ -223,7 +220,7 @@ public class TestNewPlanLogicalOptimizer {
         	cschema.getField(2).uid = 3;
         	cschema.getField(3).uid = 4;
         	LogicalExpressionPlan aprojplan = new LogicalExpressionPlan();
-            MultiMap<Integer, LogicalExpressionPlan> mm = 
+            MultiMap<Integer, LogicalExpressionPlan> mm =
                 new MultiMap<Integer, LogicalExpressionPlan>();
             LOJoin C = new LOJoin(expected, mm, JOINTYPE.HASH, new boolean[] {true, true});
 
@@ -238,7 +235,7 @@ public class TestNewPlanLogicalOptimizer {
         	expected.add(C);
         	expected.connect(foreachA, C);
         	expected.connect(foreachB, C);
-	        
+
         	// D = filter
         	LogicalExpressionPlan filterPlan = new LogicalExpressionPlan();
             LOFilter D = new LOFilter(expected, filterPlan);
@@ -253,20 +250,19 @@ public class TestNewPlanLogicalOptimizer {
         	fy.neverUseForRealSetFieldSchema(new LogicalFieldSchema(null, null, DataType.BYTEARRAY));
         	EqualExpression eq4 = new EqualExpression(filterPlan, fy, fanotherb);
         	new AndExpression(filterPlan, eq2, eq4);
-	        
+
         	D.neverUseForRealSetSchema(cschema);
         	expected.add(D);
         	expected.connect(C, D);
         }
-        
+
         SchemaResetter schemaResetter = new SchemaResetter(lp);
         schemaResetter.visit();
-        
+
         schemaResetter = new SchemaResetter(expected);
         schemaResetter.visit();
-        
-        
+
+
         assertTrue( lp.isEqual(expected) );
     }
-
 }

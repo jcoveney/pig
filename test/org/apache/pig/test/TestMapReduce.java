@@ -29,8 +29,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.Iterator;
-import java.util.Properties;
 import java.util.Map.Entry;
+import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -53,24 +53,25 @@ import org.apache.pig.test.utils.TestHelper;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+
 public class TestMapReduce {
 
     private Log log = LogFactory.getLog(getClass());
-    
+
     static MiniCluster cluster = MiniCluster.buildCluster();
 
     private PigServer pig;
-    
+
     @Before
     public void setUp() throws Exception {
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
 
     @Test
     public void testBigGroupAll() throws Throwable {
@@ -112,13 +113,13 @@ public class TestMapReduce {
 
     /**
      * This test checks records that align perfectly on
-     * bzip block boundaries and hdfs block boundaries 
+     * bzip block boundaries and hdfs block boundaries
      */
     @Test
     public void testBZip2Aligned() throws Throwable {
         int offsets[] = { 219642, 219643, 219644, 552019, 552020 };
         for(int i = 1; i < offsets.length; i ++) {
-            
+
             Properties props = new Properties();
             for (Entry<Object, Object> entry : cluster.getProperties().entrySet()) {
                 props.put(entry.getKey(), entry.getValue());
@@ -143,7 +144,7 @@ public class TestMapReduce {
             //assertEquals("1000000", it.next().getField(0));
         }
     }
-    
+
     public Double bigGroupAll( File tmpFile ) throws Throwable {
 
         String query = "foreach (group (load '"
@@ -157,7 +158,7 @@ public class TestMapReduce {
         return  DataType.toDouble(t.get(0));
     }
 
-    
+
     static public class MyApply extends EvalFunc<DataBag> {
         String field0 = "Got";
         public MyApply() {}
@@ -210,14 +211,14 @@ public class TestMapReduce {
         public void setNulls(boolean hasNulls ) { this.hasNulls=hasNulls; }
 
         /**
-         * 
+         *
          */
         public MyStorage() {
             // initialize delimiter to be "-" for output
             // since that is the delimiter in the tests below
             super("-");
         }
-        
+
         @Override
         public Tuple getNext() throws IOException {
             if (count < COUNT) {
@@ -289,7 +290,7 @@ public class TestMapReduce {
         String[][] data = genDataSetFile1( 10, true );
         storeFunction( data);
     }
-   
+
     public void storeFunction(String[][] data) throws Throwable {
 
         File tmpFile=TestHelper.createTempFile(data) ;
@@ -362,7 +363,7 @@ public class TestMapReduce {
         assertEquals( MyStorage.COUNT, count );
         tmpFile.delete();
     }
-    
+
     @Test
     public void testQualifiedFunctionsWithNulls() throws Throwable {
 
@@ -401,7 +402,7 @@ public class TestMapReduce {
         assertEquals( MyStorage.COUNT, count );
         tmpFile.delete();
     }
-    
+
 
     @Test
     public void testDefinedFunctions() throws Throwable {
@@ -523,11 +524,11 @@ public class TestMapReduce {
      *           3  3
      *           4  4
      *           5  5
-     *           6   
+     *           6
      *           7  7
-     *               
+     *
      *           9  9
-     *           
+     *
      */
     private String[][] genDataSetFile1( int dataLength, boolean hasNulls ) throws IOException {
 
@@ -544,7 +545,7 @@ public class TestMapReduce {
             		data[i][1] = new Integer(i).toString();
 
 		     } else if ( i == 6 ) {
-                   
+
             		data[i][0] = new Integer(i).toString();
             		data[i][1] = "";
 
@@ -572,6 +573,4 @@ public class TestMapReduce {
          return  data;
 
     }
-
-
 }

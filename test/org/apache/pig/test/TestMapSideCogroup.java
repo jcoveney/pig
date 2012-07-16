@@ -47,7 +47,6 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
@@ -110,7 +109,7 @@ public class TestMapSideCogroup {
             else
                 si = i + "";
             for(int j=1;j<=LOOP_SIZE;j++){
-                dataWithNullKeys[k++] = si + "\t" + j;                
+                dataWithNullKeys[k++] = si + "\t" + j;
             }
 
         }
@@ -141,12 +140,12 @@ public class TestMapSideCogroup {
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     @Test
     public void testCompilation(){
         try{
             PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-            String query = "A = LOAD 'data1' using "+ DummyCollectableLoader.class.getName() +"() as (id, name, grade);" + 
+            String query = "A = LOAD 'data1' using "+ DummyCollectableLoader.class.getName() +"() as (id, name, grade);" +
             "B = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);" +
             "D = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);" +
             "C = cogroup A by id, B by id, D by id using 'merge';" +
@@ -164,7 +163,7 @@ public class TestMapSideCogroup {
             phyOp = phyOp.getInputs().get(0);
             assertTrue(phyOp instanceof POMergeCogroup);
 
-            MROperPlan mrPlan = Util.buildMRPlan(phyP,pc);            
+            MROperPlan mrPlan = Util.buildMRPlan(phyP,pc);
             assertEquals(2,mrPlan.size());
 
             Iterator<MapReduceOper> itr = mrPlan.iterator();
@@ -200,7 +199,7 @@ public class TestMapSideCogroup {
 //        pc.connect();
 //        boolean exceptionCaught = false;
 //        try{
-//            Util.buildPp(pigServer, query);   
+//            Util.buildPp(pigServer, query);
 //        }catch (java.lang.reflect.InvocationTargetException e){
 //        	FrontendException ex = (FrontendException)e.getTargetException();
 //            assertEquals(1103,ex.getErrorCode());
@@ -208,7 +207,7 @@ public class TestMapSideCogroup {
 //        }
 //        assertTrue(exceptionCaught);
 //    }
-    
+
     @Test
     public void testFailure2() throws Exception{
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -226,13 +225,13 @@ public class TestMapSideCogroup {
         pc.connect();
         boolean exceptionCaught = false;
         try{
-            Util.buildPp(pigServer, query);   
+            Util.buildPp(pigServer, query);
         }catch (java.lang.reflect.InvocationTargetException e){
             exceptionCaught = true;
         }
         assertTrue(exceptionCaught);
     }
-    
+
     @Test
     public void testSimple() throws Exception{
 
@@ -258,7 +257,7 @@ public class TestMapSideCogroup {
         assertEquals(3, dbMergeCogrp.size());
         Iterator<Tuple> itr = dbMergeCogrp.iterator();
         for(int i=0; i<3; i++){
-            assertEquals(itr.next().toString(), results[i]);   
+            assertEquals(itr.next().toString(), results[i]);
         }
         assertFalse(itr.hasNext());
     }
@@ -291,7 +290,7 @@ public class TestMapSideCogroup {
         assertEquals(3, dbMergeCogrp.size());
         Iterator<Tuple> itr = dbMergeCogrp.iterator();
         for(int i=0; i<3; i++){
-            assertEquals(itr.next().toString(), results[i]);   
+            assertEquals(itr.next().toString(), results[i]);
         }
         assertFalse(itr.hasNext());
 
@@ -331,7 +330,7 @@ public class TestMapSideCogroup {
         assertEquals(9, dbMergeCogrp.size());
         Iterator<Tuple> itr = dbMergeCogrp.iterator();
         for(int i=0; i<9; i++){
-            assertEquals(itr.next().toString(), results[i]);   
+            assertEquals(itr.next().toString(), results[i]);
         }
         assertFalse(itr.hasNext());
     }
@@ -367,11 +366,11 @@ public class TestMapSideCogroup {
         assertEquals(9, dbMergeCogrp.size());
         Iterator<Tuple> itr = dbMergeCogrp.iterator();
         for(int i=0; i<9; i++){
-            assertEquals(itr.next().toString(), results[i]);   
+            assertEquals(itr.next().toString(), results[i]);
         }
         assertFalse(itr.hasNext());
     }
-    
+
     @Test
     public void testEmptyDeltaFile() throws Exception{
 
@@ -398,7 +397,7 @@ public class TestMapSideCogroup {
         assertEquals(3, dbMergeCogrp.size());
         Iterator<Tuple> itr = dbMergeCogrp.iterator();
         for(int i=0; i<3; i++){
-            assertEquals(itr.next().toString(), results[i]);   
+            assertEquals(itr.next().toString(), results[i]);
         }
         assertFalse(itr.hasNext());
     }
@@ -415,7 +414,7 @@ public class TestMapSideCogroup {
                 "(,{},{(,1),(,2),(,3)})",
                 "(2,{(2,3),(2,1),(2,2)},{(2,1),(2,2),(2,3)})",
                 "(3,{(3,3),(3,1),(3,2)},{(3,1),(3,2),(3,3)})"
-        };   
+        };
 
         DataBag dbMergeCogrp = BagFactory.getInstance().newDefaultBag();
 
@@ -430,7 +429,7 @@ public class TestMapSideCogroup {
         assertEquals(4, dbMergeCogrp.size());
         Iterator<Tuple> itr = dbMergeCogrp.iterator();
         for(int i=0; i<4; i++){
-            assertEquals(itr.next().toString(), results[i]);   
+            assertEquals(itr.next().toString(), results[i]);
         }
         assertFalse(itr.hasNext());
 
@@ -450,7 +449,7 @@ public class TestMapSideCogroup {
     }
 
     /**
-     * A dummy loader which implements {@link IndexableLoadFunc} 
+     * A dummy loader which implements {@link IndexableLoadFunc}
      */
     public static class DummyIndexableLoader extends PigStorage implements IndexableLoadFunc {
 

@@ -17,34 +17,30 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;
-import java.util.ArrayList;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataType;
-import org.apache.pig.data.TupleFactory;
-import org.apache.pig.data.Tuple;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.TestHelper;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-public class TestProject extends  junit.framework.TestCase {
+public class TestProject {
     Random r;
 
     Tuple t, tRandom, tRandomAndNull;
@@ -53,7 +49,6 @@ public class TestProject extends  junit.framework.TestCase {
 
     POProject proj;
 
-    @Override
     @Before
     public void setUp() throws Exception {
         r = new Random();
@@ -63,11 +58,6 @@ public class TestProject extends  junit.framework.TestCase {
         proj = GenPhyOp.exprProject();
     }
 
-    @Override
-    @After
-    public void tearDown() throws Exception {
-    }
-   
     @Test
     public void testGetNext() throws ExecException, IOException {
     	t=tRandom;
@@ -81,8 +71,6 @@ public class TestProject extends  junit.framework.TestCase {
             assertEquals(t.get(j), res.result);
         }
     }
-
-    
 
     @Test
     public void testGetNextTuple() throws IOException, ExecException {
@@ -114,9 +102,6 @@ public class TestProject extends  junit.framework.TestCase {
         assertEquals(t.get(8), res.result);
     }
 
-
-
-
     @Test
     public void testGetNextMultipleProjections() throws ExecException, IOException {
     	t=tRandom;
@@ -130,9 +115,9 @@ public class TestProject extends  junit.framework.TestCase {
 
             res = proj.getNext();
 	        TupleFactory tupleFactory = TupleFactory.getInstance();
-	        ArrayList<Object> objList = new ArrayList<Object>(); 
-            objList.add(t.get(j)); 
-            objList.add(t.get(j+1)); 
+	        ArrayList<Object> objList = new ArrayList<Object>();
+            objList.add(t.get(j));
+            objList.add(t.get(j+1));
 		    Tuple expectedResult = tupleFactory.newTuple(objList);
             assertEquals(POStatus.STATUS_OK, res.returnStatus);
             assertEquals(expectedResult, res.result);
@@ -140,9 +125,6 @@ public class TestProject extends  junit.framework.TestCase {
         }
     }
 
-    
-
-    
     @Test
     public void testGetNextTupleMultipleProjections() throws IOException, ExecException {
     	t=tRandom;
@@ -159,9 +141,9 @@ public class TestProject extends  junit.framework.TestCase {
             if (res.returnStatus == POStatus.STATUS_EOP)
                 break;
 	        TupleFactory tupleFactory = TupleFactory.getInstance();
-	        ArrayList<Object> objList = new ArrayList<Object>(); 
-            objList.add(t.get(j)); 
-            objList.add(t.get(j+1)); 
+	        ArrayList<Object> objList = new ArrayList<Object>();
+            objList.add(t.get(j));
+            objList.add(t.get(j+1));
 		    Tuple expectedResult = tupleFactory.newTuple(objList);
             assertEquals(POStatus.STATUS_OK, res.returnStatus);
             assertEquals(expectedResult, res.result);
@@ -176,7 +158,7 @@ public class TestProject extends  junit.framework.TestCase {
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertEquals(t.get(8), res.result);
     }
-    
+
     @Test
     public void testGetNextWithNull() throws ExecException, IOException {
     	t= tRandomAndNull;
@@ -191,7 +173,6 @@ public class TestProject extends  junit.framework.TestCase {
         }
     }
 
-    
 	@Test
     public void testGetNextTupleWithNull() throws IOException, ExecException {
     	t= tRandomAndNull;
@@ -222,9 +203,6 @@ public class TestProject extends  junit.framework.TestCase {
         assertEquals(t.get(8), res.result);
     }
 
-
-
-
     @Test
     public void testGetNextMultipleProjectionsWithNull() throws ExecException, IOException {
     	t= tRandomAndNull;
@@ -238,9 +216,9 @@ public class TestProject extends  junit.framework.TestCase {
 
             res = proj.getNext();
 	        TupleFactory tupleFactory = TupleFactory.getInstance();
-	        ArrayList<Object> objList = new ArrayList<Object>(); 
-            objList.add(t.get(j)); 
-            objList.add(t.get(j+1)); 
+	        ArrayList<Object> objList = new ArrayList<Object>();
+            objList.add(t.get(j));
+            objList.add(t.get(j+1));
 		    Tuple expectedResult = tupleFactory.newTuple(objList);
             assertEquals(POStatus.STATUS_OK, res.returnStatus);
             assertEquals(expectedResult, res.result);
@@ -248,9 +226,6 @@ public class TestProject extends  junit.framework.TestCase {
         }
     }
 
-    
-
-    
     @Test
     public void testGetNextTupleMultipleProjectionsWithNull() throws IOException, ExecException {
     	t= tRandomAndNull;
@@ -267,9 +242,9 @@ public class TestProject extends  junit.framework.TestCase {
             if (res.returnStatus == POStatus.STATUS_EOP)
                 break;
 	        TupleFactory tupleFactory = TupleFactory.getInstance();
-	        ArrayList<Object> objList = new ArrayList<Object>(); 
-            objList.add(t.get(j)); 
-            objList.add(t.get(j+1)); 
+	        ArrayList<Object> objList = new ArrayList<Object>();
+            objList.add(t.get(j));
+            objList.add(t.get(j+1));
 		    Tuple expectedResult = tupleFactory.newTuple(objList);
             assertEquals(POStatus.STATUS_OK, res.returnStatus);
             assertEquals(expectedResult, res.result);
@@ -284,7 +259,7 @@ public class TestProject extends  junit.framework.TestCase {
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertEquals(t.get(8), res.result);
     }
-    
+
     @Test
     public void testMissingCols1() throws Exception {
         String inputFileName = "TestProject-testMissingCols1-input.txt";
@@ -292,7 +267,7 @@ public class TestProject extends  junit.framework.TestCase {
         Util.createLocalInputFile(inputFileName, input);
         String query = "a = load '" + inputFileName + "' as (s1:chararray, s2:chararray, extra:chararray);" +
         		"b = foreach a generate s1, s2, extra;";
-        
+
         PigServer ps = new PigServer(ExecType.LOCAL);
         Util.registerMultiLineQuery(ps, query);
         Iterator<Tuple> it = ps.openIterator("b");
@@ -305,8 +280,7 @@ public class TestProject extends  junit.framework.TestCase {
             assertEquals(expectedResults[i++], it.next());
         }
     }
-    
-    
+
     @Test
     public void testMissingCols2() throws Exception {
         String inputFileName = "TestProject-testMissingCols2-input.txt";
@@ -317,7 +291,7 @@ public class TestProject extends  junit.framework.TestCase {
         String query = "a = load '" + inputFileName + "' as (i:int, " +
         		"t:tuple(s1:chararray, s2:chararray, s3:chararray));" +
                 "b = foreach a generate t.(s2,s3);";
-        
+
         PigServer ps = new PigServer(ExecType.LOCAL);
         Util.registerMultiLineQuery(ps, query);
         Iterator<Tuple> it = ps.openIterator("b");
@@ -330,7 +304,7 @@ public class TestProject extends  junit.framework.TestCase {
             assertEquals(expectedResults[i++], it.next());
         }
     }
-    
+
     @Test
     public void testMissingCols3() throws Exception {
         String inputFileName = "TestProject-testMissingCols3-input.txt";
@@ -339,7 +313,7 @@ public class TestProject extends  junit.framework.TestCase {
         String query = "a = load '" + inputFileName + "';" +
                 "b = group a all;" +
                 "c = foreach b generate flatten(a.($1, $2)),a.$2;";
-            
+
         PigServer ps = new PigServer(ExecType.LOCAL);
         Util.registerMultiLineQuery(ps, query);
         Iterator<Tuple> it = ps.openIterator("c");
@@ -370,7 +344,7 @@ public class TestProject extends  junit.framework.TestCase {
         String query = "a = load '" + inputFileName + "' as (i:int, " +
         		"t:tuple(s1:chararray, s2:chararray));" +
                 "b = foreach a generate t.s1, t.s2;";
-        
+
         PigServer ps = new PigServer(ExecType.LOCAL);
         Util.registerMultiLineQuery(ps, query);
         Iterator<Tuple> it = ps.openIterator("b");
@@ -384,5 +358,4 @@ public class TestProject extends  junit.framework.TestCase {
             assertEquals(expectedResults[i++], it.next());
         }
     }
-
 }

@@ -17,53 +17,29 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.PrintWriter;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
-import java.util.HashMap;
-import java.util.Hashtable;
+import java.io.PrintWriter;
 import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
 
 import junit.framework.Assert;
-import junit.framework.TestCase;
 
-import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
-import org.apache.pig.FuncSpec;
-import org.apache.pig.LoadFunc;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
-import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class TestJoinSmoke extends TestCase{
+public class TestJoinSmoke {
     private static final String FR_INPUT_FILE = "testFrJoinInput.txt";
 
     private static final String SKEW_INPUT_FILE1 = "SkewedJoinInput1.txt";
@@ -73,13 +49,13 @@ public class TestJoinSmoke extends TestCase{
     private PigServer pigServer;
     private static MiniCluster cluster = MiniCluster.buildCluster();
     private File tmpFile;
-    
+
     public TestJoinSmoke() throws ExecException, IOException{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 //        pigServer = new PigServer(ExecType.LOCAL);
-        
+
     }
-    
+
     @Before
     public void setUp() throws Exception {
         setupFRJoin();
@@ -146,7 +122,7 @@ public class TestJoinSmoke extends TestCase{
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     @After
     public void tearDown() throws Exception {
         Util.deleteFile(cluster, FR_INPUT_FILE);
@@ -172,7 +148,7 @@ public class TestJoinSmoke extends TestCase{
         {
             pigServer.registerQuery("C = join A by $0, B by $0 using 'replicated';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
-            
+
             while(iter.hasNext()) {
                 dbfrj.add(iter.next());
             }
@@ -180,7 +156,7 @@ public class TestJoinSmoke extends TestCase{
         {
             pigServer.registerQuery("C = join A by $0, B by $0;");
             Iterator<Tuple> iter = pigServer.openIterator("C");
-            
+
             while(iter.hasNext()) {
                 dbshj.add(iter.next());
             }

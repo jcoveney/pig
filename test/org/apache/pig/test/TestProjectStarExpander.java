@@ -33,7 +33,6 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.parser.ParserException;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -42,19 +41,14 @@ import org.junit.Test;
 /**
  * Test project of multiple fields
  */
-public class TestProjectStarExpander  {
+public class TestProjectStarExpander {
     private static final String INP_FILE_5FIELDS = "TestProjectStarExpander1";
-    
+
     @Before
     public void setUp() throws Exception {
         FileLocalizer.setInitialized(false);
     }
 
-
-    @After
-    public void tearDown() throws Exception {
-    }
-    
     @BeforeClass
     public static void oneTimeSetup() throws IOException, Exception {
         // first input file
@@ -62,47 +56,42 @@ public class TestProjectStarExpander  {
         w.println("10\t20\t30\t40\t50");
         w.println("11\t21\t31\t41\t51");
         w.close();
-
     }
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
-
         new File(INP_FILE_5FIELDS).delete();
-
     }
- 
-
 
     @Test
     public void testProjectStarForeach() throws IOException, ParserException {
         PigServer pig = new PigServer(ExecType.LOCAL);
-        
+
         //specifying the new aliases only for initial set of fields
         String query =
             "  l1 = load '" + INP_FILE_5FIELDS + "' as (a : int, b : int, c : int, d : int, e : int);"
             + "f = foreach l1 generate * as (aa, bb, cc);"
-        ; 
+        ;
 
         Util.registerMultiLineQuery(pig, query);
-       
+
         Schema expectedSch = Utils.getSchemaFromString("aa : int, bb : int, cc : int, d : int, e : int");
         Schema sch = pig.dumpSchema("f");
         assertEquals("Checking expected schema", expectedSch, sch);
-        
+
         //specifying aliases for all fields
         query =
             "  l1 = load '" + INP_FILE_5FIELDS + "' as (a : int, b : int, c : int, d : int, e : int);"
             + "f = foreach l1 generate * as (aa, bb, cc, dd, ee);"
-        ; 
+        ;
         Util.registerMultiLineQuery(pig, query);
-        
+
         expectedSch = Utils.getSchemaFromString("aa : int, bb : int, cc : int, dd : int, ee : int");
         sch = pig.dumpSchema("f");
         assertEquals("Checking expected schema", expectedSch, sch);
         Iterator<Tuple> it = pig.openIterator("f");
-        
-        List<Tuple> expectedRes = 
+
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "(10,20,30,40,50)",
@@ -111,7 +100,7 @@ public class TestProjectStarExpander  {
         Util.checkQueryOutputsAfterSort(it, expectedRes);
 
     }
-    
+
     /**
      * Test projecting multiple *
      * @throws IOException
@@ -123,15 +112,15 @@ public class TestProjectStarExpander  {
         String query =
             "  l1 = load '" + INP_FILE_5FIELDS + "' as (a : int, b : int, c : int);"
             + "f = foreach l1 generate * as (aa, bb, cc), *;"
-        ; 
+        ;
 
         Util.registerMultiLineQuery(pig, query);
-       
+
         Schema expectedSch = Utils.getSchemaFromString(
                 "aa : int, bb : int, cc : int, a : int, b : int, c : int");
         Schema sch = pig.dumpSchema("f");
         assertEquals("Checking expected schema", expectedSch, sch);
-        List<Tuple> expectedRes = 
+        List<Tuple> expectedRes =
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
                             "(10,20,30,10,20,30)",
@@ -140,5 +129,4 @@ public class TestProjectStarExpander  {
         Iterator<Tuple> it = pig.openIterator("f");
         Util.checkQueryOutputsAfterSort(it, expectedRes);
     }
-   
 }

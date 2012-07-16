@@ -59,7 +59,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class TestProjectRange  {
+public class TestProjectRange {
 
     protected final Log log = LogFactory.getLog(getClass());
 
@@ -68,7 +68,6 @@ public class TestProjectRange  {
     private static MiniCluster cluster;
     protected static PigServer pigServer;
     private static final String INP_FILE_5FIELDS = "TestProjectRange_5fields";
-
 
     @BeforeClass
     public static void oneTimeSetUp() throws Exception {
@@ -1252,5 +1251,4 @@ public class TestProjectRange  {
 
         return join;
     }
-
 }

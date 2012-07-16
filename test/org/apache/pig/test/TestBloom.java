@@ -17,9 +17,10 @@
  */
 package org.apache.pig.test;
 
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.Bloom;
 import org.apache.pig.builtin.BuildBloom;
 import org.apache.pig.data.BagFactory;
@@ -27,11 +28,12 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.junit.Test;
 
 /**
  * This class unit tests the built in UDFs BuildBloom and Bloom.
  */
-public class TestBloom extends junit.framework.TestCase {
+public class TestBloom {
 
     static class TestBuildBloom extends BuildBloom {
 
@@ -103,7 +105,7 @@ public class TestBloom extends junit.framework.TestCase {
         DataBag b = bf.newDefaultBag();
         b.add(t);
         Tuple input = tf.newTuple(b);
-        
+
         BuildBloom.Initial map =
             new BuildBloom.Initial(hashFunc, "fixed", size, numHash);
         t = map.exec(input);
@@ -283,4 +285,5 @@ public class TestBloom extends junit.framework.TestCase {
             t1.set(1, "ichabod");
             assertFalse(bloom.exec(t1));
         }
-    }}
+    }
+}

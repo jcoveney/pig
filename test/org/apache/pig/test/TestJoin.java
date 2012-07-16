@@ -18,6 +18,10 @@
 
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
@@ -37,42 +41,36 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.relational.LOJoin;
-import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LOJoin.JOINTYPE;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.parser.ParserException;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
-import junit.framework.TestCase;
 
 /**
  * Test cases to test join statement
  */
 
-@RunWith(JUnit4.class)
-public class TestJoin extends TestCase {
-    
+public class TestJoin {
+
     static MiniCluster cluster;
     private PigServer pigServer;
 
     TupleFactory mTf = TupleFactory.getInstance();
     BagFactory mBf = BagFactory.getInstance();
     ExecType[] execTypes = new ExecType[] {ExecType.LOCAL, ExecType.MAPREDUCE};
-    
+
     @Before
-    @Override
     public void setUp() throws Exception{
         FileLocalizer.setR(new Random());
     }
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     private void setUp(ExecType execType) throws ExecException {
         // cause a reinitialization of FileLocalizer's
         // internal state
@@ -81,10 +79,10 @@ public class TestJoin extends TestCase {
             cluster =  MiniCluster.buildCluster();
             pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         } else if(execType == ExecType.LOCAL) {
-            pigServer = new PigServer(ExecType.LOCAL);       
+            pigServer = new PigServer(ExecType.LOCAL);
         }
     }
-    
+
     private String createInputFile(ExecType execType, String fileNameHint, String[] data) throws IOException {
         String fileName = "";
         if(execType == ExecType.MAPREDUCE) {
@@ -96,7 +94,7 @@ public class TestJoin extends TestCase {
         }
         return fileName;
     }
-    
+
     private void deleteInputFile(ExecType execType, String fileName) throws IOException {
         if(execType == ExecType.MAPREDUCE) {
             Util.deleteFile(cluster, fileName);
@@ -126,7 +124,7 @@ public class TestJoin extends TestCase {
                 "",
                 ""
                 };
-        
+
         String firstInput = createInputFile(ExecType.MAPREDUCE, "a.txt", input1);
         String secondInput = createInputFile(ExecType.MAPREDUCE, "b.txt", input2);
         String script = "a = load 'a.txt'  using PigStorage(' ');" +
@@ -138,7 +136,7 @@ public class TestJoin extends TestCase {
         deleteInputFile(ExecType.MAPREDUCE, firstInput);
         deleteInputFile(ExecType.MAPREDUCE, secondInput);
     }
-    
+
     @Test
     public void testJoinUnkownSchema() throws Exception {
         // If any of the input schema is unknown, the resulting schema should be unknown as well
@@ -167,11 +165,11 @@ public class TestJoin extends TestCase {
                     "good\tmorning",
                     "\tevening"
             };
-            
+
             String firstInput = createInputFile(execType, "a.txt", input1);
             String secondInput = createInputFile(execType, "b.txt", input2);
             Tuple expectedResult = (Tuple)Util.getPigConstant("('hello',1,'hello','world')");
-            
+
             // with schema
             String script = "a = load '"+ firstInput +"' as (n:chararray, a:int); " +
             		"b = load '"+ secondInput +"' as (n:chararray, m:chararray); " +
@@ -181,7 +179,7 @@ public class TestJoin extends TestCase {
             assertEquals(true, it.hasNext());
             assertEquals(expectedResult, it.next());
             assertEquals(false, it.hasNext());
-            
+
             // without schema
             script = "a = load '"+ firstInput + "'; " +
             "b = load '" + secondInput + "'; " +
@@ -195,8 +193,8 @@ public class TestJoin extends TestCase {
             deleteInputFile(execType, secondInput);
         }
     }
-    
-    
+
+
     @Test
     public void testJoinSchema() throws Exception {
         for (ExecType execType : execTypes) {
@@ -210,11 +208,11 @@ public class TestJoin extends TestCase {
                     "1\thello",
                     "4\tbye",
             };
-            
+
             String firstInput = createInputFile(execType, "a.txt", input1);
             String secondInput = createInputFile(execType, "b.txt", input2);
             Tuple expectedResult = (Tuple)Util.getPigConstant("(1,2,1,'hello',1,2,1,'hello')");
-            
+
             // with schema
             String script = "a = load '"+ firstInput +"' as (i:int, j:int); " +
                     "b = load '"+ secondInput +"' as (k:int, l:chararray); " +
@@ -225,7 +223,7 @@ public class TestJoin extends TestCase {
             assertEquals(true, it.hasNext());
             assertEquals(expectedResult, it.next());
             assertEquals(false, it.hasNext());
-            
+
             // schema with duplicates
             script = "a = load '"+ firstInput +"' as (i:int, j:int); " +
             "b = load '"+ secondInput +"' as (i:int, l:chararray); " +
@@ -241,7 +239,7 @@ public class TestJoin extends TestCase {
                 exceptionThrown = true;
             }
             assertEquals(true, exceptionThrown);
-            
+
             // schema with duplicates with resolution
             script = "a = load '"+ firstInput +"' as (i:int, j:int); " +
             "b = load '"+ secondInput +"' as (i:int, l:chararray); " +
@@ -256,7 +254,7 @@ public class TestJoin extends TestCase {
             deleteInputFile(execType, secondInput);
         }
     }
-    
+
     @Test
     public void testJoinSchema2() throws Exception {
         // test join where one load does not have schema
@@ -271,20 +269,20 @@ public class TestJoin extends TestCase {
                 "1\thello",
                 "4\tbye",
         };
-        
+
         String firstInput = createInputFile(execType, "a.txt", input1);
         String secondInput = createInputFile(execType, "b.txt", input2);
         Tuple expectedResultCharArray =
             (Tuple)Util.getPigConstant("('1','2','1','hello','1','2','1','hello')");
-        
+
         Tuple expectedResult = TupleFactory.getInstance().newTuple();
         for(Object field : expectedResultCharArray.getAll()){
             expectedResult.append(new DataByteArray(field.toString()));
         }
-        
+
         // with schema
         String script = "a = load '"+ firstInput +"' ; " +
-        //re-using alias a for new operator below, doing this intentionally 
+        //re-using alias a for new operator below, doing this intentionally
         // because such use case has been seen
         "a = foreach a generate $0 as i, $1 as j ;" +
         "b = load '"+ secondInput +"' as (k, l); " +
@@ -298,9 +296,9 @@ public class TestJoin extends TestCase {
         assertEquals(false, it.hasNext());
         deleteInputFile(execType, firstInput);
         deleteInputFile(execType, secondInput);
-        
+
     }
-    
+
     @Test
     public void testLeftOuterJoin() throws Exception {
         for (ExecType execType : execTypes) {
@@ -314,18 +312,18 @@ public class TestJoin extends TestCase {
                     "hello\tworld",
                     "good\tmorning",
                     "\tevening"
-    
+
             };
-            
+
             String firstInput = createInputFile(execType, "a.txt", input1);
             String secondInput = createInputFile(execType, "b.txt", input2);
             List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
-                    new String[] { 
+                    new String[] {
                             "('hello',1,'hello','world')",
                             "('bye',2,null,null)",
                             "(null,3,null,null)"
                     });
-            
+
             // with and without optional outer
             for(int i = 0; i < 2; i++) {
                 //with schema
@@ -339,7 +337,7 @@ public class TestJoin extends TestCase {
                 script += "d = order c by $1;";
                 // ensure we parse correctly
                 Util.buildLp(pigServer, script);
-                
+
                 // run query and test results only once
                 if(i == 0) {
                     Util.registerMultiLineQuery(pigServer, script);
@@ -349,7 +347,7 @@ public class TestJoin extends TestCase {
                         assertEquals(expectedResults.get(counter++), it.next());
                     }
                     assertEquals(expectedResults.size(), counter);
-                    
+
                     // without schema
                     script = "a = load '"+ firstInput +"'; " +
                     "b = load '"+ secondInput +"'; ";
@@ -384,9 +382,9 @@ public class TestJoin extends TestCase {
                     "hello\tworld",
                     "good\tmorning",
                     "\tevening"
-    
+
             };
-            
+
             String firstInput = createInputFile(execType, "a.txt", input1);
             String secondInput = createInputFile(execType, "b.txt", input2);
             List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
@@ -408,7 +406,7 @@ public class TestJoin extends TestCase {
                 script += "d = order c by $3;";
                 // ensure we parse correctly
                 Util.buildLp(pigServer, script);
-                
+
                 // run query and test results only once
                 if(i == 0) {
                     Util.registerMultiLineQuery(pigServer, script);
@@ -418,7 +416,7 @@ public class TestJoin extends TestCase {
                         assertEquals(expectedResults.get(counter++), it.next());
                     }
                     assertEquals(expectedResults.size(), counter);
-                    
+
                     // without schema
                     script = "a = load '"+ firstInput +"'; " +
                     "b = load '"+ secondInput +"'; " ;
@@ -439,7 +437,7 @@ public class TestJoin extends TestCase {
             deleteInputFile(execType, secondInput);
         }
     }
-    
+
     @Test
     public void testFullOuterJoin() throws Exception {
         for (ExecType execType : execTypes) {
@@ -453,9 +451,9 @@ public class TestJoin extends TestCase {
                     "hello\tworld",
                     "good\tmorning",
                     "\tevening"
-    
+
             };
-            
+
             String firstInput = createInputFile(execType, "a.txt", input1);
             String secondInput = createInputFile(execType, "b.txt", input2);
             List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
@@ -479,7 +477,7 @@ public class TestJoin extends TestCase {
                 script += "d = order c by $1, $3;";
                 // ensure we parse correctly
                 Util.buildLp(pigServer, script);
-                
+
                 // run query and test results only once
                 if(i == 0) {
                     Util.registerMultiLineQuery(pigServer, script);
@@ -489,7 +487,7 @@ public class TestJoin extends TestCase {
                         assertEquals(expectedResults.get(counter++), it.next());
                     }
                     assertEquals(expectedResults.size(), counter);
-                    
+
                     // without schema
                     script = "a = load '"+ firstInput +"'; " +
                     "b = load '"+ secondInput +"'; " ;
@@ -510,7 +508,7 @@ public class TestJoin extends TestCase {
             deleteInputFile(execType, secondInput);
         }
     }
-    
+
     @Test
     public void testMultiOuterJoinFailure() throws ExecException {
     	setUp(ExecType.LOCAL);
@@ -521,7 +519,7 @@ public class TestJoin extends TestCase {
         for (int i = 0; i < types.length; i++) {
             boolean errCaught = false;
             try {
-            	String q = query + 
+            	String q = query +
             	           "d = join a by $0 " + types[i] + " outer, b by $0, c by $0;" +
             	           "store d into 'output';";
             	Util.buildLp(pigServer, q);
@@ -530,11 +528,11 @@ public class TestJoin extends TestCase {
                 assertTrue(e.getMessage().contains("mismatched input ',' expecting SEMI_COLON"));
             }
             assertEquals(true, errCaught);
-            
+
         }
-        
+
     }
-    
+
     @Test
     public void testNonRegularOuterJoinFailure() throws ExecException {
     	setUp(ExecType.LOCAL);
@@ -546,21 +544,21 @@ public class TestJoin extends TestCase {
             for(int j = 0; j < joinTypes.length; j++) {
                 boolean errCaught = false;
                 try {
-                	String q = query + "d = join a by $0 " + 
+                	String q = query + "d = join a by $0 " +
                     types[i] + " outer, b by $0 using '" + joinTypes[j] +"';" +
                     "store d into 'output';";
                     Util.buildLp(pigServer, q);
-                    
+
                 } catch(Exception e) {
                     errCaught = true;
                      // This after adding support of LeftOuter Join to replicated Join
-                        assertEquals(true, e.getMessage().contains("does not support (right|full) outer joins"));   
+                        assertEquals(true, e.getMessage().contains("does not support (right|full) outer joins"));
                 }
                 assertEquals( i == 0 ? false : true, errCaught);
             }
         }
     }
-    
+
     @Test
     public void testJoinTupleFieldKey() throws Exception{
         for (ExecType execType : execTypes) {
@@ -573,24 +571,24 @@ public class TestJoin extends TestCase {
                     "(1,b)",
                     "(2,bb)"
             };
-            
+
             String firstInput = createInputFile(execType, "a.txt", input1);
             String secondInput = createInputFile(execType, "b.txt", input2);
-            
+
             String script = "a = load '"+ firstInput +"' as (a:tuple(a1:int, a2:chararray));" +
                     "b = load '"+ secondInput +"' as (b:tuple(b1:int, b2:chararray));" +
                     "c = join a by a.a1, b by b.b1;";
             Util.registerMultiLineQuery(pigServer, script);
             Iterator<Tuple> it = pigServer.openIterator("c");
-            
+
             assertTrue(it.hasNext());
             Tuple t = it.next();
             assertTrue(t.toString().equals("((1,a),(1,b))"));
-            
+
             assertTrue(it.hasNext());
             t = it.next();
             assertTrue(t.toString().equals("((2,aa),(2,bb))"));
-            
+
             deleteInputFile(execType, firstInput);
             deleteInputFile(execType, secondInput);
         }
@@ -608,27 +606,27 @@ public class TestJoin extends TestCase {
                     "1\t",
                     "2\taa"
             };
-            
+
             String firstInput = createInputFile(execType, "a.txt", input1);
             String secondInput = createInputFile(execType, "b.txt", input2);
-            
+
             String script = "a = load '"+ firstInput +"' as (a1:int, a2:chararray);" +
                     "b = load '"+ secondInput +"' as (b1:int, b2:chararray);" +
                     "c = join a by (a1, a2), b by (b1, b2);";
             Util.registerMultiLineQuery(pigServer, script);
             Iterator<Tuple> it = pigServer.openIterator("c");
-            
+
             assertTrue(it.hasNext());
             Tuple t = it.next();
             assertTrue(t.toString().equals("(2,aa,2,aa)"));
-            
+
             assertFalse(it.hasNext());
-            
+
             deleteInputFile(execType, firstInput);
             deleteInputFile(execType, secondInput);
         }
     }
-    
+
     @Test
     public void testLiteralsForJoinAlgoSpecification1() throws Exception {
     	setUp(ExecType.LOCAL);
@@ -641,7 +639,7 @@ public class TestJoin extends TestCase {
         LOJoin join = (LOJoin)lp.getPredecessors( store ).get(0);
         assertEquals(JOINTYPE.MERGE, join.getJoinType());
     }
-    
+
     @Test
     public void testLiteralsForJoinAlgoSpecification2() throws Exception {
     	setUp(ExecType.LOCAL);
@@ -654,12 +652,12 @@ public class TestJoin extends TestCase {
         LOJoin join = (LOJoin) lp.getPredecessors( store ).get(0);
         assertEquals(JOINTYPE.HASH, join.getJoinType());
     }
-    
+
     @Test
     public void testLiteralsForJoinAlgoSpecification5() throws Exception {
     	setUp(ExecType.LOCAL);
         String query = "a = load 'A'; " +
-                       "b = load 'B'; " + 
+                       "b = load 'B'; " +
                        "c = Join a by $0, b by $0 using 'default'; "+
                        "store c into 'output';";
         LogicalPlan lp = Util.buildLp(pigServer, query);
@@ -667,7 +665,7 @@ public class TestJoin extends TestCase {
         LOJoin join = (LOJoin) lp.getPredecessors( store ).get(0);
        assertEquals(JOINTYPE.HASH, join.getJoinType());
     }
-    
+
     @Test
     public void testLiteralsForJoinAlgoSpecification3() throws Exception {
     	setUp(ExecType.LOCAL);
@@ -680,11 +678,11 @@ public class TestJoin extends TestCase {
         LOJoin join = (LOJoin) lp.getPredecessors( store ).get(0);
         assertEquals(JOINTYPE.REPLICATED, join.getJoinType());
     }
-    
+
     @Test
     public void testLiteralsForJoinAlgoSpecification4() throws Exception {
     	setUp(ExecType.LOCAL);
-        String query = "a = load 'A'; " + 
+        String query = "a = load 'A'; " +
                        "b = load 'B'; " +
                        "c = Join a by $0, b by $0 using 'replicated'; "+
                        "store c into 'output';";

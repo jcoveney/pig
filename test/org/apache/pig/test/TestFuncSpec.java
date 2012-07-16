@@ -18,31 +18,34 @@
 
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+
 import org.apache.pig.FuncSpec;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.PigContext;
-
-import junit.framework.TestCase;
+import org.junit.Test;
 
 /**
  * Test cases for FuncSpec class
  */
-public class TestFuncSpec extends TestCase {
-
+public class TestFuncSpec {
+    @Test
     public void testSpecCtorClassName() {
         String pigStorage = PigStorage.class.getName();
         FuncSpec fs = new FuncSpec(pigStorage);
         Object o = PigContext.instantiateFuncFromSpec(fs);
         assertEquals(true, o instanceof PigStorage);
     }
-    
+
+    @Test
     public void testSpecCtorClassNameNoArgs() {
         String pigStorage = PigStorage.class.getName();
         FuncSpec fs = new FuncSpec(pigStorage+"()");
         Object o = PigContext.instantiateFuncFromSpec(fs);
         assertEquals(true, o instanceof PigStorage);
     }
-    
+
+    @Test
     public void testSpecCtorClassNameWithArgs() {
         String dummy = DummyClass.class.getName();
         FuncSpec fs = new FuncSpec(dummy+"(':')");
@@ -50,7 +53,8 @@ public class TestFuncSpec extends TestCase {
         assertEquals(true, o instanceof DummyClass);
         assertEquals((byte)':', ((DummyClass)o).delim);
     }
-    
+
+    @Test
     public void testCtorClassNameArgs() {
         String dummy = DummyClass.class.getName();
         String[] args = new String[]{":"};
@@ -59,15 +63,13 @@ public class TestFuncSpec extends TestCase {
         assertEquals(true, o instanceof DummyClass);
         assertEquals((byte)':', ((DummyClass)o).delim);
     }
-    
-    public static class DummyClass {
-        
-        public byte delim = '\t';
-        
-        public DummyClass(String delim) {
-            this.delim = (byte)(delim.charAt(0));    
-        }
-    }    
-    
-}
 
+    public static class DummyClass {
+
+        public byte delim = '\t';
+
+        public DummyClass(String delim) {
+            this.delim = (byte)(delim.charAt(0));
+        }
+    }
+}
