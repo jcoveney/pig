@@ -89,17 +89,16 @@ import org.junit.Test;
  * Random will be different.
  */
 public class TestMRCompiler {
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniCluster cluster;
 
-    static PigContext pc;
-    static PigContext pcMR;
+    private static PigContext pc;
+    private static PigContext pcMR;
 
-    static final int MAX_SIZE = 100000;
+    private static final long SEED = 1013;
 
-    static final long SEED = 1013;
-
-    static Random r;
+    private static Random r;
     static{
+        cluster = MiniCluster.buildCluster();
         pc = new PigContext(ExecType.LOCAL, new Properties());
         pcMR = new PigContext(ExecType.MAPREDUCE, cluster.getProperties());
         try {
@@ -111,8 +110,8 @@ public class TestMRCompiler {
         r = new Random(SEED);
     }
 
-    PigServer pigServer = null;
-    PigServer pigServerMR = null;
+    private PigServer pigServer = null;
+    private PigServer pigServerMR = null;
 
     // if for some reason, the golden files need
     // to be regenerated, set this to true - THIS
