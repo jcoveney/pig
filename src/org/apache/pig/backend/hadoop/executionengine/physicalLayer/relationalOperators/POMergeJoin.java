@@ -20,8 +20,10 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
+import org.apache.avro.reflect.Nullable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -56,13 +58,14 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 
-/** This operator implements merge join algorithm to do map side joins. 
+/** This operator implements merge join algorithm to do map side joins.
  *  Currently, only two-way joins are supported. One input of join is identified as left
  *  and other is identified as right. Left input tuples are the input records in map.
  *  Right tuples are read from HDFS by opening right stream.
- *  
- *    This join doesn't support outer join.
- *    Data is assumed to be sorted in ascending order. It will fail if data is sorted in descending order.
+ *
+ *  This join supports a left outer join but not other types of outer joins.
+ *  Data is assumed to be sorted in ascending order. It will fail if data is sorted in
+ *  descending order.
  */
 
 public class POMergeJoin extends PhysicalOperator {
@@ -93,7 +96,7 @@ public class POMergeJoin extends PhysicalOperator {
     private FuncSpec rightLoaderFuncSpec;
 
     private String rightInputFileName;
-    
+
     private String indexFile;
 
     // Buffer to hold accumulated left tuples.
@@ -123,6 +126,8 @@ public class POMergeJoin extends PhysicalOperator {
 
     private String signature;
 
+    private boolean[] innerFlags;
+
     // This serves as the default TupleFactory
     private transient TupleFactory mTupleFactory;
 
@@ -135,6 +140,7 @@ public class POMergeJoin extends PhysicalOperator {
     private transient TupleMaker leftTupleMaker;
 
     private Schema leftInputSchema;
+    private Schema rightInputSchema;
     private Schema mergedInputSchema;
 
     /**
@@ -145,8 +151,7 @@ public class POMergeJoin extends PhysicalOperator {
      * Ex. join A by ($0,$1), B by ($1,$2);
      */
     public POMergeJoin(OperatorKey k, int rp, List<PhysicalOperator> inp, MultiMap<PhysicalOperator, PhysicalPlan> inpPlans,
-            List<List<Byte>> keyTypes, LOJoin.JOINTYPE joinType, Schema leftInputSchema, Schema rightInputSchema, Schema mergedInputSchema) throws PlanException{
-
+            List<List<Byte>> keyTypes, LOJoin.JOINTYPE joinType, boolean [] innerFlags, Schema leftInputSchema, Schema rightInputSchema, Schema mergedInputSchema) throws PlanException{
         super(k, rp, inp);
         this.opKey = k;
         this.doingJoin = false;
@@ -154,14 +159,16 @@ public class POMergeJoin extends PhysicalOperator {
         LRs = new POLocalRearrange[2];
         this.createJoinPlans(inpPlans,keyTypes);
         this.indexFile = null;
-        this.joinType = joinType;  
+        this.joinType = joinType;
+        this.innerFlags = innerFlags;
         this.leftInputSchema = leftInputSchema;
+        this.rightInputSchema = rightInputSchema;
         this.mergedInputSchema = mergedInputSchema;
     }
 
     /**
      * Configures the Local Rearrange operators to get keys out of tuple.
-     * @throws ExecException 
+     * @throws ExecException
      */
     private void createJoinPlans(MultiMap<PhysicalOperator, PhysicalPlan> inpPlans, List<List<Byte>> keyTypes) throws PlanException{
 
@@ -267,158 +274,106 @@ public class POMergeJoin extends PhysicalOperator {
         }
     }
 
+    /**
+     * This is the central logic of the merge join (either inner or left outer) for two sorted
+     * relations. Here is an overview of the algorithm.
+     *
+     * We maintain two pointers on the left relation:
+     * (i) prevLeft is the row one below the last merge,
+     * (ii) currLeft is a row after prevLeft
+     *
+     * We also maintain two pointers on the right relation:
+     * (i) prevRight is the row one below the last merge,
+     * (ii) currRight is a row after prevLeft, but with the same joining key
+     *
+     * - Initialize on the first call by setting a pointer
+     * @param t
+     * @return
+     * @throws ExecException
+     */
     @SuppressWarnings("unchecked")
     @Override
     public Result getNext(Tuple t) throws ExecException {
-
-        Object curLeftKey;
-        Result curLeftInp;
-
-        if(firstTime){
-            prepareTupleFactories();
-            leftTuples = newLeftTupleArray();
-
-            // Do initial setup.
-            curLeftInp = processInput();
-            if(curLeftInp.returnStatus != POStatus.STATUS_OK)
-                return curLeftInp;       // Return because we want to fetch next left tuple.
-
-            curLeftKey = extractKeysFromTuple(curLeftInp, 0);
-            if(null == curLeftKey) // We drop the tuples which have null keys.
-                return new Result(POStatus.STATUS_EOP, null);
-            
-            try {
-                seekInRightStream(curLeftKey);
-            } catch (IOException e) {
-                throwProcessingException(true, e);
-            } catch (ClassCastException e) {
-                throwProcessingException(true, e);
-            }
-            leftTuples.add((Tuple)curLeftInp.result);
-            firstTime = false;
-            prevLeftKey = curLeftKey;
-            return new Result(POStatus.STATUS_EOP, null);
+        log.info("HELLO MERGE JOIN with input tuple: [" + (t == null? "null" : t.toDelimitedString(", ")) + "]");
+        for (Tuple tuple : leftTuples.getList()) {
+            log.info("==> LEFT TUPLE: [" + tuple.toDelimitedString(", ") + "]. Counter " + counter);
         }
 
-        if(doingJoin){
-            // We matched on keys. Time to do the join.
+        Object curLeftKey = null;
+        Result curLeftInp = null;
 
-            if(counter > 0){    // We have left tuples to join with current right tuple.
-                Tuple joiningLeftTup = leftTuples.get(--counter);
-                leftTupSize = joiningLeftTup.size();
-                Tuple joinedTup = mergedTupleMaker.newTuple(leftTupSize + rightTupSize);
-
-                for(int i=0; i<leftTupSize; i++) {
-                    joinedTup.set(i, joiningLeftTup.get(i));
-                }
-
-                for(int i=0; i < rightTupSize; i++) {
-                    joinedTup.set(i+leftTupSize, curJoiningRightTup.get(i));
-                }
-
-                return new Result(POStatus.STATUS_OK, joinedTup);
-            }
-            // Join with current right input has ended. But bag of left tuples
-            // may still join with next right tuple.
-
-            doingJoin = false;
-
-            while(true){
-                Result rightInp = getNextRightInp();
-                if(rightInp.returnStatus != POStatus.STATUS_OK){
-                    prevRightInp = null;
-                    return rightInp;
-                }
-                else{
-                    Object rightKey = extractKeysFromTuple(rightInp, 1);
-                    if(null == rightKey) // If we see tuple having null keys in stream, we drop them 
-                        continue;       // and fetch next tuple.
-
-                    int cmpval = ((Comparable)rightKey).compareTo(curJoinKey);
-                    if (cmpval == 0){
-                        // Matched the very next right tuple.
-                        curJoiningRightTup = (Tuple)rightInp.result;
-                        rightTupSize = curJoiningRightTup.size();
-                        counter = leftTuples.size();
-                        doingJoin = true;
-                        return this.getNext(dummyTuple);
-
-                    }
-                    else if(cmpval > 0){    // We got ahead on right side. Store currently read right tuple.
-                        if(!this.parentPlan.endOfAllInput){
-                            prevRightKey = rightKey;
-                            prevRightInp = rightInp;
-                            // There cant be any more join on this key.
-                            leftTuples = newLeftTupleArray();
-
-                            leftTuples.add((Tuple)prevLeftInp.result);
-                        }
-
-                        else{           // This is end of all input and this is last join output.
-                            // Right loader in this case wouldn't get a chance to close input stream. So, we close it ourself.
-                            try {
-                                ((IndexableLoadFunc)rightLoader).close();
-                            } catch (IOException e) {
-                                // Non-fatal error. We can continue.
-                                log.error("Received exception while trying to close right side file: " + e.getMessage());
-                            }
-                        }
-                        return new Result(POStatus.STATUS_EOP, null);
-                    }
-                    else{   // At this point right side can't be behind.
-                        int errCode = 1102;
-                        String errMsg = "Data is not sorted on right side. Last two tuples encountered were: \n"+
-                        curJoiningRightTup+ "\n" + (Tuple)rightInp.result ;
-                        throw new ExecException(errMsg,errCode);
-                    }    
-                }
-            }
+        // Only called once
+        if (firstTime) {
+            log.info("INITIALIZING MJ");
+            return initializeMergeJoin(curLeftKey);
         }
+        log.info("CP 1");
+
+        // The join only happens once in a while
+        if (doingJoin) {
+            return doMergeJoin();
+        }
+
+        log.info("CP 2");
 
         curLeftInp = processInput();
+
+      log.info("CP 3");
+
+      // Can probably refactor this, but for now just side-stepping the inconsistent return type
+//        Result accumulatedLeftInput = accumulateLeftTuple(curLeftInp, curLeftKey);
+//        if (accumulatedLeftInput != null)
+//            return accumulatedLeftInput;
         switch(curLeftInp.returnStatus){
 
-        case POStatus.STATUS_OK:
-            curLeftKey = extractKeysFromTuple(curLeftInp, 0);
-            if(null == curLeftKey) // We drop the tuples which have null keys.
-                return new Result(POStatus.STATUS_EOP, null);
-            
-            int cmpVal = ((Comparable)curLeftKey).compareTo(prevLeftKey);
-            if(cmpVal == 0){
-                // Keep on accumulating.
-                leftTuples.add((Tuple)curLeftInp.result);
-                return new Result(POStatus.STATUS_EOP, null);
-            }
-            else if(cmpVal > 0){ // Filled with left bag. Move on.
-                curJoinKey = prevLeftKey;
-                break;   
-            }
-            else{   // Current key < Prev Key
-                int errCode = 1102;
-                String errMsg = "Data is not sorted on left side. Last two keys encountered were: \n"+
-                prevLeftKey+ "\n" + curLeftKey ;
-                throw new ExecException(errMsg,errCode);
-            }
- 
-        case POStatus.STATUS_EOP:
-            if(this.parentPlan.endOfAllInput){
-                // We hit the end on left input. 
-                // Tuples in bag may still possibly join with right side.
-                curJoinKey = prevLeftKey;
-                curLeftKey = null;
-                break;                
-            }
-            else    // Fetch next left input.
-                return curLeftInp;
+          case POStatus.STATUS_OK:
+              curLeftKey = extractKeysFromTuple(curLeftInp, 0);
+              if(null == curLeftKey) // We drop the tuples which have null keys.
+                  return new Result(POStatus.STATUS_EOP, null);
 
-        default:    // If encountered with ERR / NULL on left side, we send it down.
-            return curLeftInp;
-        }
+              log.info("234: prevLeftKey = " + prevLeftKey);
+              int cmpVal = ((Comparable)curLeftKey).compareTo(prevLeftKey);
+              if(cmpVal == 0){
+                  // Keep on accumulating.
+                  log.info("236: adding " + ((Tuple) curLeftInp.result).toDelimitedString(", "));
+                  leftTuples.add((Tuple)curLeftInp.result);
+                  return new Result(POStatus.STATUS_EOP, null);
+              }
+              else if(cmpVal > 0){ // Filled with left bag. Move on.
+                  curJoinKey = prevLeftKey;
+                  break;
+              }
+              else{   // Current key < Prev Key
+                  int errCode = 1102;
+                  String errMsg = "Data is not sorted on left side. Last two keys encountered were: \n"+
+                                      prevLeftKey+ "\n" + curLeftKey ;
+                  throw new ExecException(errMsg,errCode);
+              }
 
-        if((null != prevRightKey) && !this.parentPlan.endOfAllInput && ((Comparable)prevRightKey).compareTo(curLeftKey) >= 0){
+          case POStatus.STATUS_EOP:
+              if(this.parentPlan.endOfAllInput){
+                  // We hit the end on left input.
+                  // Tuples in bag may still possibly join with right side.
+                  curJoinKey = prevLeftKey;
+                  // TODO (aneesh): remove this as it doesn't seem to be needed
+                  curLeftKey = null;
+                  break;
+              }
+              else    // Fetch next left input.
+                  return curLeftInp;
+
+          default:    // If encountered with ERR / NULL on left side, we send it down.
+              return curLeftInp;
+      }
+
+      log.info("CP 4");
+
+      if((null != prevRightKey) && !this.parentPlan.endOfAllInput && ((Comparable)prevRightKey).compareTo(curLeftKey) >= 0){
 
             // This will happen when we accumulated inputs on left side and moved on, but are still behind the right side
             // In that case, throw away the tuples accumulated till now and add the one we read in this function call.
+           log.info("273: clearing and adding " + ((Tuple) curLeftInp.result).toDelimitedString(", "));
+
             leftTuples = newLeftTupleArray();
             leftTuples.add((Tuple)curLeftInp.result);
             prevLeftInp = curLeftInp;
@@ -426,11 +381,13 @@ public class POMergeJoin extends PhysicalOperator {
             return new Result(POStatus.STATUS_EOP, null);
         }
 
-        // Accumulated tuples with same key on left side.
+      log.info("CP 5");
+
+      // Accumulated tuples with same key on left side.
         // But since we are reading ahead we still haven't checked the read ahead right tuple.
         // Accumulated left tuples may potentially join with that. So, lets check that first.
-        
-        if((null != prevRightKey) && prevRightKey.equals(prevLeftKey)){
+
+        if((null != prevRightKey) && null != prevRightInp && prevRightKey.equals(prevLeftKey)){
 
             curJoiningRightTup = (Tuple)prevRightInp.result;
             counter = leftTuples.size();
@@ -438,30 +395,49 @@ public class POMergeJoin extends PhysicalOperator {
             doingJoin = true;
             prevLeftInp = curLeftInp;
             prevLeftKey = curLeftKey;
+            log.info("Recursive call at 298");
             return this.getNext(dummyTuple);
         }
 
-        // We will get here only when curLeftKey > prevRightKey
+      log.info("CP 6");
+
+      // We will get here only when curLeftKey > prevRightKey or prevRightKey is null
+        return getNextRightTuple(curLeftKey, curLeftInp);
+    }
+
+    private Result getNextRightTuple(Object curLeftKey, Result curLeftInp) throws ExecException {
         boolean slidingToNextRecord = false;
+        int loopCounter = 0;
         while(true){
-            // Start moving on right stream to find the tuple whose key is same as with current left bag key.
+          log.info("In getNextRightTuple, loop #" + loopCounter++);
+
+          // Start moving on right stream to find the tuple whose key is same as with current left bag key.
             Result rightInp;
             if (slidingToNextRecord) {
                 rightInp = getNextRightInp();
                 slidingToNextRecord = false;
-            } else
+            } else {
                 rightInp = getNextRightInp(prevLeftKey);
-                
-            if(rightInp.returnStatus != POStatus.STATUS_OK)
-                return rightInp;
+            }
+
+
+            log.info("In getNextRightTuple, CP 1");
+
+            if(rightInp.returnStatus != POStatus.STATUS_OK) {
+                log.info("In getNextRightTuple, CP 2: isLeftOuter=" + isLeftOuter());
+
+                return isLeftOuter() ?
+                        makeOuterReturn(curLeftInp, curLeftKey)
+                        : rightInp;
+            }
 
             Object extractedRightKey = extractKeysFromTuple(rightInp, 1);
-            
-            if(null == extractedRightKey) // If we see tuple having null keys in stream, we drop them 
+
+            if(null == extractedRightKey) // If we see tuple having null keys in stream, we drop them
                 continue;       // and fetch next tuple.
-            
+
             Comparable rightKey = (Comparable)extractedRightKey;
-            
+
             if( prevRightKey != null && rightKey.compareTo(prevRightKey) < 0){
                 // Sanity check.
                 int errCode = 1102;
@@ -471,12 +447,10 @@ public class POMergeJoin extends PhysicalOperator {
             }
 
             int cmpval = rightKey.compareTo(prevLeftKey);
-            if(cmpval < 0) {    // still behind the left side, do nothing, fetch next right tuple.
+            if (cmpval < 0) {    // still behind the left side, do nothing, fetch next right tuple.
                 slidingToNextRecord = true;
                 continue;
-            }
-
-            else if (cmpval == 0){  // Found matching tuple. Time to do join.
+            } else if (cmpval == 0){  // Found matching tuple. Time to do join.
 
                 curJoiningRightTup = (Tuple)rightInp.result;
                 counter = leftTuples.size();
@@ -484,13 +458,19 @@ public class POMergeJoin extends PhysicalOperator {
                 doingJoin = true;
                 prevLeftInp = curLeftInp;
                 prevLeftKey = curLeftKey;
+                log.info("Recursive call at 362");
                 return this.getNext(dummyTuple);
-            }
-
-            else{    // We got ahead on right side. Store currently read right tuple.
+            } else {
+                log.info("MJ: " + "innerFlags = " + Arrays.toString(innerFlags));
+                if (isLeftOuter()) {
+                    makeOuterReturn(curLeftInp, curLeftKey);
+                }
+                // We got ahead on right side. Store currently read right tuple.
                 prevRightKey = rightKey;
                 prevRightInp = rightInp;
-                // Since we didn't find any matching right tuple we throw away the buffered left tuples and add the one read in this function call. 
+                log.info("372: clearing and adding " + ((Tuple) curLeftInp.result).toDelimitedString(", "));
+
+                // Since we didn't find any matching right tuple we throw away the buffered left tuples and add the one read in this function call.
                 leftTuples = newLeftTupleArray();
                 leftTuples.add((Tuple)curLeftInp.result);
                 prevLeftInp = curLeftInp;
@@ -508,16 +488,211 @@ public class POMergeJoin extends PhysicalOperator {
             }
         }
     }
-    
+
+    private Result doMergeJoin() throws ExecException {
+      log.info("in doMergeJoin...");
+        // We matched on keys. Time to do the join.
+        for (Tuple t : leftTuples.getList()) {
+          log.info("-- 396 LEFT TUPLE: [" + t.toDelimitedString(", ") + "]. Counter " + counter);
+        }
+        if(counter > 0){    // We have left tuples to join with current right tuple.
+            Tuple joiningLeftTup = leftTuples.get(--counter);
+            leftTupSize = joiningLeftTup.size();
+            Tuple joinedTup = mTupleFactory.newTuple(leftTupSize+rightTupSize);
+
+            for(int i=0; i<leftTupSize; i++)
+                joinedTup.set(i, joiningLeftTup.get(i));
+
+            for(int i=0; i < rightTupSize; i++)
+                joinedTup.set(i+leftTupSize, curJoiningRightTup.get(i));
+
+          log.info("==============================");
+          for (Tuple t : leftTuples.getList()) {
+            log.info("-- 411 LEFT TUPLE: [" + t.toDelimitedString(", ") + "]. Counter " + counter);
+          }
+          log.info("MJ returns: " + joinedTup.toDelimitedString(" | "));
+          return new Result(POStatus.STATUS_OK, joinedTup);
+        }
+        log.info("MJ: In doMergeJoin, CP 1");
+        // Join with current right input has ended. But bag of left tuples
+        // may still join with next right tuple.
+
+        doingJoin = false;
+
+        while(true){
+            Result rightInp = getNextRightInp();
+            if(rightInp.returnStatus != POStatus.STATUS_OK){
+                prevRightInp = null;
+                return rightInp;
+            }
+            else{
+                Object rightKey = extractKeysFromTuple(rightInp, 1);
+                if(null == rightKey) // If we see tuple having null keys in stream, we drop them
+                    continue;       // and fetch next tuple.
+
+                int cmpval = ((Comparable)rightKey).compareTo(curJoinKey);
+                if (cmpval == 0){
+                    // Matched the very next right tuple.
+                    curJoiningRightTup = (Tuple)rightInp.result;
+                    rightTupSize = curJoiningRightTup.size();
+                    counter = leftTuples.size();
+                    doingJoin = true;
+                    log.info("Recursive call at 444");
+                    return this.getNext(dummyTuple);
+
+                }
+                else if(cmpval > 0){    // We got ahead on right side. Store currently read right tuple.
+                    if(!this.parentPlan.endOfAllInput){
+                        prevRightKey = rightKey;
+                        prevRightInp = rightInp;
+                        // There can't be any more join on this key.
+                        log.info("448: clearing and adding " + ((Tuple) prevLeftInp.result).toDelimitedString(", "));
+
+                        leftTuples = newLeftTupleArray();
+                        leftTuples.add((Tuple)prevLeftInp.result);
+                    }
+
+                    else{           // This is end of all input and this is last join output.
+                        // Right loader in this case wouldn't get a chance to close input stream. So, we close it ourself.
+                        try {
+                            ((IndexableLoadFunc)rightLoader).close();
+                        } catch (IOException e) {
+                            // Non-fatal error. We can continue.
+                            log.error("Received exception while trying to close right side file: " + e.getMessage());
+                        }
+                    }
+                    return new Result(POStatus.STATUS_EOP, null);
+                }
+                else{   // At this point right side can't be behind.
+                    int errCode = 1102;
+                    String errMsg = "Data is not sorted on right side. Last two tuples encountered were: \n"+
+                    curJoiningRightTup+ "\n" + rightInp.result ;
+                    throw new ExecException(errMsg,errCode);
+                }
+            }
+        }
+    }
+
+    /*
+    * Continue accumulating the left input into leftTuples until we observe
+    * a change in the key values or run out of inputs.
+    */
+    @Nullable
+    private Result accumulateLeftTuple(Result curLeftInp, Object curLeftKey) throws ExecException {
+        switch(curLeftInp.returnStatus){
+
+            case POStatus.STATUS_OK:
+                curLeftKey = extractKeysFromTuple(curLeftInp, 0);
+                if(null == curLeftKey) // We drop the tuples which have null keys.
+                    return new Result(POStatus.STATUS_EOP, null);
+
+                log.info("493 (== 234): prevLeftKey = " + prevLeftKey);
+                int cmpVal = ((Comparable)curLeftKey).compareTo(prevLeftKey);
+                if(cmpVal == 0){
+                    // Keep on accumulating.
+                  log.info("491 (== 236): adding " + ((Tuple) curLeftInp.result).toDelimitedString(", "));
+
+                    leftTuples.add((Tuple)curLeftInp.result);
+                    return new Result(POStatus.STATUS_EOP, null);
+                }
+                else if(cmpVal > 0){ // Filled with left bag. Move on.
+                    curJoinKey = prevLeftKey;
+                    return null;
+                }
+                else{   // Current key < Prev Key
+                    int errCode = 1102;
+                    String errMsg = "Data is not sorted on left side. Last two keys encountered were: \n"+
+                                        prevLeftKey+ "\n" + curLeftKey ;
+                    throw new ExecException(errMsg,errCode);
+                }
+
+            case POStatus.STATUS_EOP:
+                if(this.parentPlan.endOfAllInput){
+                    // We hit the end on left input.
+                    // Tuples in bag may still possibly join with right side.
+                    curJoinKey = prevLeftKey;
+                    // TODO (aneesh): remove this as it doesn't seem to be needed
+                    // curLeftKey = null;
+                    return null;
+                }
+                else    // Fetch next left input.
+                    return curLeftInp;
+
+            default:    // If encountered with ERR / NULL on left side, we send it down.
+                return curLeftInp;
+        }
+    }
+
+    private Result initializeMergeJoin(Object curLeftKey) throws ExecException {
+        log.info("MJ: " + "in initializeMergeJoin.");
+
+        prepareTupleFactories();
+
+        Result curLeftInp = processInput();
+        if (curLeftInp.returnStatus != POStatus.STATUS_OK) {
+            return curLeftInp;       // Return because we want to fetch next left tuple.
+        }
+
+        curLeftKey = extractKeysFromTuple(curLeftInp, 0);
+
+        // We drop the tuples which have null keys.
+        if (null == curLeftKey) {
+            return new Result(POStatus.STATUS_EOP, null);
+        }
+
+        try {
+            seekInRightStream(curLeftKey);
+        } catch (IOException e) {
+            throwProcessingException(true, e);
+        } catch (ClassCastException e) {
+            throwProcessingException(true, e);
+        }
+        log.info("542: adding " + ((Tuple) curLeftInp.result).toDelimitedString(", "));
+
+        leftTuples = newLeftTupleArray();
+
+        leftTuples.add((Tuple) curLeftInp.result);
+        firstTime = false;
+        prevLeftKey = curLeftKey;
+        return new Result(POStatus.STATUS_EOP, null);
+    }
+
+    private Result makeOuterReturn(Result curLeftInp, Object curLeftKey) throws ExecException {
+        log.info("MJ: " + "in makeOuterReturn.");
+        // We didn't find any matching right tuple, so now we need to emit nulls on the right side for all
+        // tuples buffered on the left.
+        curJoiningRightTup = makeNullTuple(this.rightInputSchema);
+        counter = leftTuples.size();
+        rightTupSize = curJoiningRightTup.size();
+        doingJoin = true;
+        prevLeftInp = curLeftInp;
+        prevLeftKey = curLeftKey;
+        log.info("Recursive call at 565");
+        return this.getNext(dummyTuple);
+    }
+
+    private boolean isLeftOuter() {
+        return innerFlags != null && innerFlags.length >= 2 && !this.innerFlags[1];
+    }
+
+    private Tuple makeNullTuple(Schema rightInputSchema) throws ExecException {
+        log.info("MJ: in makeNullTuple, schema is: " + rightInputSchema);
+        Tuple t = TupleFactory.getInstance().newTuple(rightInputSchema.getFields().size());
+//        for(int i = 0; i < rightInputSchema.getFields().size(); i++) {
+//            t.set(i, null);
+//        }
+        return t;
+    }
+
     private void seekInRightStream(Object firstLeftKey) throws IOException{
         rightLoader = (LoadFunc)PigContext.instantiateFuncFromSpec(rightLoaderFuncSpec);
-        
+
         // check if hadoop distributed cache is used
         if (indexFile != null && rightLoader instanceof DefaultIndexableLoader) {
             DefaultIndexableLoader loader = (DefaultIndexableLoader)rightLoader;
             loader.setIndexFile(indexFile);
         }
-        
+
         // Pass signature of the loader to rightLoader
         // make a copy of the conf to use in calls to rightLoader.
         rightLoader.setUDFContextSignature(signature);
@@ -570,11 +745,11 @@ public class POMergeJoin extends PhysicalOperator {
                         // run the tuple through the pipeline
                         rightPipelineRoot.attachInput(t);
                         return this.getNextRightInp();
-                        
+
                     }
                     default: // We don't deal with ERR/NULL. just pass them down
                         throwProcessingException(false, null);
-                        
+
                 }
             }
         } catch (IOException e) {
@@ -605,8 +780,8 @@ public class POMergeJoin extends PhysicalOperator {
             int errCode = 2167;
             String errMsg = "LocalRearrange used to extract keys from tuple isn't configured correctly";
             throw new ExecException(errMsg,errCode,PigException.BUG);
-        } 
-          
+        }
+
         return ((Tuple) lrOut.result).get(1);
     }
 
@@ -622,7 +797,7 @@ public class POMergeJoin extends PhysicalOperator {
             noInnerPlanOnRightSide = false;
             this.rightPipelineLeaf = rightPipeline.getLeaves().get(0);
             this.rightPipelineRoot = rightPipeline.getRoots().get(0);
-            this.rightPipelineRoot.setInputs(null);            
+            this.rightPipelineRoot.setInputs(null);
         }
         else
             noInnerPlanOnRightSide = true;
@@ -673,18 +848,18 @@ public class POMergeJoin extends PhysicalOperator {
     public boolean supportsMultipleOutputs() {
         return false;
     }
-    
+
     /**
      * @param rightInputFileName the rightInputFileName to set
      */
     public void setRightInputFileName(String rightInputFileName) {
         this.rightInputFileName = rightInputFileName;
     }
-    
+
     public String getSignature() {
         return signature;
     }
-    
+
     public void setSignature(String signature) {
         this.signature = signature;
     }
@@ -696,12 +871,11 @@ public class POMergeJoin extends PhysicalOperator {
     public String getIndexFile() {
         return indexFile;
     }
-    
-    @Override
+
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
         return null;
     }
-    
+
     public LOJoin.JOINTYPE getJoinType() {
         return joinType;
     }
