@@ -34,13 +34,10 @@ import org.apache.pig.ExecType;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.data.utils.StructuresHelper.Pair;
 import org.apache.pig.data.utils.StructuresHelper.SchemaKey;
+import org.apache.pig.data.utils.CollectUtils;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.google.common.io.Files;
 
 /**
  * This class is to be used at job creation time. It provides the API that lets code
@@ -56,7 +53,7 @@ public class SchemaTupleFrontend {
     /**
      * Schemas registered for generation are held here.
      */
-    private static Map<Pair<SchemaKey, Boolean>, Pair<Integer, Set<GenContext>>> schemasToGenerate = Maps.newHashMap();
+    private static Map<Pair<SchemaKey, Boolean>, Pair<Integer, Set<GenContext>>> schemasToGenerate = CollectUtils.newHashMap();
 
     private int internalRegisterToGenerateIfPossible(Schema udfSchema, boolean isAppendable, GenContext type) {
         Pair<SchemaKey, Boolean> key = Pair.make(new SchemaKey(udfSchema), isAppendable);
@@ -70,7 +67,7 @@ public class SchemaTupleFrontend {
             return -1;
         }
         int id = SchemaTupleClassGenerator.getNextGlobalClassIdentifier();
-        Set<GenContext> contexts = Sets.newHashSet();
+        Set<GenContext> contexts = CollectUtils.newHashSet();
         contexts.add(GenContext.FORCE_LOAD);
         contexts.add(type);
         schemasToGenerate.put(key, Pair.make(Integer.valueOf(id), contexts));
@@ -89,7 +86,7 @@ public class SchemaTupleFrontend {
         private Configuration conf;
 
         public SchemaTupleFrontendGenHelper(PigContext pigContext, Configuration conf) {
-            codeDir = Files.createTempDir();
+            codeDir = CollectUtils.createTempDir();
             codeDir.deleteOnExit();
             LOG.debug("Temporary directory for generated code created: "
                     + codeDir.getAbsolutePath());
@@ -179,7 +176,7 @@ public class SchemaTupleFrontend {
                 Pair<SchemaKey, Boolean> keyPair = entry.getKey();
                 Schema s = keyPair.getFirst().get();
                 Pair<Integer, Set<GenContext>> valuePair = entry.getValue();
-                Set<GenContext> contextsToInclude = Sets.newHashSet();
+                Set<GenContext> contextsToInclude = CollectUtils.newHashSet();
                 boolean isShipping = false;
                 for (GenContext context : valuePair.getSecond()) {
                     if (!context.shouldGenerate(conf)) {

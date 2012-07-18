@@ -34,16 +34,13 @@ import org.apache.pig.ExecType;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.data.utils.StructuresHelper.SchemaKey;
 import org.apache.pig.data.utils.StructuresHelper.Triple;
+import org.apache.pig.data.utils.CollectUtils;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.google.common.io.Files;
 
 public class SchemaTupleBackend {
     private static final Log LOG = LogFactory.getLog(SchemaTupleBackend.class);
 
-    private Set<String> filesToResolve = Sets.newHashSet();
+    private Set<String> filesToResolve = CollectUtils.newHashSet();
 
         /**
          * We use the URLClassLoader to resolve the generated classes because we can
@@ -51,8 +48,9 @@ public class SchemaTupleBackend {
          * and it will handle the dynamic loading.
          */
     private URLClassLoader classLoader;
-    private Map<Triple<SchemaKey, Boolean, GenContext>, SchemaTupleFactory> schemaTupleFactoriesByTriple = Maps.newHashMap();
-    private Map<Integer, SchemaTupleFactory> schemaTupleFactoriesById = Maps.newHashMap();
+    private Map<Triple<SchemaKey, Boolean, GenContext>, SchemaTupleFactory> schemaTupleFactoriesByTriple =
+            CollectUtils.newHashMap();
+    private Map<Integer, SchemaTupleFactory> schemaTupleFactoriesById = CollectUtils.newHashMap();
     private Configuration jConf;
 
     private File codeDir;
@@ -89,7 +87,7 @@ public class SchemaTupleBackend {
             }
             codeDir = new File(jConf.get(SchemaTupleFrontend.LOCAL_CODE_DIR));
         } else {
-            codeDir = Files.createTempDir();
+            codeDir = CollectUtils.createTempDir();
             codeDir.deleteOnExit();
         }
 

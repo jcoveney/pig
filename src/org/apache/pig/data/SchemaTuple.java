@@ -28,6 +28,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
+import org.apache.pig.data.utils.CollectUtils;
 import org.apache.pig.data.utils.MethodHelper;
 import org.apache.pig.data.utils.MethodHelper.NotImplemented;
 import org.apache.pig.data.utils.SedesHelper;
@@ -35,8 +36,6 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Utils;
 import org.mortbay.log.Log;
-
-import com.google.common.collect.Lists;
 
 /**
  * A SchemaTuple is a type aware tuple that is much faster and more memory efficient.
@@ -225,7 +224,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     //TODO could generate a faster getAll in the code
     @Override
     public List<Object> getAll() {
-        List<Object> l = Lists.newArrayListWithCapacity(size());
+        List<Object> l = CollectUtils.newArrayListWithCapacity(size());
         for (int i = 0; i < size(); i++) {
             try {
                 l.add(get(i));

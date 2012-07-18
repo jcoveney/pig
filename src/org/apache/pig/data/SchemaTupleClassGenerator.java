@@ -22,18 +22,8 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import java.net.URI;
 import java.util.List;
-import java.util.Locale;
 import java.util.Queue;
-
-import javax.tools.Diagnostic;
-import javax.tools.DiagnosticCollector;
-import javax.tools.JavaCompiler;
-import javax.tools.JavaFileManager;
-import javax.tools.JavaFileObject;
-import javax.tools.SimpleJavaFileObject;
-import javax.tools.ToolProvider;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
@@ -41,10 +31,9 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
+import org.apache.pig.data.utils.CollectUtils;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.JavaCompilerHelper;
-
-import com.google.common.collect.Lists;
 
 /**
  * This class encapsulates the generation of SchemaTuples, as well as some logic
@@ -231,7 +220,7 @@ public class SchemaTupleClassGenerator {
      */
     //TODO in the future, we can use ASM to generate the bytecode directly.
     private static void compileCodeString(String className, String generatedCodeString, File codeDir) {
-        JavaCompilerHelper compiler = new JavaCompilerHelper(); 
+        JavaCompilerHelper compiler = new JavaCompilerHelper();
         String tempDir = codeDir.getAbsolutePath();
         compiler.addToClassPath(tempDir);
         LOG.debug("Compiling SchemaTuple code with classpath: " + compiler.getClassPath());
@@ -973,7 +962,7 @@ public class SchemaTupleClassGenerator {
 
     //TODO need to use StringBuilder for all concatenation, not +
     static class TypeInFunctionStringOutFactory {
-        private List<TypeInFunctionStringOut> listOfFutureMethods = Lists.newArrayList();
+        private List<TypeInFunctionStringOut> listOfFutureMethods = CollectUtils.newArrayList();
         private int id;
         private boolean appendable;
         private String contextAnnotations;
@@ -983,11 +972,14 @@ public class SchemaTupleClassGenerator {
             this.appendable = appendable;
             this.contextAnnotations = contextAnnotations;
 
-            Queue<Integer> nextNestedSchemaIdForSetPos = Lists.newLinkedList();
-            Queue<Integer> nextNestedSchemaIdForGetPos = Lists.newLinkedList();
-            Queue<Integer> nextNestedSchemaIdForReadField = Lists.newLinkedList();
+            Queue<Integer> nextNestedSchemaIdForSetPos = CollectUtils.newLinkedList();
+            Queue<Integer> nextNestedSchemaIdForGetPos = CollectUtils.newLinkedList();
+            Queue<Integer> nextNestedSchemaIdForReadField = CollectUtils.newLinkedList();
 
-            List<Queue<Integer>> listOfQueuesForIds = Lists.newArrayList(nextNestedSchemaIdForSetPos, nextNestedSchemaIdForGetPos, nextNestedSchemaIdForReadField);
+            List<Queue<Integer>> listOfQueuesForIds = CollectUtils.newArrayList();
+            listOfQueuesForIds.add(nextNestedSchemaIdForSetPos);
+            listOfQueuesForIds.add(nextNestedSchemaIdForGetPos);
+            listOfQueuesForIds.add(nextNestedSchemaIdForReadField);
 
             listOfFutureMethods.add(new FieldString(codeDir, listOfQueuesForIds, s, appendable)); //has to be run first
             listOfFutureMethods.add(new SetPosString(nextNestedSchemaIdForSetPos));
