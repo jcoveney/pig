@@ -122,7 +122,7 @@ import org.apache.pig.tools.pigstats.ScriptState;
  * These are all just type specific instances of WritableComparator.
  *
  */
-public class JobControlCompiler{
+public class JobControlCompiler {
     MROperPlan plan;
     Configuration conf;
     PigContext pigContext;
