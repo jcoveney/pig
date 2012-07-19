@@ -24,6 +24,14 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2823: TestPigContext.testImportList() does not pass if another javac in on the PATH (julien)
+
+PIG-2800: pig.additional.jars path separator should align with File.pathSeparator instead of being hard-coded to ":" (jgordon via azaroth)
+
+PIG-2797: Tests should not create their own file URIs through string concatenation, should use Util.generateURI instead (jgordon via azaroth)
+
+PIG-2820: relToAbsolutePath is not replayed properly when Grunt reparses the script after PIG-2699 (julien)
+
 PIG-2763: Groovy UDFs (herberts via julien)
 
 PIG-2780: MapReduceLauncher should break early when one of the jobs throws an exception (jay23jack via daijy)
@@ -195,6 +203,8 @@ PIG-2337: Provide UDF with input schema (xutingz via daijy)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-2825: StoreFunc signature setting in LogicalPlan broken (jcoveney)
 
 PIG-2815: class loader management in PigContext (rangadi via jcoveney)
 

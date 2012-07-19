@@ -1012,14 +1012,6 @@ public class TestGrunt {
 
             Grunt grunt = new Grunt(new BufferedReader(reader), context);
             grunt.exec();
-
-        } catch (ExecException e) {
-            e.printStackTrace();
-            fail();
-        } catch (Throwable e) {
-            e.printStackTrace(System.out);
-            fail();
-        }
     }
 
     @Test
@@ -1162,7 +1154,8 @@ public class TestGrunt {
         Grunt grunt = new Grunt(new BufferedReader(reader), context);
 
         grunt.exec();
-        assertTrue(context.extraJars.contains(ClassLoader.getSystemResource("pig-withouthadoop.jar")));
+        assertEquals(context.extraJars+ " of size 1", 1, context.extraJars.size());
+        assertTrue(context.extraJars.get(0)+" ends with /pig-withouthadoop.jar", context.extraJars.get(0).toString().endsWith("/pig-withouthadoop.jar"));
     }
 
     @Test
@@ -1178,7 +1171,8 @@ public class TestGrunt {
         Grunt grunt = new Grunt(new BufferedReader(reader), context);
 
         grunt.exec();
-        assertTrue(context.extraJars.contains(ClassLoader.getSystemResource("pig-withouthadoop.jar")));
+        assertEquals(context.extraJars+ " of size 1", 1, context.extraJars.size());
+        assertTrue(context.extraJars.get(0)+" ends with /pig-withouthadoop.jar", context.extraJars.get(0).toString().endsWith("/pig-withouthadoop.jar"));
     }
 
     @Test

@@ -20,7 +20,6 @@ package org.apache.pig.parser;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -94,15 +93,18 @@ import org.apache.pig.newplan.logical.visitor.ProjStarInUdfExpander;
 import org.apache.pig.newplan.logical.visitor.ProjectStarExpander;
 
 public class LogicalPlanBuilder {
+
     private LogicalPlan plan = new LogicalPlan();
 
     private Map<String, Operator> operators = new HashMap<String, Operator>();
-    
+
     Map<String, String> fileNameMap;
-    
+
     private PigContext pigContext = null;
     private String scope = null;
     private IntStream intStream;
+    private int storeIndex = 0;
+    private int loadIndex = 0;
     
     private static NodeIdGenerator nodeIdGen = NodeIdGenerator.getGenerator();
     
@@ -654,15 +656,15 @@ public class LogicalPlanBuilder {
                         funcSpec;
 
             loFunc = (LoadFunc)PigContext.instantiateFuncFromSpec(instantiatedFuncSpec);
-            String sig = QueryParserUtils.constructFileNameSignature(filename, instantiatedFuncSpec);
-            absolutePath = fileNameMap.get(sig);
+            String fileNameKey = QueryParserUtils.constructFileNameSignature(filename, instantiatedFuncSpec) + "_" + (loadIndex++);
+            absolutePath = fileNameMap.get(fileNameKey);
             if (absolutePath == null) {
                 absolutePath = loFunc.relativeToAbsolutePath( filename, QueryParserUtils.getCurrentDir( pigContext ) );
 
                 if (absolutePath!=null) {
                     QueryParserUtils.setHdfsServers( absolutePath, pigContext );
                 }
-                fileNameMap.put( sig, absolutePath );
+                fileNameMap.put( fileNameKey, absolutePath );
             }
         } catch(Exception ex) {
             throw new ParserValidationException( intStream, loc, ex );
@@ -714,9 +716,12 @@ public class LogicalPlanBuilder {
                             funcSpec;
 
             StoreFuncInterface stoFunc = (StoreFuncInterface)PigContext.instantiateFuncFromSpec(instantiatedFuncSpec);
-            String sig = inputAlias + "_" + newOperatorKey();
-            stoFunc.setStoreFuncUDFContextSignature(sig);
-            String absolutePath = fileNameMap.get(sig);
+            String fileNameKey = inputAlias + "_" + (storeIndex++) ;
+
+            String signature = inputAlias + "_" + newOperatorKey();
+            stoFunc.setStoreFuncUDFContextSignature(signature);
+
+            String absolutePath = fileNameMap.get(fileNameKey);
             if (absolutePath == null) {
                 absolutePath = stoFunc.relToAbsPathForStoreLocation(
                         filename,
@@ -724,10 +729,11 @@ public class LogicalPlanBuilder {
                 if (absolutePath!=null) {
                     QueryParserUtils.setHdfsServers(absolutePath, pigContext);
                 }
-                fileNameMap.put(sig, absolutePath);
+                fileNameMap.put(fileNameKey, absolutePath);
             }
             FileSpec fileSpec = new FileSpec(absolutePath, funcSpec);
-            LOStore op = new LOStore(plan, fileSpec, stoFunc, sig);
+
+            LOStore op = new LOStore(plan, fileSpec, stoFunc, signature);
             return buildOp(loc, op, alias, inputAlias, null);
         } catch(Exception ex) {
             throw new ParserValidationException(intStream, loc, ex);
