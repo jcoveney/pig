@@ -988,99 +988,86 @@ public class TestGrunt {
     }
 
     @Test
-    public void testFsCommand(){
+    public void testFsCommand() throws Throwable {
+        PigServer server = new PigServer(ExecType.MAPREDUCE,cluster.getProperties());
+        PigContext context = server.getPigContext();
 
-        try {
-            PigServer server = new PigServer(ExecType.MAPREDUCE,cluster.getProperties());
-            PigContext context = server.getPigContext();
+        String strCmd =
+            "fs -ls /;"
+            +"fs -mkdir /fstmp;"
+            +"fs -mkdir /fstmp/foo;"
+            +"cd /fstmp;"
+            +"fs -copyFromLocal test/org/apache/pig/test/data/passwd bar;"
+            +"a = load 'bar';"
+            +"cd foo;"
+            +"store a into 'baz';"
+            +"cd /;"
+            +"fs -ls .;"
+            +"fs -rmr /fstmp/foo/baz;";
 
-            String strCmd =
-                "fs -ls /;"
-                +"fs -mkdir /fstmp;"
-                +"fs -mkdir /fstmp/foo;"
-                +"cd /fstmp;"
-                +"fs -copyFromLocal test/org/apache/pig/test/data/passwd bar;"
-                +"a = load 'bar';"
-                +"cd foo;"
-                +"store a into 'baz';"
-                +"cd /;"
-                +"fs -ls .;"
-                +"fs -rmr /fstmp/foo/baz;";
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
 
-            ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
-            InputStreamReader reader = new InputStreamReader(cmd);
-
-            Grunt grunt = new Grunt(new BufferedReader(reader), context);
-            grunt.exec();
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+        grunt.exec();
     }
 
     @Test
-    public void testShellCommand(){
+    public void testShellCommand() throws Throwable {
+        PigServer server = new PigServer(ExecType.MAPREDUCE,cluster.getProperties());
+        PigContext context = server.getPigContext();
 
-        try {
-            PigServer server = new PigServer(ExecType.MAPREDUCE,cluster.getProperties());
-            PigContext context = server.getPigContext();
+        String strCmd = "sh mkdir test_shell_tmp;";
 
-            String strCmd = "sh mkdir test_shell_tmp;";
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+        grunt.exec();
+        assertTrue(new File("test_shell_tmp").exists());
 
-            ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
-            InputStreamReader reader = new InputStreamReader(cmd);
-            Grunt grunt = new Grunt(new BufferedReader(reader), context);
-            grunt.exec();
-            assertTrue(new File("test_shell_tmp").exists());
+        strCmd = "sh rmdir test_shell_tmp;";
+        cmd = new ByteArrayInputStream(strCmd.getBytes());
+        reader = new InputStreamReader(cmd);
+        grunt = new Grunt(new BufferedReader(reader), context);
+        grunt.exec();
+        assertFalse(new File("test_shell_tmp").exists());
 
-            strCmd = "sh rmdir test_shell_tmp;";
-            cmd = new ByteArrayInputStream(strCmd.getBytes());
-            reader = new InputStreamReader(cmd);
-            grunt = new Grunt(new BufferedReader(reader), context);
-            grunt.exec();
-            assertFalse(new File("test_shell_tmp").exists());
+        strCmd = "sh bash -c 'echo hello world > tempShFileToTestShCommand'";
+        cmd = new ByteArrayInputStream(strCmd.getBytes());
+        reader = new InputStreamReader(cmd);
+        grunt = new Grunt(new BufferedReader(reader), context);
+        grunt.exec();
+        BufferedReader fileReader = null;
+        fileReader = new BufferedReader(new FileReader("tempShFileToTestShCommand"));
+        assertTrue(fileReader.readLine().equalsIgnoreCase("hello world"));
+        fileReader.close();
+        strCmd = "sh rm tempShFileToTestShCommand";
+        cmd = new ByteArrayInputStream(strCmd.getBytes());
+        reader = new InputStreamReader(cmd);
+        grunt = new Grunt(new BufferedReader(reader), context);
+        grunt.exec();
+        assertFalse(new File("tempShFileToTestShCommand").exists());
 
-            strCmd = "sh bash -c 'echo hello world > tempShFileToTestShCommand'";
-            cmd = new ByteArrayInputStream(strCmd.getBytes());
-            reader = new InputStreamReader(cmd);
-            grunt = new Grunt(new BufferedReader(reader), context);
-            grunt.exec();
-            BufferedReader fileReader = null;
-            fileReader = new BufferedReader(new FileReader("tempShFileToTestShCommand"));
-            assertTrue(fileReader.readLine().equalsIgnoreCase("hello world"));
-            fileReader.close();
-            strCmd = "sh rm tempShFileToTestShCommand";
-            cmd = new ByteArrayInputStream(strCmd.getBytes());
-            reader = new InputStreamReader(cmd);
-            grunt = new Grunt(new BufferedReader(reader), context);
-            grunt.exec();
-            assertFalse(new File("tempShFileToTestShCommand").exists());
-
-            strCmd = "sh bash -c 'touch TouchedFileInsideGrunt_61 && ls | grep TouchedFileInsideGrunt_61 > fileContainingTouchedFileInsideGruntShell_71'";
-            cmd = new ByteArrayInputStream(strCmd.getBytes());
-            reader = new InputStreamReader(cmd);
-            grunt = new Grunt(new BufferedReader(reader), context);
-            grunt.exec();
-            fileReader = new BufferedReader(new FileReader("fileContainingTouchedFileInsideGruntShell_71"));
-            assertTrue(fileReader.readLine().equals("TouchedFileInsideGrunt_61"));
-            fileReader.close();
-            strCmd = "sh bash -c 'rm fileContainingTouchedFileInsideGruntShell_71'";
-            cmd = new ByteArrayInputStream(strCmd.getBytes());
-            reader = new InputStreamReader(cmd);
-            grunt = new Grunt(new BufferedReader(reader), context);
-            grunt.exec();
-            assertFalse(new File("fileContainingTouchedFileInsideGruntShell_71").exists());
-            strCmd = "sh bash -c 'rm TouchedFileInsideGrunt_61'";
-            cmd = new ByteArrayInputStream(strCmd.getBytes());
-            reader = new InputStreamReader(cmd);
-            grunt = new Grunt(new BufferedReader(reader), context);
-            grunt.exec();
-            assertFalse(new File("TouchedFileInsideGrunt_61").exists());
-
-
-        } catch (ExecException e) {
-            e.printStackTrace();
-            fail();
-        } catch (Throwable e) {
-            e.printStackTrace();
-            fail();
-        }
+        strCmd = "sh bash -c 'touch TouchedFileInsideGrunt_61 && ls | grep TouchedFileInsideGrunt_61 > fileContainingTouchedFileInsideGruntShell_71'";
+        cmd = new ByteArrayInputStream(strCmd.getBytes());
+        reader = new InputStreamReader(cmd);
+        grunt = new Grunt(new BufferedReader(reader), context);
+        grunt.exec();
+        fileReader = new BufferedReader(new FileReader("fileContainingTouchedFileInsideGruntShell_71"));
+        assertTrue(fileReader.readLine().equals("TouchedFileInsideGrunt_61"));
+        fileReader.close();
+        strCmd = "sh bash -c 'rm fileContainingTouchedFileInsideGruntShell_71'";
+        cmd = new ByteArrayInputStream(strCmd.getBytes());
+        reader = new InputStreamReader(cmd);
+        grunt = new Grunt(new BufferedReader(reader), context);
+        grunt.exec();
+        assertFalse(new File("fileContainingTouchedFileInsideGruntShell_71").exists());
+        strCmd = "sh bash -c 'rm TouchedFileInsideGrunt_61'";
+        cmd = new ByteArrayInputStream(strCmd.getBytes());
+        reader = new InputStreamReader(cmd);
+        grunt = new Grunt(new BufferedReader(reader), context);
+        grunt.exec();
+        assertFalse(new File("TouchedFileInsideGrunt_61").exists());
     }
 
     // See PIG-2497

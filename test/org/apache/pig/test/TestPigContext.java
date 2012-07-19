@@ -35,22 +35,6 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.Random;
 
-<<<<<<< HEAD
-=======
-import javax.tools.Diagnostic;
-import javax.tools.DiagnosticCollector;
-import javax.tools.JavaCompiler;
-import javax.tools.JavaFileManager;
-import javax.tools.JavaFileObject;
-import javax.tools.SimpleJavaFileObject;
-import javax.tools.ToolProvider;
-import javax.tools.JavaFileObject.Kind;
-
-import com.google.common.collect.Lists;
-
-import junit.framework.TestCase;
-
->>>>>>> 0242eae26703305c9c8e3227d287117bf254f39b
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.log4j.Logger;
 import org.apache.pig.ExecType;
@@ -139,13 +123,9 @@ public class TestPigContext {
         udf1Dir.mkdirs();
         File udf2Dir = new File(tmpDir.getAbsolutePath()+FILE_SEPARATOR+"com"+FILE_SEPARATOR+"xxx"+FILE_SEPARATOR+"udf2");
         udf2Dir.mkdirs();
-<<<<<<< HEAD
         File udf1JavaSrc = new File(udf1Dir.getAbsolutePath()+FILE_SEPARATOR+"TestUDF1.java");
         File udf2JavaSrc = new File(udf2Dir.getAbsolutePath()+FILE_SEPARATOR+"TestUDF2.java");
 
-=======
-        
->>>>>>> 0242eae26703305c9c8e3227d287117bf254f39b
         String udf1Src = new String("package com.xxx.udf1;\n"+
                 "import java.io.IOException;\n"+
                 "import org.apache.pig.EvalFunc;\n"+
@@ -158,7 +138,6 @@ public class TestPigContext {
         String udf2Src = new String("package com.xxx.udf2;\n"+
                 "import org.apache.pig.builtin.PigStorage;\n" +
                 "public class TestUDF2 extends PigStorage { }\n");
-<<<<<<< HEAD
 
         // generate java file
         FileOutputStream outStream1 =
@@ -182,19 +161,6 @@ public class TestPigContext {
         String jarName = "TestUDFJar.jar";
         String jarFile = tmpDir.getAbsolutePath() + FILE_SEPARATOR + jarName;
         status = Util.executeJavaCommand("jar -cf " + tmpDir.getAbsolutePath() + FILE_SEPARATOR + jarName +
-=======
-        
-        // compile
-        JavaCompilerHelper javaCompilerHelper = new JavaCompilerHelper();
-        javaCompilerHelper.compile(tmpDir.getAbsolutePath(),
-                new JavaCompilerHelper.JavaSourceFromString("com.xxx.udf1.TestUDF1", udf1Src),
-                new JavaCompilerHelper.JavaSourceFromString("com.xxx.udf2.TestUDF2", udf2Src));
-                
-        // generate jar file
-        String jarName = "TestUDFJar.jar";
-        String jarFile = tmpDir.getAbsolutePath() + FILE_SEPARATOR + jarName;
-        int status = Util.executeJavaCommand("jar -cf " + jarFile + 
->>>>>>> 0242eae26703305c9c8e3227d287117bf254f39b
                               " -C " + tmpDir.getAbsolutePath() + " " + "com");
         assertTrue(status==0);
         Properties properties = cluster.getProperties();
