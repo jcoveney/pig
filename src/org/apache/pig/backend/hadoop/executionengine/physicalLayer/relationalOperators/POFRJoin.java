@@ -17,6 +17,11 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
+import gnu.trove.map.hash.TDoubleObjectHashMap;
+import gnu.trove.map.hash.TFloatObjectHashMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
+import gnu.trove.map.hash.TLongObjectHashMap;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
@@ -38,6 +43,9 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin.TheBasics.BasicMap;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin.TheBasics.DefaultBasicMap;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin.BasicList;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin.TuplesToSchemaTupleList;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -47,8 +55,10 @@ import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.data.SchemaTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.data.TypeAwareTuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -71,7 +81,7 @@ import org.apache.pig.impl.plan.VisitorException;
 public class POFRJoin extends PhysicalOperator {
     private static final Log log = LogFactory.getLog(POFRJoin.class);
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
     // The number in the input list which denotes the fragmented input
@@ -105,7 +115,7 @@ public class POFRJoin extends PhysicalOperator {
     // Join
     private boolean isLeftOuterJoin;
 
-    // This list contains nullTuples according to schema of various inputs 
+    // This list contains nullTuples according to schema of various inputs
     private DataBag nullBag;
     private Schema[] inputSchemas;
     private Schema[] keySchemas;
@@ -163,7 +173,7 @@ public class POFRJoin extends PhysicalOperator {
 
     /**
      * Configures the Local Rearrange operators & the foreach operator
-     * 
+     *
      * @param old
      * @throws ExecException
      */
@@ -244,7 +254,7 @@ public class POFRJoin extends PhysicalOperator {
                 if (res.returnStatus == POStatus.STATUS_EOP) {
                     // We have completed all cross-products now its time to move
                     // to next tuple of left side
-                    processingPlan = false;                    
+                    processingPlan = false;
                     break;
                 }
                 if (res.returnStatus == POStatus.STATUS_ERR) {
@@ -318,23 +328,27 @@ public class POFRJoin extends PhysicalOperator {
         }
     }
 
-    private static class TupleToMapKey {
-        private HashMap<Tuple, TuplesToSchemaTupleList> tuples;
+    private static class TupleToMapKey implements BasicMap {
+        private BasicMap tuples;
         private SchemaTupleFactory tf;
 
-        public TupleToMapKey(int ct, SchemaTupleFactory tf) {
-            tuples = new HashMap<Tuple, TuplesToSchemaTupleList>(ct);
+        public TupleToMapKey(SchemaTupleFactory tf) {
             this.tf = tf;
+            if (tf != null) {
+                tuples = TheBasics.getBasicMapForSchema(tf.newTuple().getSchema());
+            } else {
+                tuples = new DefaultBasicMap();
+            }
         }
 
-        public TuplesToSchemaTupleList put(Tuple key, TuplesToSchemaTupleList val) {
+        public BasicList put(Tuple key, BasicList val) {
             if (tf != null) {
                 key = TuplesToSchemaTupleList.convert(key, tf);
             }
             return tuples.put(key, val);
         }
 
-        public TuplesToSchemaTupleList get(Tuple key) {
+        public BasicList get(Tuple key) {
             if (tf != null) {
                 key = TuplesToSchemaTupleList.convert(key, tf);
             }
@@ -342,10 +356,143 @@ public class POFRJoin extends PhysicalOperator {
         }
     }
 
+    public static class TheBasics {
+        public static interface BasicMap {
+            public BasicList put(Tuple key, BasicList val);
+            public BasicList get(Tuple key);
+        }
+
+        public static class DefaultBasicMap implements BasicMap {
+            Map<Tuple, BasicList> internal = new HashMap<Tuple, BasicList>();
+
+            @Override
+            public BasicList put(Tuple key, BasicList val) {
+                return internal.put(key, val);
+            }
+
+            @Override
+            public BasicList get(Tuple key) {
+                return internal.get(key);
+            }
+        }
+
+        public static class IntBasicMap implements BasicMap {
+            TIntObjectHashMap<BasicList> internal = new TIntObjectHashMap<BasicList>();
+
+            public int getPrimitive(Tuple t) {
+                try {
+                    return ((TypeAwareTuple)t).getInt(0);
+                } catch (Exception e) {
+                    throw new RuntimeException("Given present Schema, expected a Tuple containing"
+                            + " a single primitive entry", e);
+                }
+            }
+
+            @Override
+            public BasicList put(Tuple key, BasicList val) {
+                return internal.put(getPrimitive(key), val);
+            }
+
+            @Override
+            public BasicList get(Tuple key) {
+                return internal.get(getPrimitive(key));
+            }
+        }
+
+        public static class LongBasicMap implements BasicMap {
+            TLongObjectHashMap<BasicList> internal = new TLongObjectHashMap<BasicList>();
+
+            public long getPrimitive(Tuple t) {
+                try {
+                    return ((TypeAwareTuple)t).getLong(0);
+                } catch (Exception e) {
+                    throw new RuntimeException("Given present Schema, expected a Tuple containing"
+                            + " a single primitive entry", e);
+                }
+            }
+
+            @Override
+            public BasicList put(Tuple key, BasicList val) {
+                return internal.put(getPrimitive(key), val);
+            }
+
+            @Override
+            public BasicList get(Tuple key) {
+                return internal.get(getPrimitive(key));
+            }
+        }
+
+        public static class FloatBasicMap implements BasicMap {
+            TFloatObjectHashMap<BasicList> internal = new TFloatObjectHashMap<BasicList>();
+
+            public float getPrimitive(Tuple t) {
+                try {
+                    return ((TypeAwareTuple)t).getFloat(0);
+                } catch (Exception e) {
+                    throw new RuntimeException("Given present Schema, expected a Tuple containing"
+                            + " a single primitive entry", e);
+                }
+            }
+
+            @Override
+            public BasicList put(Tuple key, BasicList val) {
+                return internal.put(getPrimitive(key), val);
+            }
+
+            @Override
+            public BasicList get(Tuple key) {
+                return internal.get(getPrimitive(key));
+            }
+        }
+
+        public static class DoubleBasicMap implements BasicMap {
+            TDoubleObjectHashMap<BasicList> internal = new TDoubleObjectHashMap<BasicList>();
+
+            public double getPrimitive(Tuple t) {
+                try {
+                    return ((TypeAwareTuple)t).getDouble(0);
+                } catch (Exception e) {
+                    throw new RuntimeException("Given present Schema, expected a Tuple containing"
+                            + " a single primitive entry", e);
+                }
+            }
+
+            @Override
+            public BasicList put(Tuple key, BasicList val) {
+                return internal.put(getPrimitive(key), val);
+            }
+
+            @Override
+            public BasicList get(Tuple key) {
+                return internal.get(getPrimitive(key));
+            }
+        }
+
+        public static BasicMap getBasicMapForSchema(Schema s) {
+            try {
+                switch (s.getField(0).type) {
+                case DataType.INTEGER:
+                    return new IntBasicMap();
+                case DataType.LONG:
+                    return new LongBasicMap();
+                case DataType.FLOAT:
+                    return new FloatBasicMap();
+                case DataType.DOUBLE:
+                    return new DoubleBasicMap();
+                default:
+                    return new DefaultBasicMap();
+                }
+            } catch (FrontendException e) {
+                return new DefaultBasicMap();
+            }
+        }
+    }
+
+
     /**
      * Builds the HashMaps by reading each replicated input from the DFS using a
      * Load operator
-     * 
+     *
      * @throws ExecException
      */
     private void setUpHashMap() throws ExecException {
@@ -379,9 +526,9 @@ public class POFRJoin extends PhysicalOperator {
 
             POLoad ld = new POLoad(new OperatorKey("Repl File Loader", 1L),
                     replFile);
-            
+
             Properties props = ConfigurationUtil.getLocalFSProperties();
-            PigContext pc = new PigContext(ExecType.LOCAL, props);   
+            PigContext pc = new PigContext(ExecType.LOCAL, props);
             ld.setPc(pc);
             // We use LocalRearrange Operator to seperate Key and Values
             // eg. ( a, b, c ) would generate a, ( a, b, c )
@@ -392,12 +539,12 @@ public class POFRJoin extends PhysicalOperator {
             POLocalRearrange lr = LRs[i];
             lr.setInputs(Arrays.asList((PhysicalOperator) ld));
 
-            TupleToMapKey replicate = new TupleToMapKey(1000, keySchemaTupleFactory);
+            TupleToMapKey replicate = new TupleToMapKey(keySchemaTupleFactory);
 
             log.debug("Completed setup. Trying to build replication hash table");
             for (Result res = lr.getNext(dummyTuple);res.returnStatus != POStatus.STATUS_EOP;res = lr.getNext(dummyTuple)) {
                 if (reporter != null)
-                    reporter.progress();               
+                    reporter.progress();
                 Tuple tuple = (Tuple) res.result;
                 if (isKeyNull(tuple.get(1))) continue;
                 Tuple key = mTupleFactory.newTuple(1);
@@ -426,7 +573,7 @@ public class POFRJoin extends PhysicalOperator {
         }
         return false;
     }
-    
+
     private void readObject(ObjectInputStream is) throws IOException,
             ClassNotFoundException, ExecException {
         is.defaultReadObject();
@@ -506,7 +653,7 @@ public class POFRJoin extends PhysicalOperator {
     public void setReplFiles(FileSpec[] replFiles) {
         this.replFiles = replFiles;
     }
-    
+
     @Override
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
         // no op: all handled by the preceding POForEach
