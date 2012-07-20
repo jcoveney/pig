@@ -19,7 +19,6 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 
 import gnu.trove.map.hash.TDoubleObjectHashMap;
 import gnu.trove.map.hash.TFloatObjectHashMap;
-import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.map.hash.TLongObjectHashMap;
 
 import java.io.IOException;
@@ -64,6 +63,8 @@ import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
+
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
 
 /**
  * The operator models the join keys using the Local Rearrange operators which
@@ -377,7 +378,8 @@ public class POFRJoin extends PhysicalOperator {
         }
 
         public static class IntBasicMap implements BasicMap {
-            TIntObjectHashMap<BasicList> internal = new TIntObjectHashMap<BasicList>();
+            IntObjectOpenHashMap<BasicList> internal = new IntObjectOpenHashMap<BasicList>();
+            //TIntObjectHashMap<BasicList> internal = new TIntObjectHashMap<BasicList>();
 
             public int getPrimitive(Tuple t) {
                 try {
