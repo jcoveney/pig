@@ -561,6 +561,13 @@ public class POFRJoin extends PhysicalOperator {
         }
         long time2 = System.currentTimeMillis();
         log.debug("Hash Table built. Time taken: " + (time2 - time1));
+        log.info("HASH TABLE MADE."); //TODO remove
+        try { //TODO remove
+            Thread.sleep(1000000); //TODO remove
+        } catch (InterruptedException e) { //TODO remove
+            // TODO Auto-generated catch block //TODO remove
+            e.printStackTrace(); //TODO remove
+        } //TODO remove
     }
 
     private boolean isKeyNull(Object key) throws ExecException {
