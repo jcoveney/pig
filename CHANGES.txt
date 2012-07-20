@@ -24,11 +24,33 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2706: Add clear to list of grunt commands (xalan via azaroth)
+
+PIG-2823: TestPigContext.testImportList() does not pass if another javac in on the PATH (julien)
+
+PIG-2800: pig.additional.jars path separator should align with File.pathSeparator instead of being hard-coded to ":" (jgordon via azaroth)
+
+PIG-2797: Tests should not create their own file URIs through string concatenation, should use Util.generateURI instead (jgordon via azaroth)
+
+PIG-2820: relToAbsolutePath is not replayed properly when Grunt reparses the script after PIG-2699 (julien)
+
+PIG-2763: Groovy UDFs (herberts via julien)
+
+PIG-2780: MapReduceLauncher should break early when one of the jobs throws an exception (jay23jack via daijy)
+
+PIG-2804: Remove "PIG" exec type (dvryaboy)
+
+PIG-2726: Handling legitimate NULL values in Cube operator (prasanth_j via dvryaboy)
+
+PIG-2808: Add *.project to .gitignore (azaroth)
+
+PIG-2787: change the module name in ivy to lowercase to match the maven repo (julien)
+
+PIG-2632: Create a SchemaTuple which generates efficient Tuples via code gen (jcoveney)
+
 PIG-2750: add artifacts to the ivy.xml for other jars Pig generates (julien)
 
 PIG-2748: Change the names of the jar produced in the build folder to match maven conventions (julien)
-
-PIG-2746: Pig doesn't detect all forms of compression extensions properly (qwertymaniac via daijy)
 
 PIG-2770: Allow easy inclusion of custom build targets (julien)
 
@@ -184,6 +206,26 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2827: Unwrap exception swallowing in TOP (haitao.yao via jcoveney)
+
+PIG-2825: StoreFunc signature setting in LogicalPlan broken (jcoveney)
+
+PIG-2815: class loader management in PigContext (rangadi via jcoveney)
+
+PIG-2813: Fix test regressions from PIG-2632 (jcoveney)
+
+PIG-2806: Fix merge join test regression from PIG-2632 (jcoveney)
+
+PIG-2809: TestUDFContext broken by PIG-2699 (julienledem via daijy)
+
+PIG-2807: TestParser TestPigStorage TestNewPlanOperatorPlan broken by PIG-2699 (julienledem via daijy)
+
+PIG-2782: Specifying sorting field(s) at nightly.conf (cheolsoo via daijy)
+
+PIG-2790: After Pig-2699 the script schema (LOAD ... USING ... AS {script schema}) is passed after getSchema is called (daijy)
+
+PIG-2777: Docs are broken due to malformed xml after PIG-2673 (dvryaboy)
+
 PIG-2593: Filter by a boolean value does not work (jay23jack via daijy)
 
 PIG-2665: Bundled Jython jar in Pig 0.10.0-RC breaks module import in Python scripts with embedded Pig Latin (daijy)
@@ -200,21 +242,21 @@ PIG-2709: PigAvroRecordReader should specify which file has a problem when throw
 
 PIG-2640: Usage message gives wrong information for Pig additional jars (prkommireddi via daijy)
 
-	PIG-2652:  Skew join and order by don't trigger reducer estimation (dvryaboy)
+PIG-2652:  Skew join and order by don't trigger reducer estimation (dvryaboy)
 
 PIG-2616: JobControlCompiler.getInputSizeFromLoader must handle exceptions from LoadFunc.getStatistics (billgraham)
 
-	PIG-2644: Piggybank's HadoopJobHistoryLoader throws NPE when reading broken history file (herberts via daijy)
+PIG-2644: Piggybank's HadoopJobHistoryLoader throws NPE when reading broken history file (herberts via daijy)
 
 PIG-2627: Custom partitioner not set when POSplit is involved in Plan (aniket486 via daijy)
 
 PIG-2596: Jython UDF does not handle boolean output (aniket486 via daijy)
 
-	PIG-2649: org.apache.pig.parser.ParserValidationException does not expose the cause exception
+PIG-2649: org.apache.pig.parser.ParserValidationException does not expose the cause exception
 
-	PIG-2540: [piggybank] AvroStorage can't read schema on amazon s3 in elastic mapreduce (rjurney via jcoveney)
+PIG-2540: [piggybank] AvroStorage can't read schema on amazon s3 in elastic mapreduce (rjurney via jcoveney)
 
-	PIG-2618: e2e local fails to build
+PIG-2618: e2e local fails to build
 
 PIG-2608: Typo in PigStorage documentation for source tagging (prkommireddi via daijy)
 
@@ -234,9 +276,9 @@ PIG-2491: Pig docs still mention hadoop-site.xml (daijy)
 
 PIG-2504: Incorrect sample provided for REGEX_EXTRACT (prkommireddi via daijy)
 
-	PIG-2502: Make "hcat.bin" configurable in e2e test (daijy)
+PIG-2502: Make "hcat.bin" configurable in e2e test (daijy)
 
-	PIG-2501: Changes needed to contrib/piggybank/java/build.xml in order to build piggybank.jar with Hadoop 0.23
+PIG-2501: Changes needed to contrib/piggybank/java/build.xml in order to build piggybank.jar with Hadoop 0.23
 (ekoontz via daijy)
 
 PIG-2499: Pig TestGrunt.testShellCommand occasionally fails (tomwhite via daijy)
@@ -408,6 +450,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
+
+PIG-2783: Fix Iterator_1 e2e test for Hadoop 23 (rohini via daijy)
 
 PIG-2761: With hadoop23 importing modules inside python script does not work (rohini via daijy)
 
@@ -641,6 +685,8 @@ PIG-2497: Order of execution of fs, store and sh commands in Pig is not maintain
 Release 0.9.2
 
 IMPROVEMENTS
+
+PIG-2766: Pig-HCat Usability (vikram.dixit via daijy)
 
 PIG-2125: Make Pig work with hadoop .NEXT (daijy)
 

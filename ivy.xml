@@ -20,7 +20,7 @@
 <ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="http://ant.apache.org/ivy/schemas/ivy.xsd">
-  <info organisation="org.apache.pig" module="${ant.project.name}" revision="${version}">
+  <info organisation="org.apache.pig" module="${name}" revision="${version}">
     <license name="Apache 2.0"/>
     <ivyauthor name="Apache Hadoop Team" url="http://hadoop.apache.org/pig"/>
     <description>Pig</description>
@@ -184,13 +184,17 @@
       conf="compile->master"/>
     <dependency org="com.google.code.p.arat" name="rat-lib" rev="${rats-lib.version}"
       conf="releaseaudit->default"/>
+    <dependency org="org.codehaus.groovy" name="groovy-all" rev="${groovy.version}"
+      conf="compile->master"/>
     <dependency org="org.codehaus.jackson" name="jackson-mapper-asl" rev="${jackson.version}"
       conf="compile->master"/>
     <dependency org="org.codehaus.jackson" name="jackson-core-asl" rev="${jackson.version}"
       conf="compile->master"/>
+    <dependency org="org.fusesource.jansi" name="jansi" rev="${jansi.version}"
+      conf="compile->master"/>
     <dependency org="joda-time" name="joda-time" rev="${joda-time.version}" conf="compile->master"/>
     <dependency org="commons-lang" name="commons-lang" rev="${commons-lang.version}"
-  	  conf="compile->master"/>
+      conf="compile->master"/>
     <dependency org="com.google.guava" name="guava" rev="${guava.version}" conf="compile->master" />
     <dependency org="org.python" name="jython-standalone" rev="${jython.version}" conf="compile->master"/>
     <dependency org="rhino" name="js" rev="${rhino.version}" conf="compile->master"/>
