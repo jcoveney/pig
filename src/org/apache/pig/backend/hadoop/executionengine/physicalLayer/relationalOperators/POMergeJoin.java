@@ -45,6 +45,7 @@ import org.apache.pig.data.SchemaTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.TupleMaker;
+import org.apache.pig.data.utils.CollectionsHelper.BasicList;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.DefaultIndexableLoader;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -223,7 +224,7 @@ public class POMergeJoin extends PhysicalOperator {
      * from Tuple to SchemaTuple. This is necessary because we are not getting SchemaTuples
      * from the source, though in the future that is what we would like to do.
      */
-    protected static class TuplesToSchemaTupleList implements BasicList {
+    protected static class TuplesToSchemaTupleList implements BasicList<Tuple> {
         private List<Tuple> tuples;
         private SchemaTupleFactory tf;
 
@@ -269,16 +270,6 @@ public class POMergeJoin extends PhysicalOperator {
         public List<Tuple> getList() {
             return tuples;
         }
-    }
-
-    protected static interface BasicList {
-        public boolean add(Tuple t);
-
-        public Tuple get(int i);
-
-        public int size();
-
-        public List<Tuple> getList();
     }
 
     @SuppressWarnings("unchecked")

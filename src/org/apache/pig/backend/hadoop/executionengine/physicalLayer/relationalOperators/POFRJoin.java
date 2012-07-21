@@ -17,15 +17,10 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
-import gnu.trove.map.hash.TDoubleObjectHashMap;
-import gnu.trove.map.hash.TFloatObjectHashMap;
-import gnu.trove.map.hash.TLongObjectHashMap;
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -42,9 +37,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin.TheBasics.BasicMap;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin.TheBasics.DefaultBasicMap;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin.BasicList;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin.TuplesToSchemaTupleList;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -54,17 +46,17 @@ import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.data.SchemaTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.data.TypeAwareTuple;
+import org.apache.pig.data.utils.CollectionsHelper;
+import org.apache.pig.data.utils.CollectionsHelper.BasicList;
+import org.apache.pig.data.utils.CollectionsHelper.BasicMap;
+import org.apache.pig.data.utils.CollectionsHelper.DefaultBasicMap;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
-
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
 
 /**
  * The operator models the join keys using the Local Rearrange operators which
@@ -329,167 +321,33 @@ public class POFRJoin extends PhysicalOperator {
         }
     }
 
-    private static class TupleToMapKey implements BasicMap {
-        private BasicMap tuples;
+    private static class TupleToMapKey implements BasicMap<Tuple,BasicList<Tuple>> {
+        private BasicMap<Tuple,BasicList<Tuple>> tuples;
         private SchemaTupleFactory tf;
 
         public TupleToMapKey(SchemaTupleFactory tf) {
             this.tf = tf;
             if (tf != null) {
-                tuples = TheBasics.getBasicMapForSchema(tf.newTuple().getSchema());
+                tuples = CollectionsHelper.getBasicMapForSchema(tf.newTuple().getSchema());
             } else {
                 tuples = new DefaultBasicMap();
             }
         }
 
-        public BasicList put(Tuple key, BasicList val) {
+        public BasicList<Tuple> put(Tuple key, BasicList<Tuple> val) {
             if (tf != null) {
                 key = TuplesToSchemaTupleList.convert(key, tf);
             }
             return tuples.put(key, val);
         }
 
-        public BasicList get(Tuple key) {
+        public BasicList<Tuple> get(Tuple key) {
             if (tf != null) {
                 key = TuplesToSchemaTupleList.convert(key, tf);
             }
             return tuples.get(key);
         }
     }
-
-    public static class TheBasics {
-        public static interface BasicMap {
-            public BasicList put(Tuple key, BasicList val);
-            public BasicList get(Tuple key);
-        }
-
-        public static class DefaultBasicMap implements BasicMap {
-            Map<Tuple, BasicList> internal = new HashMap<Tuple, BasicList>();
-
-            @Override
-            public BasicList put(Tuple key, BasicList val) {
-                return internal.put(key, val);
-            }
-
-            @Override
-            public BasicList get(Tuple key) {
-                return internal.get(key);
-            }
-        }
-
-        public static class IntBasicMap implements BasicMap {
-            IntObjectOpenHashMap<BasicList> internal = new IntObjectOpenHashMap<BasicList>();
-            //TIntObjectHashMap<BasicList> internal = new TIntObjectHashMap<BasicList>();
-
-            public int getPrimitive(Tuple t) {
-                try {
-                    return ((TypeAwareTuple)t).getInt(0);
-                } catch (Exception e) {
-                    throw new RuntimeException("Given present Schema, expected a Tuple containing"
-                            + " a single primitive entry", e);
-                }
-            }
-
-            @Override
-            public BasicList put(Tuple key, BasicList val) {
-                return internal.put(getPrimitive(key), val);
-            }
-
-            @Override
-            public BasicList get(Tuple key) {
-                return internal.get(getPrimitive(key));
-            }
-        }
-
-        public static class LongBasicMap implements BasicMap {
-            TLongObjectHashMap<BasicList> internal = new TLongObjectHashMap<BasicList>();
-
-            public long getPrimitive(Tuple t) {
-                try {
-                    return ((TypeAwareTuple)t).getLong(0);
-                } catch (Exception e) {
-                    throw new RuntimeException("Given present Schema, expected a Tuple containing"
-                            + " a single primitive entry", e);
-                }
-            }
-
-            @Override
-            public BasicList put(Tuple key, BasicList val) {
-                return internal.put(getPrimitive(key), val);
-            }
-
-            @Override
-            public BasicList get(Tuple key) {
-                return internal.get(getPrimitive(key));
-            }
-        }
-
-        public static class FloatBasicMap implements BasicMap {
-            TFloatObjectHashMap<BasicList> internal = new TFloatObjectHashMap<BasicList>();
-
-            public float getPrimitive(Tuple t) {
-                try {
-                    return ((TypeAwareTuple)t).getFloat(0);
-                } catch (Exception e) {
-                    throw new RuntimeException("Given present Schema, expected a Tuple containing"
-                            + " a single primitive entry", e);
-                }
-            }
-
-            @Override
-            public BasicList put(Tuple key, BasicList val) {
-                return internal.put(getPrimitive(key), val);
-            }
-
-            @Override
-            public BasicList get(Tuple key) {
-                return internal.get(getPrimitive(key));
-            }
-        }
-
-        public static class DoubleBasicMap implements BasicMap {
-            TDoubleObjectHashMap<BasicList> internal = new TDoubleObjectHashMap<BasicList>();
-
-            public double getPrimitive(Tuple t) {
-                try {
-                    return ((TypeAwareTuple)t).getDouble(0);
-                } catch (Exception e) {
-                    throw new RuntimeException("Given present Schema, expected a Tuple containing"
-                            + " a single primitive entry", e);
-                }
-            }
-
-            @Override
-            public BasicList put(Tuple key, BasicList val) {
-                return internal.put(getPrimitive(key), val);
-            }
-
-            @Override
-            public BasicList get(Tuple key) {
-                return internal.get(getPrimitive(key));
-            }
-        }
-
-        public static BasicMap getBasicMapForSchema(Schema s) {
-            try {
-                switch (s.getField(0).type) {
-                case DataType.INTEGER:
-                    return new IntBasicMap();
-                case DataType.LONG:
-                    return new LongBasicMap();
-                case DataType.FLOAT:
-                    return new FloatBasicMap();
-                case DataType.DOUBLE:
-                    return new DoubleBasicMap();
-                default:
-                    return new DefaultBasicMap();
-                }
-            } catch (FrontendException e) {
-                return new DefaultBasicMap();
-            }
-        }
-    }
-
 
     /**
      * Builds the HashMaps by reading each replicated input from the DFS using a
@@ -563,13 +421,6 @@ public class POFRJoin extends PhysicalOperator {
         }
         long time2 = System.currentTimeMillis();
         log.debug("Hash Table built. Time taken: " + (time2 - time1));
-        log.info("HASH TABLE MADE."); //TODO remove
-        try { //TODO remove
-            Thread.sleep(1000000); //TODO remove
-        } catch (InterruptedException e) { //TODO remove
-            // TODO Auto-generated catch block //TODO remove
-            e.printStackTrace(); //TODO remove
-        } //TODO remove
     }
 
     private boolean isKeyNull(Object key) throws ExecException {
