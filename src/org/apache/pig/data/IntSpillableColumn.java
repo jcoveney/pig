@@ -100,7 +100,7 @@ public class IntSpillableColumn implements SpillableColumn {
         return new IntIterator();
     }
 
-    private static abstract class PrimitiveIterator<T> {
+    private class IntIterator {
         private long iteratedCount = 0;
         private long readFromFile = 0;
         private int readFromMemory = 0;
@@ -108,27 +108,12 @@ public class IntSpillableColumn implements SpillableColumn {
         private long spillsWeHaveSeen = 0;
         private Iterator<IntCursor> iterator;
 
-        public PrimitiveIterator(File spillFile) {
+        private IntIterator() {
             try {
                 dis = new DataInputStream(new FileInputStream(spillFile));
             } catch (FileNotFoundException e) {
                 throw new RuntimeException(e); //TODO do more
             }
-        }
-    }
-
-    private class IntIterator extends PrimitiveIterator<IntCursor> {
-        private long iteratedCount = 0;
-        private long readFromFile = 0;
-        private int readFromMemory = 0;
-        private DataInputStream dis;
-        private long spillsWeHaveSeen = 0;
-
-        private Iterator<IntCursor> iterator;
-
-
-        private IntIterator() {
-            super(spillFile);
         }
 
         public int next() {
