@@ -120,7 +120,9 @@ public abstract class BagFactory {
      * Construct a new BagFactory
      */
     protected BagFactory() {
-        gMemMgr = new SpillableMemoryManager();
+    	if (gMemMgr == null) {
+    		gMemMgr = new SpillableMemoryManager();
+    	}
     }
 
     /**
@@ -142,6 +144,15 @@ public abstract class BagFactory {
     public static void resetSelf() {
         gSelf = null;
     }
-
+    
+    // Still undecided if it's better just to register the parent bag, or if we should
+    // register each one independently. This exists mainly for testing atm.
+    public static IntSpillableColumn getIntSpillableColumn() {
+    	if (gMemMgr == null) {
+    		gMemMgr = new SpillableMemoryManager();
+    	}
+    	IntSpillableColumn column = new IntSpillableColumn();
+    	gMemMgr.registerSpillable(column);
+    	return column;
+    }
 }
-

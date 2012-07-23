@@ -22,9 +22,16 @@ public class IntSpillableColumn implements SpillableColumn {
     //of tuples is immense, so... just need to benchmark
     private volatile long size;
     private volatile long safeCount; //this represents the number of values that can safely be read from the file
-    private volatile int spillCount;
+    private volatile boolean haveStartedIterating = false;
+    private volatile boolean havePerformedFinalSpill = false;
 
     public void add(int v) {
+    	// It is document in Pig that once you start iterating on a bag, that you should not
+    	// add any elements. This is not explicitly enforced, however this implementation hinges on
+    	// this not being violated, so we add explicit checks.
+    	if (haveStartedIterating) {
+    		throw new RuntimeException("");
+    	}
         synchronized (internal) {
             internal.addLast(v);
             size++;
@@ -33,6 +40,9 @@ public class IntSpillableColumn implements SpillableColumn {
 
     @Override
     public long spill() {
+        if (havePerformedFinalSpill) {
+        	return 0L;
+        }
         long spilled = 0;
         synchronized (internal) {
             if (spillFile == null) {
@@ -54,21 +64,31 @@ public class IntSpillableColumn implements SpillableColumn {
                 try {
                     out.writeInt(cursor.value);
                 } catch (IOException e) {
+                    try {
+        				out.close();
+        			} catch (IOException e2) {
+        				//TODO do I need to do something special to chain these?
+        				throw new RuntimeException(e); //TODO do more
+        			}
                     throw new RuntimeException(e); //TODO do more
                 }
-                spilled++;
                 safeCount++;
-                if ((spilled & 0x3fff) == 0) {
+                if ((spilled++ & 0x3fff) == 0) {
                     reportProgress();
                 }
             }
-            try {
-                out.flush();
-            } catch (IOException e) {
-                throw new RuntimeException(e); //TODO do more
-            }
             internal.clear();
-            spillCount++;
+            try {
+				out.close();
+			} catch (IOException e) {
+				throw new RuntimeException(e); //TODO do more
+			}
+            
+            // once we have started iterating, this spill will be the last
+            // spill to disk, as there can be no new additions
+            if (haveStartedIterating) {
+            	havePerformedFinalSpill = true;
+            }
         }
         return spilled;
     }
@@ -97,16 +117,16 @@ public class IntSpillableColumn implements SpillableColumn {
     }
 
     public IntIterator iterator() {
+    	haveStartedIterating = true;
         return new IntIterator();
     }
 
     private class IntIterator {
-        private long iteratedCount = 0;
         private long readFromFile = 0;
-        private int readFromMemory = 0;
+        private long readFromMemory = 0;
         private DataInputStream dis;
-        private long spillsWeHaveSeen = 0;
         private Iterator<IntCursor> iterator;
+		private boolean haveDetectedFinalSpill = false;
 
         private IntIterator() {
             try {
@@ -117,41 +137,46 @@ public class IntSpillableColumn implements SpillableColumn {
         }
 
         public int next() {
-            if ((iteratedCount++ & 0x3ff) == 0) {
+            if (((readFromFile + readFromMemory) & 0x3ffL) == 0) {
                 reportProgress();
             }
-
-            checkForSpill();
-            //if we are less than the known number of values on disk, we can safely read from disk
-            if (readFromFile < safeCount) {
+            
+            if (haveDetectedFinalSpill || readFromFile < safeCount) {
+            	return readFromFile();
+            } else if (havePerformedFinalSpill) {
+                readFromFile += readFromMemory;
+                readFromMemory = 0;
+                iterator = null;
+                haveDetectedFinalSpill = true;
                 return readFromFile();
             } else {
                 synchronized (internal) {
-                    if (!checkForSpill()) {
-                        return readFromMemory();
+                    if (havePerformedFinalSpill) {
+                    	readFromFile += readFromMemory;
+                        readFromMemory = 0;
+                        iterator = null;
+                        haveDetectedFinalSpill = true;
+                        return readFromFile();
                     }
+                    return readFromMemory();
                 }
-                //we only reach this if there was a spill since, which means safeCount should be incremented
-                return readFromFile();
             }
         }
-
-        private boolean checkForSpill() {
-            //this means there was a spill since we last did something. Now, we only would have been
-            //reading from the memory store if we had previously hit the end of the file, so we just increment
-            //the position in the file we want to read from and continue
-            if (spillsWeHaveSeen < spillCount) {
-                readFromFile += readFromMemory;
-                readFromMemory = 0;
-                spillsWeHaveSeen = spillCount;
-                iterator = null;
-                return true;
-            }
-            return false;
-        }
-
+        
         public boolean hasNext() {
-            return iteratedCount < size;
+        	boolean retVal = (readFromFile + readFromMemory) < size;
+        	if (!retVal) {
+        		try {
+					dis.close();
+					// Since this is how we close the piece, this means there is
+					// a potential leak if they early terminate. I think leaks like
+					// this exist in Pig... but that doesn't mean I want to introduce
+					// a new one.
+				} catch (IOException e) {
+					throw new RuntimeException(e); //TODO do more
+				}
+        	}
+            return retVal;
         }
 
         private int readFromFile() {
@@ -168,9 +193,7 @@ public class IntSpillableColumn implements SpillableColumn {
          * @return
          */
         private int readFromMemory() {
-          //we do this in case there was a spill in between the two
-            //we need to make sure that we aren't going to miss something
-            if (internal.size() > 0) {
+            if (iterator == null) {
                 iterator = internal.iterator();
             }
             readFromMemory++;
