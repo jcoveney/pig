@@ -108,8 +108,9 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
                 return setSpecific((T)t);
             }
 
-            if (t instanceof SchemaTuple<?>)
+            if (t instanceof SchemaTuple<?>) {
                 return set((SchemaTuple<?>)t, false);
+            }
         }
 
         return set(t.getAll());

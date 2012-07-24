@@ -103,10 +103,23 @@ public class BinInterSedes implements InterSedes {
     public static final byte LONG_0 = 34;
     public static final byte LONG_1 = 35;
 
-    private static TupleFactory mTupleFactory = TupleFactory.getInstance();
+    public static final byte SCHEMA_TUPLE_BAG_BYTE_ID_BYTE_SIZE = 36;
+    public static final byte SCHEMA_TUPLE_BAG_BYTE_ID_SHORT_SIZE = 37;
+    public static final byte SCHEMA_TUPLE_BAG_BYTE_ID_INT_SIZE = 38;
+    public static final byte SCHEMA_TUPLE_BAG_BYTE_ID_LONG_SIZE = 39;
+    public static final byte SCHEMA_TUPLE_BAG_SHORT_ID_BYTE_SIZE = 40;
+    public static final byte SCHEMA_TUPLE_BAG_SHORT_ID_SHORT_SIZE = 41;
+    public static final byte SCHEMA_TUPLE_BAG_SHORT_ID_INT_SIZE = 42;
+    public static final byte SCHEMA_TUPLE_BAG_SHORT_ID_LONG_SIZE = 43;
+    public static final byte SCHEMA_TUPLE_BAG_INT_ID_BYTE_SIZE = 44;
+    public static final byte SCHEMA_TUPLE_BAG_INT_ID_SHORT_SIZE = 45;
+    public static final byte SCHEMA_TUPLE_BAG_INT_ID_INT_SIZE = 46;
+    public static final byte SCHEMA_TUPLE_BAG_INT_ID_LONG_SIZE = 47;
+
     private static BagFactory mBagFactory = BagFactory.getInstance();
     public static final int UNSIGNED_SHORT_MAX = 65535;
     public static final int UNSIGNED_BYTE_MAX = 255;
+    public static final long UNSIGNED_INT_MAX = 4294967295L;
     public static final String UTF8 = "UTF-8";
 
     public Tuple readTuple(DataInput in, byte type) throws IOException {
@@ -256,7 +269,7 @@ public class BinInterSedes implements InterSedes {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see org.apache.pig.data.InterSedes#readDatum(java.io.DataInput)
      */
     @Override
@@ -275,7 +288,7 @@ public class BinInterSedes implements InterSedes {
     /**
      * Expects binInterSedes data types (NOT DataType types!)
      * <p>
-     * 
+     *
      * @see org.apache.pig.data.InterSedes#readDatum(java.io.DataInput, byte)
      */
     @Override
@@ -365,7 +378,7 @@ public class BinInterSedes implements InterSedes {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see org.apache.pig.data.InterSedes#writeDatum(java.io.DataOutput, java.lang.Object)
      */
     @Override
@@ -551,7 +564,7 @@ public class BinInterSedes implements InterSedes {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see org.apache.pig.data.InterSedes#addColsToTuple(java.io.DataInput, org.apache.pig.data.Tuple)
      */
     @Override
@@ -562,7 +575,7 @@ public class BinInterSedes implements InterSedes {
             t.append(readDatum(in));
         }
     }
-    
+
     public static class BinInterSedesTupleRawComparator extends WritableComparator implements TupleRawComparator {
 
         private final Log mLog = LogFactory.getLog(getClass());
@@ -637,7 +650,7 @@ public class BinInterSedes implements InterSedes {
 
         /**
          * Compare two BinSedesTuples as raw bytes. We deal with sort ordering in this method.
-         * 
+         *
          * @throws IOException
          */
         private int compareBinSedesTuple(ByteBuffer bb1, ByteBuffer bb2) throws IOException {
@@ -1108,7 +1121,7 @@ public class BinInterSedes implements InterSedes {
                 throw new RuntimeException("Unexpected data type " + type + " found in stream.");
             }
         }
-        
+
         /**
          * @param bb ByteBuffer having serialized object, including the type information
          * @param type serialized type information
