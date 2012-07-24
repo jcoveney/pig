@@ -12,13 +12,18 @@ import java.io.IOException;
 import java.util.Iterator;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.data.utils.BytesHelper;
+import org.vafer.jdeb.shaded.compress.compress.utils.IOUtils;
 
+import com.carrotsearch.hppc.ByteArrayDeque;
 import com.carrotsearch.hppc.IntArrayDeque;
+import com.carrotsearch.hppc.cursors.ByteCursor;
 import com.carrotsearch.hppc.cursors.IntCursor;
 
 //TODO we need to incorporate some sort of nullability strategy. should make it generic?
 public class IntSpillableColumn implements SpillableColumn {
-    private final IntArrayDeque internal = new IntArrayDeque();
+    private final IntArrayDeque values = new IntArrayDeque();
+    private final ByteArrayDeque nullStatus = new ByteArrayDeque();
     private EncapsulatedSpillInformation spillInfo;
 
     //TODO the size and count could be pushed into the parent, since that should be parallel
@@ -51,6 +56,21 @@ public class IntSpillableColumn implements SpillableColumn {
             return spillFile;
         }
 
+		public void writeByte(byte v) {
+			if (spillOutputStream == null) {
+                try {
+                    spillOutputStream = new DataOutputStream(new FileOutputStream(getSpillFile(), true));
+                } catch (FileNotFoundException e) {
+                    abort(e); //TODO do more
+                }
+            }
+            try {
+                spillOutputStream.writeByte(v);
+            } catch (IOException e) {
+                abort(e); //TODO do more
+            }
+		}
+        
         public void writeInt(int v) {
             if (spillOutputStream == null) {
                 try {
@@ -109,15 +129,26 @@ public class IntSpillableColumn implements SpillableColumn {
 
     protected IntSpillableColumn() {}
 
-    public void add(int v) {
+    public void add(int v, boolean isNull) {
     	// It is document in Pig that once you start iterating on a bag, that you should not
     	// add any elements. This is not explicitly enforced, however this implementation hinges on
     	// this not being violated, so we add explicit checks.
     	if (haveStartedIterating) {
     		throw new RuntimeException("Cannot write to a Bag once iteration has begun");
     	}
-        synchronized (internal) {
-            internal.addLast(v);
+        synchronized (values) {
+        	if (!isNull) {
+        		values.addLast(v);
+        	}
+        	int mod = (int)size & 7;
+        	byte lastNullStatusByte;
+        	if (mod == 0) {
+        		lastNullStatusByte = 0;
+        	} else {
+        		lastNullStatusByte = nullStatus.removeLast();
+        	}
+        	lastNullStatusByte = BytesHelper.setBitByPos(lastNullStatusByte, isNull, mod);
+        	nullStatus.addLast(lastNullStatusByte);
             size++;
         }
     }
@@ -138,23 +169,49 @@ public class IntSpillableColumn implements SpillableColumn {
         // Worth revisiting.
         boolean currentlyPerformingFinalSpill = false;
         long startingSafeCount = spillInfo.checkSafeCount();
-        synchronized (internal) {
+        synchronized (values) {
             if (haveStartedIterating) {
                 currentlyPerformingFinalSpill = true;
             }
-
-            for (IntCursor cursor : internal) {
-                spillInfo.writeInt(cursor.value);
-
-                if ((spilled++ & progressEvery) == 0) {
-                    reportProgress();
-                }
-                if (!currentlyPerformingFinalSpill && (spilled & flushEvery) == 0) {
-                    spillInfo.flushOutputStream();
-                    spillInfo.incrSafeCount(flushEvery);
-                }
+            
+            long remaining = size - startingSafeCount;
+            // we must trim the last 3 bits as those are stored in memory in lastNullStatusByte
+            long valuesInMemory = remaining | 0xfffffffffffffff8L;
+            
+            for (ByteCursor cursor : nullStatus) {
+            	byte value = cursor.value;
+            	spillInfo.writeByte(value);
+            	for (int i = 0; i < 8 && i < valuesInMemory; i++) {
+            		if (!BytesHelper.getBitByPos(value, i)) {
+            			spillInfo.writeInt(values.removeFirst());
+            		}
+            		spilled++;
+            		if ((spilled++ & progressEvery) == 0) {
+                        reportProgress();
+                    }
+            		if (!currentlyPerformingFinalSpill && (spilled & flushEvery) == 0) {
+                        spillInfo.flushOutputStream();
+                        spillInfo.incrSafeCount(flushEvery);
+                    }
+            	}
+            	valuesInMemory -= 8;
             }
-            internal.clear();
+            
+            if (currentlyPerformingFinalSpill) {
+            	byte lastNullStatusByte = nullStatus.removeFirst();
+            	int valuesInFinalValue = (int)remaining & 7;
+            	if (valuesInFinalValue > 0) {
+            		spillInfo.writeByte(lastNullStatusByte);
+            	}
+            	for (int i = 0; i < valuesInFinalValue; i++) {
+            		if (!BytesHelper.getBitByPos(lastNullStatusByte, i)) {
+            			spillInfo.writeInt(values.removeFirst());
+            		}
+            	}
+            }
+            
+            nullStatus.release();
+            values.release();
             spillInfo.flushOutputStream();
             spillInfo.setSafeCount(spilled + startingSafeCount);
 
@@ -169,7 +226,7 @@ public class IntSpillableColumn implements SpillableColumn {
 
     @Override
     public long getMemorySize() {
-        int sz = internal.size();
+        int sz = values.size();
         return sz * 4 + ( sz % 2 == 0 ? 0 : 4); //TODO include new fields
     }
 
@@ -179,7 +236,7 @@ public class IntSpillableColumn implements SpillableColumn {
             spillInfo.clear();
             spillInfo = null;
         }
-        internal.clear();
+        values.clear();
         size = 0;
         haveStartedIterating = false;
     }
@@ -201,6 +258,13 @@ public class IntSpillableColumn implements SpillableColumn {
     	haveStartedIterating = true;
         return new IntIterator();
     }
+    
+    public static class IntContainer {
+    	private IntContainer() {}
+    	
+    	public int value = 0;
+    	public boolean isNull = true;
+    }
 
     //TODO need to actually take the pointer into account when you detect the final spill.
     //ie NEED to actually take that jump into account
@@ -209,12 +273,16 @@ public class IntSpillableColumn implements SpillableColumn {
         private long readFromFile = 0;
         private long readFromMemory = 0;
         private DataInputStream dis;
-        private Iterator<IntCursor> iterator;
+        private Iterator<IntCursor> intIterator;
+        private Iterator<ByteCursor> byteIterator;
 		private boolean haveDetectedFinalSpill = false;
+		private final IntContainer container = new IntContainer();
+		private byte cachedByteVal = 0;
+		private long bytesReadFromMemory = 0;
 
         private IntIterator() {}
 
-        public int next() {
+        public IntContainer next() {
             if (((readFromFile + readFromMemory) & 0x3ffL) == 0) {
                 reportProgress();
             }
@@ -225,7 +293,7 @@ public class IntSpillableColumn implements SpillableColumn {
                 updateForFinalSpill();
                 return readFromFile();
             } else {
-                synchronized (internal) {
+                synchronized (values) {
                     if (spillInfo != null && spillInfo.checkIfHavePerformedFinalSpill()) {
                         updateForFinalSpill();
                         return readFromFile();
@@ -267,12 +335,13 @@ public class IntSpillableColumn implements SpillableColumn {
                 throw new RuntimeException(e); //TODO do more
             }
         }
-
+        
         private void updateForFinalSpill() {
-            forceSkip(dis, readFromMemory * 4);
+            forceSkip(dis, bytesReadFromMemory);
             readFromFile += readFromMemory;
             readFromMemory = 0;
-            iterator = null;
+            intIterator = null;
+            byteIterator = null;
             haveDetectedFinalSpill = true;
         }
 
@@ -280,7 +349,7 @@ public class IntSpillableColumn implements SpillableColumn {
             return (readFromFile + readFromMemory) < size;
         }
 
-        private int readFromFile() {
+        private IntContainer readFromFile() {
             if (dis == null) {
                 try {
                     dis = new DataInputStream(new FileInputStream(spillInfo.getSpillFile()));
@@ -288,46 +357,94 @@ public class IntSpillableColumn implements SpillableColumn {
                     throw new RuntimeException(e); //TODO do more
                 }
             }
-            readFromFile++;
-            try {
-                return dis.readInt();
-            } catch (IOException e) {
-                throw new RuntimeException(e); //TODO do more
+            
+            int mod = (int)readFromFile & 7;
+            if (mod == 0) {
+            	try {
+					cachedByteVal = dis.readByte();
+				} catch (IOException e) {
+					throw new RuntimeException(e); //TODO do more
+				}
             }
+            
+            boolean val = BytesHelper.getBitByPos(cachedByteVal, mod);
+            container.isNull = val;
+            if (!val) {
+            	try {
+            		container.value = dis.readInt();
+				} catch (IOException e) {
+					throw new RuntimeException(e); //TODO do more
+				}
+            }
+            
+            readFromFile++;
+            return container;
         }
 
         /**
          * This assumes that a lock is held and is NOT thread safe!
          * @return
          */
-        private int readFromMemory() {
-            if (iterator == null) {
-                iterator = internal.iterator();
+        private IntContainer readFromMemory() {
+        	if (byteIterator == null) {
+        		byteIterator = nullStatus.iterator();
+        	}
+            if (intIterator == null) {
+                intIterator = values.iterator();
             }
+            int mod = (int)readFromMemory & 7;
+            if (mod == 0) {
+            	cachedByteVal = byteIterator.next().value;
+            	bytesReadFromMemory++;
+            }
+            
+            boolean val = BytesHelper.getBitByPos(cachedByteVal, mod);
+            container.isNull = val;
+            if (!val) {
+            	container.value = intIterator.next().value;
+            	bytesReadFromMemory += 4;
+            }
+            
             readFromMemory++;
-            return iterator.next().value;
+            return container;
         }
     }
 
+    //TODO this could probably be optimized. Benchmark and go from there.
     @Override
     public void writeData(DataOutput out) {
         IntIterator iterator = iterator();
+        byte byteBuffer = 0;
+        boolean[] nullBuffer = new boolean[8];
+        int[] intBuffer = new int[8];
+        int mod = 0;
         while (iterator.hasNext()) {
-            try {
-                out.writeInt(iterator.next());
-            } catch (IOException e) {
-                abort(e);
-            }
+        	IntContainer container = iterator.next();
+        	boolean val = container.isNull;
+        	byteBuffer = BytesHelper.setBitByPos(byteBuffer, val, mod);
+        	if (!val) {
+        		intBuffer[mod] = container.value;
+        		nullBuffer[mod] = true;
+        	}
+        	if (mod == 7) {
+        		out.write(byteBuffer);
+        		byteBuffer = 0;
+        		intBuffer = new int[8];
+        		nullBuffer = new boolean[8];
+        		mod = 0;
+        	} else {
+        		mod++;
+        	}
         }
     }
 
     @Override
     public void readData(DataInput in, long records) {
         spillInfo = null;
-        internal.clear();
+        values.clear();
         for (long i = 0; i < records; i++) {
             try {
-                internal.addLast(in.readInt());
+                values.addLast(in.readInt());
             } catch (IOException e) {
                 throw new RuntimeException(e); //TODO do more
             }
