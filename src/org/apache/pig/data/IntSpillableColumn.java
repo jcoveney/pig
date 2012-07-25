@@ -169,8 +169,9 @@ public class IntSpillableColumn implements SpillableColumn {
         // to make this unnecessary, it is just unclear whether optimizing for one spill is worth it.
         // Worth revisiting.
         boolean currentlyPerformingFinalSpill = false;
-        long startingSafeCount = spillInfo.checkSafeCount();
         synchronized (values) {
+        	long startingSafeCount = spillInfo.checkSafeCount();
+        	
             if (haveStartedIterating) {
                 currentlyPerformingFinalSpill = true;
             }
@@ -182,6 +183,7 @@ public class IntSpillableColumn implements SpillableColumn {
             for (int j = 0; j < bytesInMemory; j++) {
             	byte value = nullStatus.removeFirst();
             	spillInfo.writeByte(value);
+            	boolean flush = false;
             	for (int i = 0; i < 8; i++) {
             		if (!BytesHelper.getBitByPos(value, i)) {
             			spillInfo.writeInt(values.removeFirst());
@@ -190,10 +192,13 @@ public class IntSpillableColumn implements SpillableColumn {
                         reportProgress();
                     }
             		if (!currentlyPerformingFinalSpill && (spilled & flushEvery) == 0) {
-                        spillInfo.flushOutputStream();
-                        spillInfo.incrSafeCount(flushEvery);
+                        flush = true;
                     }
             	}
+        		if (flush) {
+        			spillInfo.flushOutputStream();
+                    spillInfo.incrSafeCount(flushEvery);
+        		}
             }
 
             if (currentlyPerformingFinalSpill) {
@@ -389,31 +394,27 @@ public class IntSpillableColumn implements SpillableColumn {
          * @return
          */
         private IntContainer readFromMemory() {
-            try {
-            	if (byteIterator == null) {
-            		byteIterator = nullStatus.iterator();
-            	}
-                if (intIterator == null) {
-                    intIterator = values.iterator();
-                }
-                int mod = (int)readFromMemory & 7;
-                if (mod == 0) {
-                	cachedByteVal = byteIterator.next().value;
-                	bytesReadFromMemory++;
-                }
-
-                boolean val = BytesHelper.getBitByPos(cachedByteVal, mod);
-                container.isNull = val;
-                if (!val) {
-                	container.value = intIterator.next().value;
-                	bytesReadFromMemory += 4;
-                }
-
-                readFromMemory++;
-                return container;
-            } catch (Exception e) {
-                throw new RuntimeException(e);
+        	if (byteIterator == null) {
+        		byteIterator = nullStatus.iterator();
+        	}
+            if (intIterator == null) {
+                intIterator = values.iterator();
             }
+            int mod = (int)readFromMemory & 7;
+            if (mod == 0) {
+            	cachedByteVal = byteIterator.next().value;
+            	bytesReadFromMemory++;
+            }
+
+            boolean val = BytesHelper.getBitByPos(cachedByteVal, mod);
+            container.isNull = val;
+            if (!val) {
+            	container.value = intIterator.next().value;
+            	bytesReadFromMemory += 4;
+            }
+
+            readFromMemory++;
+            return container;
         }
     }
 
