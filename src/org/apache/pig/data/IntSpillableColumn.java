@@ -9,6 +9,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Iterator;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -284,15 +285,25 @@ public class IntSpillableColumn implements SpillableColumn {
         private Iterator<IntCursor> intIterator;
         private Iterator<ByteCursor> byteIterator;
 		private boolean haveDetectedFinalSpill = false;
-		private final IntContainer container = new IntContainer();
-		private byte cachedByteVal = 0;
+		private final IntContainer[] containers = new IntContainer[8];
+		private int remainingInContainer = 8;
+		
 		private long bytesReadFromMemory = 0;
-
-        private IntIterator() {}
+		
+        private IntIterator() {
+        	for (int i = 0; i < 8; i++) {
+				containers[i] = new IntContainer();
+			}
+        }
 
         public IntContainer next() {
             if (((readFromFile + readFromMemory) & 0x3ffL) == 0) {
                 reportProgress();
+            }
+            
+            if (remainingInContainer < 8) {
+            	IntContainer retVal = containers[remainingInContainer++];
+            	return retVal;
             }
 
             if (haveDetectedFinalSpill || (spillInfo != null && readFromFile < spillInfo.checkSafeCount())) {
@@ -366,33 +377,34 @@ public class IntSpillableColumn implements SpillableColumn {
                 }
             }
 
-            int mod = (int)readFromFile & 7;
-            if (mod == 0) {
-            	try {
-					cachedByteVal = dis.readByte();
-				} catch (IOException e) {
-					throw new RuntimeException(e); //TODO do more
-				}
+        	byte cachedByteVal;
+        	try {
+				cachedByteVal = dis.readByte();
+			} catch (IOException e) {
+				throw new RuntimeException(e); //TODO do more
+			}
+        	for (int i = 0; i < 8; i++) {
+        		boolean val = BytesHelper.getBitByPos(cachedByteVal, i);
+        		containers[i].isNull = val;
+        		if (!val) {
+        			try {
+						containers[i].value = dis.readInt();
+					} catch (IOException e) {
+						throw new RuntimeException(e); //TODO do more
+					}
+        		}
             }
-
-            boolean val = BytesHelper.getBitByPos(cachedByteVal, mod);
-            container.isNull = val;
-            if (!val) {
-            	try {
-            		container.value = dis.readInt();
-				} catch (IOException e) {
-					throw new RuntimeException(e); //TODO do more
-				}
-            }
-
+        	remainingInContainer = 1;
             readFromFile++;
-            return container;
+            
+            return containers[0];
         }
 
         /**
          * This assumes that a lock is held and is NOT thread safe!
          * @return
          */
+        //TODO buffer this as well, and the reading from file can be updated as well
         private IntContainer readFromMemory() {
         	if (byteIterator == null) {
         		byteIterator = nullStatus.iterator();
