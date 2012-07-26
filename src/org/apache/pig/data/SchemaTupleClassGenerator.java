@@ -22,18 +22,8 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import java.net.URI;
 import java.util.List;
-import java.util.Locale;
 import java.util.Queue;
-
-import javax.tools.Diagnostic;
-import javax.tools.DiagnosticCollector;
-import javax.tools.JavaCompiler;
-import javax.tools.JavaFileManager;
-import javax.tools.JavaFileObject;
-import javax.tools.SimpleJavaFileObject;
-import javax.tools.ToolProvider;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
@@ -231,7 +221,7 @@ public class SchemaTupleClassGenerator {
      */
     //TODO in the future, we can use ASM to generate the bytecode directly.
     private static void compileCodeString(String className, String generatedCodeString, File codeDir) {
-        JavaCompilerHelper compiler = new JavaCompilerHelper(); 
+        JavaCompilerHelper compiler = new JavaCompilerHelper();
         String tempDir = codeDir.getAbsolutePath();
         compiler.addToClassPath(tempDir);
         LOG.debug("Compiling SchemaTuple code with classpath: " + compiler.getClassPath());

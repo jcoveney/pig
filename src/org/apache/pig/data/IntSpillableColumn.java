@@ -347,10 +347,12 @@ public class IntSpillableColumn implements SpillableColumn {
         // this exist in Pig... but that doesn't mean I want to introduce
         // a new one.
         public void finish() {
-            try {
-                dis.close();
-            } catch (IOException e) {
-                throw new RuntimeException(e); //TODO do more
+            if (dis != null) {
+                try {
+                    dis.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e); //TODO do more
+                }
             }
         }
 

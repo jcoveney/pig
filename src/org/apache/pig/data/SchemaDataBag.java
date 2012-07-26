@@ -51,7 +51,8 @@ public class SchemaDataBag implements DataBag {
         for (FieldSchema fs : schema.getFields()) {
             switch (fs.type) {
             case (DataType.INTEGER):
-                columns[i] = BagFactory.getIntSpillableColumn();
+                columns[i++] = BagFactory.getIntSpillableColumn();
+                break;
             default:
                 throw new RuntimeException("SchemaDataBag not supported for given Schema ["+schema+"]");
             }
@@ -206,7 +207,7 @@ public class SchemaDataBag implements DataBag {
         } else {
             size++;
             int i = 0;
-            for (SpillableColumn sc : getColumns()) {
+            for (SpillableColumn sc : columns) {
                 try {
                     sc.getFromPosition(t, i++);
                 } catch (ExecException e) {
@@ -219,7 +220,7 @@ public class SchemaDataBag implements DataBag {
     public void add(TypeAwareTuple t) {
         size++;
         int i = 0;
-        for (SpillableColumn sc : getColumns()) {
+        for (SpillableColumn sc : columns) {
             try {
                 sc.getFromPosition(t, i++);
             } catch (ExecException e) {
