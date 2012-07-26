@@ -27,6 +27,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -36,7 +37,6 @@ import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.util.ObjectSerializer;
-import org.apache.pig.impl.util.TupleFormat;
 
 /**
  * A default implementation of Tuple. This class will be created by the DefaultTupleFactory.
@@ -59,7 +59,7 @@ public class DefaultTuple extends AbstractTuple {
     /**
      * Construct a tuple with a known number of fields. Package level so that callers cannot directly invoke it.
      * <br>Resulting tuple is filled pre-filled with null elements. Time complexity: O(N), after allocation
-     * 
+     *
      * @param size
      *            Number of fields to allocate in the tuple.
      */
@@ -82,7 +82,7 @@ public class DefaultTuple extends AbstractTuple {
     /**
      * Construct a tuple from an existing list of objects. Package level so that callers cannot directly invoke it.
      * <br>Time complexity: O(1)
-     * 
+     *
      * @param c
      *            List of objects to turn into a tuple. This list will be kept as part of the tuple.
      * @param junk
@@ -95,7 +95,7 @@ public class DefaultTuple extends AbstractTuple {
     /**
      * Make this tuple reference the contents of another. This method does not copy the underlying data. It maintains
      * references to the data from the original tuple (and possibly even to the data structure holding the data).
-     * 
+     *
      * @param t
      *            Tuple to reference.
      */
@@ -106,7 +106,7 @@ public class DefaultTuple extends AbstractTuple {
 
     /**
      * Find the size of the tuple. Used to be called arity().
-     * 
+     *
      * @return number of fields in the tuple.
      */
     @Override
@@ -116,7 +116,7 @@ public class DefaultTuple extends AbstractTuple {
 
     /**
      * Get the value in a given field.
-     * 
+     *
      * @param fieldNum
      *            Number of the field to get the value for.
      * @return value, as an Object.
@@ -130,7 +130,7 @@ public class DefaultTuple extends AbstractTuple {
 
     /**
      * Get all of the fields in the tuple as a list.
-     * 
+     *
      * @return List&lt;Object&gt; containing the fields of the tuple in order.
      */
     @Override
@@ -140,7 +140,7 @@ public class DefaultTuple extends AbstractTuple {
 
     /**
      * Set the value in a given field.
-     * 
+     *
      * @param fieldNum
      *            Number of the field to set the value for.
      * @param val
@@ -157,7 +157,7 @@ public class DefaultTuple extends AbstractTuple {
      * Append a field to a tuple. This method is not efficient as it may force copying of existing data in order to grow
      * the data structure. Whenever possible you should construct your Tuple with the newTuple(int) method and then fill
      * in the values with set(), rather than construct it with newTuple() and append values.
-     * 
+     *
      * @param val
      *            Object to append to the tuple.
      */
@@ -169,7 +169,7 @@ public class DefaultTuple extends AbstractTuple {
     /**
      * Determine the size of tuple in memory. This is used by data bags to determine their memory size. This need not be
      * exact, but it should be a decent estimation.
-     * 
+     *
      * @return estimated memory size.
      */
     @Override
@@ -458,7 +458,7 @@ public class DefaultTuple extends AbstractTuple {
 
     @Override
     public int hashCode() {
-        int hash = 1;
+        int hash = 17;
         for (Iterator<Object> it = mFields.iterator(); it.hasNext();) {
             Object o = it.next();
             if (o != null) {

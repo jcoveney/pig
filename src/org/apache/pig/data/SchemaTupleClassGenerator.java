@@ -571,6 +571,21 @@ public class SchemaTupleClassGenerator {
         }
     }
 
+    static class IsSpecificSchemaTuple extends TypeInFunctionStringOut {
+        private int id;
+
+        public IsSpecificSchemaTuple(int id) {
+            this.id = id;
+        }
+
+        public void prepare() {
+            add("@Override");
+            add("public boolean isSpecificSchemaTuple(Object o) {");
+            add("    return o instanceof SchemaTuple_" + id + ";");
+            add("}");
+        }
+    }
+
     //this has to write the null state of all the fields, not just the null bytes, though those
     //will have to be reconstructed
     static class WriteNullsString extends TypeInFunctionStringOut {
@@ -1001,6 +1016,7 @@ public class SchemaTupleClassGenerator {
             listOfFutureMethods.add(new CompareToString(id));
             listOfFutureMethods.add(new CompareToSpecificString(id, appendable));
             listOfFutureMethods.add(new SetEqualToSchemaTupleString(id));
+            listOfFutureMethods.add(new IsSpecificSchemaTuple(id));
             listOfFutureMethods.add(new TypeAwareSetString(DataType.INTEGER));
             listOfFutureMethods.add(new TypeAwareSetString(DataType.LONG));
             listOfFutureMethods.add(new TypeAwareSetString(DataType.FLOAT));
