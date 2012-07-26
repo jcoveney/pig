@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.pig.data.IntSpillableColumn.IntContainer;
 import org.apache.pig.data.IntSpillableColumn.IntIterator;
@@ -19,18 +18,18 @@ public class TestSchemaBag {
         final IntSpillableColumn intSpillable = new IntSpillableColumn(); //do not want to register with spill manager so we control spilling
 
         long total = 0;
-        for (int i = 0; i < 1000000; i++) {
+        for (int i = 0; i < 10000; i++) {
             boolean isNull = i % 3 == 0;
             intSpillable.add(i, isNull);
             if (!isNull) {
                 total += i;
             }
-            if (added++ % 150001 == 0) {
+            if (added++ % 1501 == 0) {
                 intSpillable.spill();
             }
         }
 
-        for (int i = 1000000; i < 5000000; i++) {
+        for (int i = 10000; i < 50000; i++) {
             boolean isNull = i % 3 == 0;
             intSpillable.add(i, isNull);
             if (!isNull) {
@@ -39,13 +38,13 @@ public class TestSchemaBag {
         }
 
         added = 0;
-        IntIterator iterator = intSpillable.iterator();
+        IntIterator iterator = (IntIterator)intSpillable.iterator();
         while (iterator.hasNext()) {
             IntContainer container = iterator.next();
             if (!container.isNull) {
                 total -= container.value;
             }
-            if (added++ == 2000005) {
+            if (added++ == 20005) {
                 intSpillable.spill();
             }
         }
@@ -59,7 +58,7 @@ public class TestSchemaBag {
         final IntSpillableColumn intSpillable = new IntSpillableColumn(); //do not want to register with spill manager so we control spilling
 
         long total = 0;
-        for (int i = 0; i < 1000000; i++) {
+        for (int i = 0; i < 1000; i++) {
             boolean isNull = i % 3 == 0;
             intSpillable.add(i, isNull);
             if (!isNull) {
@@ -70,7 +69,18 @@ public class TestSchemaBag {
             }
         }
 
-        for (int i = 1000000; i < 5000000; i++) {
+        for (int i = 1000; i < 2000; i++) {
+            boolean isNull = i % 3 == 0;
+            intSpillable.add(i, isNull);
+            if (!isNull) {
+                total += i;
+            }
+            if (added++ % 99 == 0) {
+                intSpillable.spill();
+            }
+        }
+
+        for (int i = 2000; i < 3000; i++) {
             boolean isNull = i % 3 == 0;
             intSpillable.add(i, isNull);
             if (!isNull) {
@@ -78,7 +88,7 @@ public class TestSchemaBag {
             }
         }
 
-        IntIterator iterator = intSpillable.iterator();
+        IntIterator iterator = (IntIterator)intSpillable.iterator();
         while (iterator.hasNext()) {
             IntContainer container = iterator.next();
             if (!container.isNull) {
@@ -95,18 +105,18 @@ public class TestSchemaBag {
         final IntSpillableColumn intSpillable = new IntSpillableColumn(); //do not want to register with spill manager so we control spilling
 
         long total = 0;
-        for (int i = 0; i < 1000000; i++) {
+        for (int i = 0; i < 10000; i++) {
             boolean isNull = i % 3 == 0;
             intSpillable.add(i, isNull);
             if (!isNull) {
                 total += i;
             }
-            if (added++ % 150001 == 0) {
+            if (added++ % 1501 == 0) {
                 intSpillable.spill();
             }
         }
 
-        for (int i = 1000000; i < 5000000; i++) {
+        for (int i = 10000; i < 50000; i++) {
             boolean isNull = i % 3 == 0;
             intSpillable.add(i, isNull);
             if (!isNull) {
@@ -114,12 +124,66 @@ public class TestSchemaBag {
             }
         }
 
-        IntIterator iterator = intSpillable.iterator();
+        IntIterator iterator = (IntIterator)intSpillable.iterator();
         while (iterator.hasNext()) {
             IntContainer container = iterator.next();
             if (!container.isNull) {
                 total -= container.value;
             }
+        }
+
+        assertEquals(0L, total);
+    }
+
+    @Test
+    public void testIntSpillableColumnTiny() {
+        final IntSpillableColumn intSpillable = new IntSpillableColumn(); //do not want to register with spill manager so we control spilling
+        long total = 0L;
+
+        for (int i = 0; i < 20; i++) {
+            intSpillable.add(i, false);
+            total += i;
+        }
+
+        intSpillable.spill();
+
+        for (int i = 20; i < 40; i++) {
+            intSpillable.add(i, false);
+            total += i;
+        }
+
+        IntIterator iterator = (IntIterator)intSpillable.iterator();
+        while (iterator.hasNext()) {
+            total -= iterator.next().value;
+        }
+
+        assertEquals(0L, total);
+    }
+
+    @Test
+    public void testIntSpillableColumnTinyWithFinalSpill() {
+        final IntSpillableColumn intSpillable = new IntSpillableColumn(); //do not want to register with spill manager so we control spilling
+        long total = 0L;
+
+        for (int i = 0; i < 20; i++) {
+            intSpillable.add(i, false);
+            total += i;
+        }
+
+        intSpillable.spill();
+
+        for (int i = 20; i < 40; i++) {
+            intSpillable.add(i, false);
+            total += i;
+        }
+
+        int added = 0;
+        IntIterator iterator = (IntIterator)intSpillable.iterator();
+        while (iterator.hasNext()) {
+            if (added++ == 20) {
+                intSpillable.spill();
+            }
+            total -= iterator.next().value;
         }
 
         assertEquals(0L, total);
@@ -133,24 +197,24 @@ public class TestSchemaBag {
         final IntSpillableColumn intSpillable = new IntSpillableColumn(); //do not want to register with spill manager so we control spilling
 
         long total = 0;
-        for (int i = 0; i < 1000000; i++) {
+        for (int i = 0; i < 10000; i++) {
             intSpillable.add(i, false);
             total += i;
-            if (added++ % 150001 == 0) {
+            if (added++ % 1501 == 0) {
                 intSpillable.spill();
             }
         }
 
-        for (int i = 1000000; i < 5000000; i++) {
+        for (int i = 10000; i < 50000; i++) {
             intSpillable.add(i, false);
             total += i;
         }
 
         added = 0;
-        IntIterator iterator = intSpillable.iterator();
+        IntIterator iterator = (IntIterator)intSpillable.iterator();
         while (iterator.hasNext()) {
             total -= iterator.next().value;
-            if (added++ == 2000005) {
+            if (added++ == 20005) {
                 intSpillable.spill();
             }
         }
@@ -169,11 +233,7 @@ public class TestSchemaBag {
             public void run() {
                 long spilled = 0L;
                 while (!stop.get()) {
-                    if ((added.get() - spilled) > 150000L) {
-                        try {
-                            Thread.sleep(50);
-                        } catch (InterruptedException e) {
-                        }
+                    if ((added.get() - spilled) > 1500L) {
                         spilled += intSpillable.spill();
                     }
                 }
@@ -182,7 +242,7 @@ public class TestSchemaBag {
         spillThread.start();
 
         long total = 0;
-        for (int i = 0; i < 1000000; i++) {
+        for (int i = 0; i < 10000; i++) {
             boolean isNull = i % 3 == 0;
             intSpillable.add(i, isNull);
             if (!isNull) {
@@ -191,7 +251,7 @@ public class TestSchemaBag {
             added.incrementAndGet();
         }
         stop.set(true);
-        for (int i = 1000000; i < 5000000; i++) {
+        for (int i = 10000; i < 50000; i++) {
             boolean isNull = i % 3 == 0;
             intSpillable.add(i, isNull);
             if (!isNull) {
@@ -203,14 +263,14 @@ public class TestSchemaBag {
         spillThread = new Thread(new Runnable() {
            @Override
            public void run() {
-               while (added.get() < 2000000) {
+               while (added.get() < 20000) {
                }
                intSpillable.spill();
            }
         });
         spillThread.start();
 
-        IntIterator iterator = intSpillable.iterator();
+        IntIterator iterator = (IntIterator)intSpillable.iterator();
         while (iterator.hasNext()) {
             IntContainer container = iterator.next();
             if (!container.isNull) {
@@ -233,7 +293,7 @@ public class TestSchemaBag {
             public void run() {
                 long spilled = 0L;
                 while (!stop.get()) {
-                    if ((added.get() - spilled) > 150001L) {
+                    if ((added.get() - spilled) > 1501L) {
                         try {
                             Thread.sleep(50);
                         } catch (InterruptedException e) {
@@ -246,13 +306,13 @@ public class TestSchemaBag {
         spillThread.start();
 
         long total = 0;
-        for (int i = 0; i < 1000000; i++) {
+        for (int i = 0; i < 10000; i++) {
             intSpillable.add(i, false);
             total += i;
             added.incrementAndGet();
         }
         stop.set(true);
-        for (int i = 1000000; i < 5000000; i++) {
+        for (int i = 10000; i < 50000; i++) {
             intSpillable.add(i, false);
             total += i;
         }
@@ -261,20 +321,20 @@ public class TestSchemaBag {
         spillThread = new Thread(new Runnable() {
            @Override
            public void run() {
-               while (added.get() < 2000005) {
+               while (added.get() < 20005) {
                }
                intSpillable.spill();
            }
         });
         spillThread.start();
 
-        IntIterator iterator = intSpillable.iterator();
+        IntIterator iterator = (IntIterator)intSpillable.iterator();
         while (iterator.hasNext()) {
             total -= iterator.next().value;
             added.incrementAndGet();
         }
 
-        assertEquals(0, total);
+        assertEquals(0L, total);
     }
 
     @Test
@@ -282,7 +342,7 @@ public class TestSchemaBag {
         IntSpillableColumn intSpillable = new IntSpillableColumn(); //do not want to register with spill manager so we control spilling
         long total = 0;
         for (int i = 0; i < 10; i++) {
-            for (int j = 0; j < 1000000; j++) {
+            for (int j = 0; j < 10000; j++) {
                 boolean isNull = j % 123 == 0;
                 intSpillable.add(j, isNull);
                 if (!isNull) {
@@ -291,14 +351,14 @@ public class TestSchemaBag {
             }
             intSpillable.spill();
         }
-        for (int j = 1000000; j < 5000000; j++) {
+        for (int j = 10000; j < 50000; j++) {
             boolean isNull = j % 123 == 0;
             intSpillable.add(j, isNull);
             if (!isNull) {
                 total += j;
             }
         }
-        IntIterator iterator = intSpillable.iterator();
+        IntIterator iterator = (IntIterator)intSpillable.iterator();
         while (iterator.hasNext()) {
             IntContainer cont = iterator.next();
             if (!cont.isNull) {
@@ -313,17 +373,17 @@ public class TestSchemaBag {
         IntSpillableColumn intSpillable = new IntSpillableColumn(); //do not want to register with spill manager so we control spilling
         long total = 0;
         for (int i = 0; i < 10; i++) {
-            for (int j = 0; j < 1000001; j++) {
+            for (int j = 0; j < 10001; j++) {
                 intSpillable.add(j, false);
                 total += j;
             }
             intSpillable.spill();
         }
-        for (int j = 1000000; j < 5000000; j++) {
+        for (int j = 10000; j < 50000; j++) {
             intSpillable.add(j, false);
             total += j;
         }
-        IntIterator iterator = intSpillable.iterator();
+        IntIterator iterator = (IntIterator)intSpillable.iterator();
         while (iterator.hasNext()) {
             total -= iterator.next().value;
         }
@@ -333,8 +393,13 @@ public class TestSchemaBag {
     @Test
     public void testIntSpillableColumnSerDe() {
         IntSpillableColumn intSpillable = new IntSpillableColumn();
-        for (int i = 0; i < 1000000; i++) {
+        for (int i = 0; i < 10000; i++) {
 
         }
+    }
+
+    @Test
+    public void testSchemaDataBagWithIntColumns() {
+
     }
 }

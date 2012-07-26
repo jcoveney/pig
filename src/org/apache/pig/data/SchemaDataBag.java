@@ -5,9 +5,17 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Iterator;
 
-public abstract class SchemaDataBag<T extends SchemaTuple<T>> implements DataBag {
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.SpillableColumn.SpillableColumnIterator;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
+
+public class SchemaDataBag implements DataBag {
     private static final long serialVersionUID = 1L;
     private long size = 0L;
+    private SpillableColumn[] columns;
+    private int schemaTupleId;
+    private SchemaTupleFactory stf;
 
     /**
      * Note that spilling the SchemaDataBag itself will not be registered with the SpillableMemoryManager.
@@ -28,12 +36,35 @@ public abstract class SchemaDataBag<T extends SchemaTuple<T>> implements DataBag
         return memorySize;
     }
 
-    public abstract boolean isSpecificSchemaTuple(Tuple t);
-    public abstract int getSchemaTupleBagIdentifier();
+    public SchemaDataBag(int schemaId) {
+        this(SchemaTupleFactory.getInstance(schemaId));
+    }
+
+    public SchemaDataBag(SchemaTupleFactory stf) {
+        this.stf = stf;
+        SchemaTuple<?> st = stf.newTuple();
+        schemaTupleId = st.getSchemaTupleIdentifier();
+        int columnCount = st.size();
+        Schema schema = st.getSchema();
+        columns = new SpillableColumn[columnCount];
+        int i = 0;
+        for (FieldSchema fs : schema.getFields()) {
+            switch (fs.type) {
+            case (DataType.INTEGER):
+                columns[i] = BagFactory.getIntSpillableColumn();
+            default:
+                throw new RuntimeException("SchemaDataBag not supported for given Schema ["+schema+"]");
+            }
+        }
+    }
+
+    public int getSchemaTupleBagIdentifier() {
+        return schemaTupleId;
+    }
 
     @Override
     public void readFields(DataInput in) throws IOException {
-        throw new RuntimeException("readFields(DataInput) not used");
+        throw new RuntimeException("readFields(DataInput) not implemented yet!");
     }
 
     @Override
@@ -117,52 +148,85 @@ public abstract class SchemaDataBag<T extends SchemaTuple<T>> implements DataBag
     }
 
     @Override
-    public abstract Iterator<Tuple> iterator();
+    public Iterator<Tuple> iterator() {
+        return new Iterator<Tuple>() {
+            SpillableColumnIterator[] sci;
+
+            @Override
+            public boolean hasNext() {
+                lazyInit();
+                boolean hasNext = sci[0].hasNext();
+                if (!hasNext) {
+                    for (SpillableColumnIterator col : sci) {
+                        col.finish();
+                    }
+                }
+                return hasNext;
+            }
+
+            @Override
+            public Tuple next() {
+                lazyInit();
+                SchemaTuple<?> st = stf.newTuple();
+                int i = 0;
+                for (SpillableColumnIterator col : sci) {
+                    try {
+                        col.setTuplePositionWithNext(st, i++);
+                    } catch (ExecException e) {
+                        throw new RuntimeException(e); //TODO do more
+                    }
+                }
+                return st;
+            }
+
+            private void lazyInit() {
+                if (sci == null) {
+                    sci = new SpillableColumnIterator[columns.length];
+                    for (int i = 0; i < sci.length; i++) {
+                        sci[i] = columns[i].iterator();
+                    }
+                }
+            }
+
+            @Override
+            public void remove() {
+                throw new RuntimeException("remove() not implemented");
+            }
+        };
+    }
 
     @Override
     public void add(Tuple t) {
         add(t, true);
     }
 
-    @SuppressWarnings("unchecked")
     public void add(Tuple t, boolean checkType) {
-        if (checkType) {
-            if (isSpecificSchemaTuple(t)) {
-                addSpecific((T)t);
-                return;
-            } else if (t instanceof SchemaTuple<?>){
-                add((SchemaTuple<?>)t, false);
-                return;
-            }
-        }
-        size++;
-        generatedCodeAdd(t);
-    }
-
-    public abstract void generatedCodeAdd(Tuple t);
-
-    public void add(SchemaTuple<?> t) {
-        add(t, true);
-    }
-
-    @SuppressWarnings("unchecked")
-    public void add(SchemaTuple<?> t, boolean checkType) {
-        if (checkType && isSpecificSchemaTuple(t)) {
-            addSpecific((T)t);
+        if (checkType && t instanceof TypeAwareTuple) {
+            add((TypeAwareTuple)t, false);
         } else {
             size++;
-            generatedCodeAdd(t);
+            int i = 0;
+            for (SpillableColumn sc : getColumns()) {
+                try {
+                    sc.getFromPosition(t, i++);
+                } catch (ExecException e) {
+                    throw new RuntimeException(e); //TODO do more
+                }
+            }
         }
     }
 
-    public abstract void generatedCodeAdd(SchemaTuple<?> t);
-
-    public void addSpecific(T t) {
+    public void add(TypeAwareTuple t) {
         size++;
-        generatedCodeAddSpecific(t);
+        int i = 0;
+        for (SpillableColumn sc : getColumns()) {
+            try {
+                sc.getFromPosition(t, i++);
+            } catch (ExecException e) {
+                throw new RuntimeException(e); //TODO do more
+            }
+        }
     }
-
-    public abstract void generatedCodeAddSpecific(T t);
 
     @Override
     public void addAll(DataBag b) {
@@ -171,14 +235,13 @@ public abstract class SchemaDataBag<T extends SchemaTuple<T>> implements DataBag
         }
     }
 
-    public void addAll(SchemaDataBag<?> b) {
-        setColumns(b.getColumns());
-        size = getColumns()[0].size();
+    public SpillableColumn[] getColumns() {
+        return columns;
     }
 
-    public abstract SpillableColumn[] getColumns();
-
-    public abstract void setColumns(SpillableColumn[] columns);
+    public void setColumns(SpillableColumn[] columns) {
+        throw new RuntimeException("Need to implement setColumns");
+    }
 
     @Override
     public void clear() {
