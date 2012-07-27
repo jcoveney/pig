@@ -304,6 +304,20 @@ public class BinInterSedes implements InterSedes {
         case SMALLBAG:
             return readBag(in, type);
 
+        case SCHEMA_TUPLE_BAG_BYTE_ID_BYTE_SIZE:
+        case SCHEMA_TUPLE_BAG_BYTE_ID_SHORT_SIZE:
+        case SCHEMA_TUPLE_BAG_BYTE_ID_INT_SIZE:
+        case SCHEMA_TUPLE_BAG_BYTE_ID_LONG_SIZE:
+        case SCHEMA_TUPLE_BAG_SHORT_ID_BYTE_SIZE:
+        case SCHEMA_TUPLE_BAG_SHORT_ID_SHORT_SIZE:
+        case SCHEMA_TUPLE_BAG_SHORT_ID_INT_SIZE:
+        case SCHEMA_TUPLE_BAG_SHORT_ID_LONG_SIZE:
+        case SCHEMA_TUPLE_BAG_INT_ID_BYTE_SIZE:
+        case SCHEMA_TUPLE_BAG_INT_ID_SHORT_SIZE:
+        case SCHEMA_TUPLE_BAG_INT_ID_INT_SIZE:
+        case SCHEMA_TUPLE_BAG_INT_ID_LONG_SIZE:
+            return readSchemaBag(in, type);
+
         case MAP:
         case TINYMAP:
         case SMALLMAP:
@@ -374,6 +388,12 @@ public class BinInterSedes implements InterSedes {
         default:
             throw new RuntimeException("Unexpected data type " + type + " found in stream.");
         }
+    }
+
+    private SchemaDataBag readSchemaBag(DataInput in, byte type) throws IOException {
+        SchemaDataBag bag = new SchemaDataBag();
+        bag.readFields(in, type);
+        return null;
     }
 
     /*
@@ -531,6 +551,14 @@ public class BinInterSedes implements InterSedes {
     }
 
     private void writeBag(DataOutput out, DataBag bag) throws IOException {
+        if (bag instanceof SchemaDataBag) {
+            ((SchemaDataBag)bag).write(out);
+        } else {
+            writeGenericBag(out, bag);
+        }
+    }
+
+    private void writeGenericBag(DataOutput out, DataBag bag) throws IOException {
         // We don't care whether this bag was sorted or distinct because
         // using the iterator to write it will guarantee those things come
         // correctly. And on the other end there'll be no reason to waste
@@ -855,6 +883,18 @@ public class BinInterSedes implements InterSedes {
                 }
                 break;
             }
+            case BinInterSedes.SCHEMA_TUPLE_BAG_BYTE_ID_BYTE_SIZE:
+            case BinInterSedes.SCHEMA_TUPLE_BAG_BYTE_ID_SHORT_SIZE:
+            case BinInterSedes.SCHEMA_TUPLE_BAG_BYTE_ID_INT_SIZE:
+            case BinInterSedes.SCHEMA_TUPLE_BAG_BYTE_ID_LONG_SIZE:
+            case BinInterSedes.SCHEMA_TUPLE_BAG_SHORT_ID_BYTE_SIZE:
+            case BinInterSedes.SCHEMA_TUPLE_BAG_SHORT_ID_SHORT_SIZE:
+            case BinInterSedes.SCHEMA_TUPLE_BAG_SHORT_ID_INT_SIZE:
+            case BinInterSedes.SCHEMA_TUPLE_BAG_SHORT_ID_LONG_SIZE:
+            case BinInterSedes.SCHEMA_TUPLE_BAG_INT_ID_BYTE_SIZE:
+            case BinInterSedes.SCHEMA_TUPLE_BAG_INT_ID_SHORT_SIZE:
+            case BinInterSedes.SCHEMA_TUPLE_BAG_INT_ID_INT_SIZE:
+            case BinInterSedes.SCHEMA_TUPLE_BAG_INT_ID_LONG_SIZE:
             case BinInterSedes.TINYBAG:
             case BinInterSedes.SMALLBAG:
             case BinInterSedes.BAG: {
@@ -1070,10 +1110,25 @@ public class BinInterSedes implements InterSedes {
             case BinInterSedes.SMALLCHARARRAY:
             case BinInterSedes.CHARARRAY:
                 return DataType.CHARARRAY;
+            case BinInterSedes.SCHEMA_TUPLE_BYTE_INDEX:
+            case BinInterSedes.SCHEMA_TUPLE_SHORT_INDEX:
+            case BinInterSedes.SCHEMA_TUPLE:
             case BinInterSedes.TUPLE:
             case BinInterSedes.TINYTUPLE:
             case BinInterSedes.SMALLTUPLE:
                 return DataType.TUPLE;
+            case BinInterSedes.SCHEMA_TUPLE_BAG_BYTE_ID_BYTE_SIZE:
+            case BinInterSedes.SCHEMA_TUPLE_BAG_BYTE_ID_SHORT_SIZE:
+            case BinInterSedes.SCHEMA_TUPLE_BAG_BYTE_ID_INT_SIZE:
+            case BinInterSedes.SCHEMA_TUPLE_BAG_BYTE_ID_LONG_SIZE:
+            case BinInterSedes.SCHEMA_TUPLE_BAG_SHORT_ID_BYTE_SIZE:
+            case BinInterSedes.SCHEMA_TUPLE_BAG_SHORT_ID_SHORT_SIZE:
+            case BinInterSedes.SCHEMA_TUPLE_BAG_SHORT_ID_INT_SIZE:
+            case BinInterSedes.SCHEMA_TUPLE_BAG_SHORT_ID_LONG_SIZE:
+            case BinInterSedes.SCHEMA_TUPLE_BAG_INT_ID_BYTE_SIZE:
+            case BinInterSedes.SCHEMA_TUPLE_BAG_INT_ID_SHORT_SIZE:
+            case BinInterSedes.SCHEMA_TUPLE_BAG_INT_ID_INT_SIZE:
+            case BinInterSedes.SCHEMA_TUPLE_BAG_INT_ID_LONG_SIZE:
             case BinInterSedes.BAG:
             case BinInterSedes.TINYBAG:
             case BinInterSedes.SMALLBAG:
