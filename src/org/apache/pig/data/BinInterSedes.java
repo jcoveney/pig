@@ -279,12 +279,6 @@ public class BinInterSedes implements InterSedes {
         return readDatum(in, b);
     }
 
-    private static Object readBytes(DataInput in, int size) throws IOException {
-        byte[] ba = new byte[size];
-        in.readFully(ba);
-        return new DataByteArray(ba);
-    }
-
     /**
      * Expects binInterSedes data types (NOT DataType types!)
      * <p>
@@ -1147,7 +1141,6 @@ public class BinInterSedes implements InterSedes {
         }
 
         private static long readLong(ByteBuffer bb, byte type) {
-            int bytesToRead = 0;
             switch (type) {
             case BinInterSedes.LONG_0: return 0L;
             case BinInterSedes.LONG_1: return 1L;
