@@ -68,7 +68,7 @@ public class SchemaDataBag implements DataBag {
     public int getSchemaTupleBagIdentifier() {
         return schemaTupleId;
     }
-
+ 
     @Override
     public void readFields(DataInput in) throws IOException {
         readFields(in, in.readByte());
