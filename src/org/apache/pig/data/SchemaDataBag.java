@@ -42,6 +42,12 @@ public class SchemaDataBag implements DataBag {
 
     public SchemaDataBag(SchemaTupleFactory stf) {
         this.stf = stf;
+        makeColumnsFromSchemaTupleFactory(stf);
+    }
+
+    protected SchemaDataBag() {}
+
+    private void makeColumnsFromSchemaTupleFactory(SchemaTupleFactory stf) {
         SchemaTuple<?> st = stf.newTuple();
         schemaTupleId = st.getSchemaTupleIdentifier();
         int columnCount = st.size();
@@ -65,7 +71,67 @@ public class SchemaDataBag implements DataBag {
 
     @Override
     public void readFields(DataInput in) throws IOException {
-        throw new RuntimeException("readFields(DataInput) not implemented yet!");
+        readFields(in, in.readByte());
+    }
+
+    public void readFields(DataInput in, byte type) throws IOException {
+        switch (type) {
+        case BinInterSedes.SCHEMA_TUPLE_BAG_BYTE_ID_BYTE_SIZE:
+            schemaTupleId = in.readUnsignedByte();
+            size = in.readUnsignedByte();
+            break;
+        case BinInterSedes.SCHEMA_TUPLE_BAG_BYTE_ID_SHORT_SIZE:
+            schemaTupleId = in.readUnsignedByte();
+            size = in.readUnsignedShort();
+            break;
+        case BinInterSedes.SCHEMA_TUPLE_BAG_BYTE_ID_INT_SIZE:
+            schemaTupleId = in.readUnsignedByte();
+            size = (long)in.readInt() & 0x00000000ffffffff;
+            break;
+        case BinInterSedes.SCHEMA_TUPLE_BAG_BYTE_ID_LONG_SIZE:
+            schemaTupleId = in.readUnsignedByte();
+            size = in.readLong();
+            break;
+        case BinInterSedes.SCHEMA_TUPLE_BAG_SHORT_ID_BYTE_SIZE:
+            schemaTupleId = in.readUnsignedShort();
+            size = in.readUnsignedByte();
+            break;
+        case BinInterSedes.SCHEMA_TUPLE_BAG_SHORT_ID_SHORT_SIZE:
+            schemaTupleId = in.readUnsignedShort();
+            size = in.readUnsignedShort();
+            break;
+        case BinInterSedes.SCHEMA_TUPLE_BAG_SHORT_ID_INT_SIZE:
+            schemaTupleId = in.readUnsignedShort();
+            size = (long)in.readInt() & 0x00000000ffffffff;
+            break;
+        case BinInterSedes.SCHEMA_TUPLE_BAG_SHORT_ID_LONG_SIZE:
+            schemaTupleId = in.readUnsignedByte();
+            size = in.readLong();
+            break;
+        case BinInterSedes.SCHEMA_TUPLE_BAG_INT_ID_BYTE_SIZE:
+            schemaTupleId = in.readInt();
+            size = in.readUnsignedByte();
+            break;
+        case BinInterSedes.SCHEMA_TUPLE_BAG_INT_ID_SHORT_SIZE:
+            schemaTupleId = in.readInt();
+            size = in.readUnsignedShort();
+            break;
+        case BinInterSedes.SCHEMA_TUPLE_BAG_INT_ID_INT_SIZE:
+            schemaTupleId = in.readInt();
+            size = (long)in.readInt() & 0x00000000ffffffff;
+            break;
+        case BinInterSedes.SCHEMA_TUPLE_BAG_INT_ID_LONG_SIZE:
+            schemaTupleId = in.readInt();
+            size = in.readLong();
+            break;
+        default:
+            throw new ExecException("Unknown type given to SchemaDataBag#readFields(DataInput,byte): " + type);
+        }
+        stf = SchemaTupleFactory.getInstance(schemaTupleId);
+        makeColumnsFromSchemaTupleFactory(stf);
+        for (SpillableColumn sc : columns) {
+            sc.readData(in, size);
+        }
     }
 
     @Override

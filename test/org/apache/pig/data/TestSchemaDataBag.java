@@ -38,7 +38,7 @@ public class TestSchemaDataBag {
     @Test
     public void testBagWithIntColumns() throws Exception {
         //frontend
-        Schema udfSchema = Utils.getSchemaFromString("a:int");
+        Schema udfSchema = Utils.getSchemaFromString("a:int, b:int, c:int");
         boolean isAppendable = false;
         GenContext context = GenContext.UDF;
         SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, isAppendable, context);
