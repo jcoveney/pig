@@ -23,7 +23,7 @@ import com.carrotsearch.hppc.cursors.IntCursor;
 //TODO we need to incorporate some sort of nullability strategy. should make it generic?
 public class IntSpillableColumn implements SpillableColumn {
     private final IntArrayDeque values = new IntArrayDeque();
-    private final ByteArrayDeque nullStatus = new ByteArrayDeque();
+    private final ByteArrayDeque nullStatuses = new ByteArrayDeque();
     private volatile EncapsulatedSpillInformation spillInfo;
 
     //TODO the size and count could be pushed into the parent, since that should be parallel
@@ -144,10 +144,10 @@ public class IntSpillableColumn implements SpillableColumn {
         	if (mod == 0) {
         		lastNullStatusByte = (byte)0xFF;
         	} else {
-        		lastNullStatusByte = nullStatus.removeLast();
+        		lastNullStatusByte = nullStatuses.removeLast();
         	}
         	lastNullStatusByte = BytesHelper.setBitByPos(lastNullStatusByte, isNull, mod);
-        	nullStatus.addLast(lastNullStatusByte);
+        	nullStatuses.addLast(lastNullStatusByte);
             size++;
         }
     }
@@ -178,7 +178,7 @@ public class IntSpillableColumn implements SpillableColumn {
 
             int mod = (int)size & 7;
             if (!currentlyPerformingFinalSpill && mod > 0) {
-                byteToSave = nullStatus.removeLast();
+                byteToSave = nullStatuses.removeLast();
                 for (int i = mod - 1; i >= 0; i--) {
                     if (!BytesHelper.getBitByPos(byteToSave, i)) {
                         intsToSave.addFirst(values.removeLast());
@@ -186,8 +186,8 @@ public class IntSpillableColumn implements SpillableColumn {
                 }
             }
 
-            while (!nullStatus.isEmpty()) {
-            	byte value = nullStatus.removeFirst();
+            while (!nullStatuses.isEmpty()) {
+            	byte value = nullStatuses.removeFirst();
             	spillInfo.writeByte(value);
             	boolean flush = false;
             	for (int i = 0; i < 8; i++) {
@@ -206,11 +206,11 @@ public class IntSpillableColumn implements SpillableColumn {
         		}
             }
 
-            nullStatus.clear();
+            nullStatuses.clear();
             values.clear();
 
             if (!currentlyPerformingFinalSpill && mod > 0) {
-                nullStatus.addFirst(byteToSave);
+                nullStatuses.addFirst(byteToSave);
                 for (IntCursor cursor : intsToSave) {
                     values.addLast(cursor.value);
                 }
@@ -414,7 +414,7 @@ public class IntSpillableColumn implements SpillableColumn {
         //TODO buffer this as well, and the reading from file can be updated as well
         private IntContainer readFromMemory() {
         	if (byteIterator == null) {
-        		byteIterator = nullStatus.iterator();
+        		byteIterator = nullStatuses.iterator();
         	}
             if (intIterator == null) {
                 intIterator = values.iterator();
@@ -456,71 +456,69 @@ public class IntSpillableColumn implements SpillableColumn {
     }
 
     //TODO this could probably be optimized. Benchmark and go from there.
+    //TODO idea: could block spilling right now, and then just copy over the file directly/directly
+    //TODO dump the byte array underlying the ArrayDeque
     @Override
-    public void writeData(DataOutput out) {
-        IntIterator iterator = (IntIterator) iterator();
-        byte byteBuffer = 0;
-        boolean[] nullBuffer = new boolean[8];
-        int[] intBuffer = new int[8];
-        int mod = 0;
-        while (iterator.hasNext()) {
-        	IntContainer container = iterator.next();
-        	boolean val = container.isNull;
-        	byteBuffer = BytesHelper.setBitByPos(byteBuffer, val, mod);
-        	if (!val) {
-        		intBuffer[mod] = container.value;
-        		nullBuffer[mod] = true;
-        	} else {
-        	    nullBuffer[mod] = false;
-        	}
-        	if (mod == 7) {
-        		try {
-                    out.writeByte(byteBuffer);
-                } catch (IOException e) {
-                    throw new RuntimeException(e); //TODO do more
+    public void writeData(DataOutput out) throws IOException {
+        synchronized (values) {
+            haveStartedIterating = true;
+
+            if (spillInfo != null) {
+                File spillFile = spillInfo.getSpillFile();
+                DataInputStream in = new DataInputStream(new FileInputStream(spillFile));
+                byte[] buf = new byte[1024 * 1024 * 4]; //TODO tune this? make it settable?
+                int read;
+                while ((read = in.read(buf)) != -1) {
+                    out.write(buf, 0, read);
                 }
-        		for (int i = 0; i < nullBuffer.length; i++) {
-        		    if (nullBuffer[i]) {
-        		        try {
-        		            out.writeInt(intBuffer[i]);
-        		        } catch (IOException e) {
-                            throw new RuntimeException(e); //TODO do more
-                        }
-        		    }
-        		}
-        		byteBuffer = 0;
-        		mod = 0;
-        	} else {
-        		mod++;
-        	}
-        }
-        for (int j = 0; j < mod; j++) {
-            try {
-                out.writeByte(byteBuffer);
-            } catch (IOException e) {
-                throw new RuntimeException(e); //TODO do more
+                in.close();
             }
-            for (int i = 0; i < nullBuffer.length; i++) {
-                if (nullBuffer[i]) {
-                    try {
-                        out.writeInt(intBuffer[i]);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e); //TODO do more
+
+            Iterator<IntCursor> valuesIterator = values.iterator();
+
+            for (ByteCursor nullStatus : nullStatuses) {
+                byte value = nullStatus.value;
+                out.writeByte(value);
+                for (int i = 0; i < 8; i++) {
+                    if (!BytesHelper.getBitByPos(value, i)) {
+                        out.writeInt(valuesIterator.next().value);
                     }
                 }
             }
         }
     }
 
+    // Note that this opens up the synchronization every 1000 or so records to let
+    // the spill manager spill it if necessary.
+    //TODO We could then optionally decide to just write directly to the file instead,
+    //TODO since spilling has started.
+    // Note also that this doesn't protect against someone trying to add, which would be bad (but shouldn't
+    // happen since Pig is singlethreaded, excepting the spill manager).
     @Override
-    public void readData(DataInput in, long records) {
-        spillInfo = null;
-        values.clear();
-        for (long i = 0; i < records; i++) {
-            try {
-                values.addLast(in.readInt());
-            } catch (IOException e) {
-                throw new RuntimeException(e); //TODO do more
+    public void readData(DataInput in, long records) throws IOException {
+        boolean isFirst = true;
+
+        while (records > 0) {
+            synchronized (values) {
+                if (isFirst) {
+                    clear(); //TODO consider throwing an exception if this is not an empty column?
+                    size = records;
+                    isFirst = false;
+                }
+
+                int cap = 4000;
+                while (cap > 0 && records > 0) {
+                    byte val = in.readByte();
+                    nullStatuses.addLast(val);
+                    cap--;
+                    for (int i = 0; i < 8; i++) {
+                        if (!BytesHelper.getBitByPos(val, i)) {
+                            values.addLast(in.readInt());
+                            cap -= 4;
+                        }
+                    }
+                    records -= 8;
+                }
             }
         }
     }

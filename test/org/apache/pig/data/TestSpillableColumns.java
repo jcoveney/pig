@@ -2,6 +2,11 @@ package org.apache.pig.data;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -391,10 +396,70 @@ public class TestSpillableColumns {
     }
 
     @Test
-    public void testIntSpillableColumnSerDe() {
+    public void testIntSpillableColumnSerDeNoNulls() throws Exception {
         IntSpillableColumn intSpillable = new IntSpillableColumn();
-        for (int i = 0; i < 10000; i++) {
-
+        long total = 0;
+        int records = 1000;
+        for (int i = 0; i < records; i++) {
+            intSpillable.add(i, false);
+            total += i;
         }
+
+        File f = File.createTempFile("tmp", "tmp");
+        DataOutputStream out = new DataOutputStream(new FileOutputStream(f));
+
+        intSpillable.writeData(out);
+        out.close();
+
+        DataInputStream in = new DataInputStream(new FileInputStream(f));
+        IntSpillableColumn intSpillable2 = new IntSpillableColumn();
+        intSpillable2.readData(in, records);
+
+        assertEquals(intSpillable.size(), intSpillable2.size());
+
+        IntIterator it = (IntIterator)intSpillable2.iterator();
+
+        while (it.hasNext()) {
+            total -= it.next().value;
+        }
+
+        assertEquals(0L, total);
+    }
+
+    @Test
+    public void testIntSpillableColumnSerDeWithNulls() throws Exception {
+        IntSpillableColumn intSpillable = new IntSpillableColumn();
+        long total = 0;
+        int records = 1000;
+        for (int i = 0; i < records; i++) {
+            boolean isNull = i % 3 == 0;
+            intSpillable.add(i, isNull);
+            if (!isNull) {
+                total += i;
+            }
+        }
+
+        File f = File.createTempFile("tmp", "tmp");
+        DataOutputStream out = new DataOutputStream(new FileOutputStream(f));
+
+        intSpillable.writeData(out);
+        out.close();
+
+        DataInputStream in = new DataInputStream(new FileInputStream(f));
+        IntSpillableColumn intSpillable2 = new IntSpillableColumn();
+        intSpillable2.readData(in, records);
+
+        assertEquals(intSpillable.size(), intSpillable2.size());
+
+        IntIterator it = (IntIterator)intSpillable2.iterator();
+
+        while (it.hasNext()) {
+            IntContainer cont = it.next();
+            if (!cont.isNull) {
+                total -= cont.value;
+            }
+        }
+
+        assertEquals(0L, total);
     }
 }

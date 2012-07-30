@@ -387,7 +387,7 @@ public class BinInterSedes implements InterSedes {
     private SchemaDataBag readSchemaBag(DataInput in, byte type) throws IOException {
         SchemaDataBag bag = new SchemaDataBag();
         bag.readFields(in, type);
-        return null;
+        return bag;
     }
 
     /*

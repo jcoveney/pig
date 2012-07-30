@@ -12,6 +12,8 @@ import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 
 public class SchemaDataBag implements DataBag {
     private static final long serialVersionUID = 1L;
+    private static final BinInterSedes bis = new BinInterSedes();
+
     private long size = 0L;
     private SpillableColumn[] columns;
     private int schemaTupleId;
@@ -105,7 +107,7 @@ public class SchemaDataBag implements DataBag {
             size = (long)in.readInt() & 0x00000000ffffffff;
             break;
         case BinInterSedes.SCHEMA_TUPLE_BAG_SHORT_ID_LONG_SIZE:
-            schemaTupleId = in.readUnsignedByte();
+            schemaTupleId = in.readUnsignedShort();
             size = in.readLong();
             break;
         case BinInterSedes.SCHEMA_TUPLE_BAG_INT_ID_BYTE_SIZE:
@@ -145,7 +147,6 @@ public class SchemaDataBag implements DataBag {
             } else if (id < BinInterSedes.UNSIGNED_SHORT_MAX) {
                 out.writeByte(BinInterSedes.SCHEMA_TUPLE_BAG_SHORT_ID_BYTE_SIZE);
                 out.writeShort(id);
-
             } else {
                 out.writeByte(BinInterSedes.SCHEMA_TUPLE_BAG_INT_ID_BYTE_SIZE);
                 out.writeInt(id);
