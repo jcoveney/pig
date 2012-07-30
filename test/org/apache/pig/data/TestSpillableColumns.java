@@ -414,6 +414,8 @@ public class TestSpillableColumns {
         DataInputStream in = new DataInputStream(new FileInputStream(f));
         IntSpillableColumn intSpillable2 = new IntSpillableColumn();
         intSpillable2.readData(in, records);
+        in.close();
+        f.delete();
 
         assertEquals(intSpillable.size(), intSpillable2.size());
 

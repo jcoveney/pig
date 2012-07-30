@@ -1,5 +1,7 @@
 package org.apache.pig.data;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.DataOutput;
@@ -9,6 +11,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Iterator;
 
 import org.apache.pig.backend.executionengine.ExecException;
@@ -22,6 +25,11 @@ import com.carrotsearch.hppc.cursors.IntCursor;
 
 //TODO we need to incorporate some sort of nullability strategy. should make it generic?
 public class IntSpillableColumn implements SpillableColumn {
+    private static final int SPILL_OUTPUT_BUFFER = 4 * 1024 * 1024;
+    private static final int SPILL_INPUT_BUFFER = 4 * 1024 * 1024;
+    private static final int READ_BYTE_CAP = 4 * 1024 * 1024;
+    private static final int WRITE_BYTE_CAP = 4 * 1024 * 1024;
+
     private final IntArrayDeque values = new IntArrayDeque();
     private final ByteArrayDeque nullStatuses = new ByteArrayDeque();
     private volatile EncapsulatedSpillInformation spillInfo;
@@ -60,7 +68,7 @@ public class IntSpillableColumn implements SpillableColumn {
 		public void writeByte(byte v) {
 			if (spillOutputStream == null) {
                 try {
-                    spillOutputStream = new DataOutputStream(new FileOutputStream(getSpillFile(), true));
+                    spillOutputStream = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(getSpillFile(), true), SPILL_OUTPUT_BUFFER));
                 } catch (FileNotFoundException e) {
                     abort(e); //TODO do more
                 }
@@ -76,7 +84,7 @@ public class IntSpillableColumn implements SpillableColumn {
         public void writeInt(int v) {
             if (spillOutputStream == null) {
                 try {
-                    spillOutputStream = new DataOutputStream(new FileOutputStream(getSpillFile(), true));
+                    spillOutputStream = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(getSpillFile(), true), SPILL_OUTPUT_BUFFER));
                 } catch (FileNotFoundException e) {
                     abort(e); //TODO do more
                 }
@@ -359,7 +367,7 @@ public class IntSpillableColumn implements SpillableColumn {
         private void updateForFinalSpill() {
             if (dis == null) {
                 try {
-                    dis = new DataInputStream(new FileInputStream(spillInfo.getSpillFile()));
+                    dis = new DataInputStream(new BufferedInputStream(new FileInputStream(spillInfo.getSpillFile()), SPILL_INPUT_BUFFER));
                 } catch (FileNotFoundException e) {
                     throw new RuntimeException(e); //TODO do more
                 }
@@ -377,7 +385,7 @@ public class IntSpillableColumn implements SpillableColumn {
         private IntContainer readFromFile() {
             if (dis == null) {
                 try {
-                    dis = new DataInputStream(new FileInputStream(spillInfo.getSpillFile()));
+                    dis = new DataInputStream(new BufferedInputStream(new FileInputStream(spillInfo.getSpillFile()), SPILL_INPUT_BUFFER));
                 } catch (FileNotFoundException e) {
                     throw new RuntimeException(e); //TODO do more
                 }
@@ -463,10 +471,21 @@ public class IntSpillableColumn implements SpillableColumn {
         synchronized (values) {
             haveStartedIterating = true;
 
+            long memoryBytes = values.size() * 4 + nullStatuses.size();
+            long bytesToWrite = memoryBytes;
+
+
+            File spillFile = null;
             if (spillInfo != null) {
-                File spillFile = spillInfo.getSpillFile();
+                spillFile = spillInfo.getSpillFile();
+                bytesToWrite += spillFile.length();
+            }
+
+            out.writeLong(bytesToWrite);
+
+            if (spillFile != null) {
                 DataInputStream in = new DataInputStream(new FileInputStream(spillFile));
-                byte[] buf = new byte[1024 * 1024 * 4]; //TODO tune this? make it settable?
+                byte[] buf = new byte[SPILL_INPUT_BUFFER]; //TODO tune this? make it settable?
                 int read;
                 while ((read = in.read(buf)) != -1) {
                     out.write(buf, 0, read);
@@ -475,14 +494,46 @@ public class IntSpillableColumn implements SpillableColumn {
             }
 
             Iterator<IntCursor> valuesIterator = values.iterator();
+            Iterator<ByteCursor> nullsIterator = nullStatuses.iterator();
 
-            for (ByteCursor nullStatus : nullStatuses) {
-                byte value = nullStatus.value;
-                out.writeByte(value);
-                for (int i = 0; i < 8; i++) {
-                    if (!BytesHelper.getBitByPos(value, i)) {
-                        out.writeInt(valuesIterator.next().value);
+            while (memoryBytes > 0) {
+                int currentBytesToWrite = (int)Math.min(memoryBytes, WRITE_BYTE_CAP);
+                byte[] buf = new byte[currentBytesToWrite];
+                ByteBuffer buffer = ByteBuffer.wrap(buf);
+                memoryBytes -= currentBytesToWrite;
+
+                boolean alreadyFlushed = false;
+                while (currentBytesToWrite > 0) {
+                    byte value = nullsIterator.next().value;
+                    buffer.put(value);
+                    currentBytesToWrite--;
+                    for (int i = 0; i < 8; i++) {
+                        if (!BytesHelper.getBitByPos(value, i)) {
+                            int nextInt = valuesIterator.next().value;
+
+                            if (currentBytesToWrite >= 4) {
+                                buffer.putInt(nextInt);
+                                currentBytesToWrite -= 4;
+                            } else if (currentBytesToWrite == 0) {
+                                if (!alreadyFlushed) {
+                                    out.write(buf);
+                                    alreadyFlushed = true;
+                                }
+                                out.writeInt(nextInt);
+                            } else {
+                                if (!alreadyFlushed) {
+                                    out.write(buf, 0, buf.length - currentBytesToWrite);
+                                    alreadyFlushed = true;
+                                }
+                                out.writeInt(nextInt);
+                                currentBytesToWrite = 0;
+                            }
+                        }
                     }
+                }
+
+                if (!alreadyFlushed) {
+                    out.write(buf);
                 }
             }
         }
@@ -494,31 +545,58 @@ public class IntSpillableColumn implements SpillableColumn {
     //TODO since spilling has started.
     // Note also that this doesn't protect against someone trying to add, which would be bad (but shouldn't
     // happen since Pig is singlethreaded, excepting the spill manager).
+    //TODO we can also read into a byte buffer records bytes long, and then patch together the bytes ourselves
     @Override
     public void readData(DataInput in, long records) throws IOException {
         boolean isFirst = true;
 
-        while (records > 0) {
+        long increment = 0;
+        long remainingBytes = in.readLong();
+
+        while (remainingBytes > 0) {
             synchronized (values) {
                 if (isFirst) {
                     clear(); //TODO consider throwing an exception if this is not an empty column?
-                    size = records;
                     isFirst = false;
                 }
 
-                int cap = 4000;
-                while (cap > 0 && records > 0) {
-                    byte val = in.readByte();
+                int bytesInBuffer = (int) Math.min(remainingBytes, READ_BYTE_CAP);
+                remainingBytes -= bytesInBuffer;
+                byte[] buf = new byte[bytesInBuffer];
+                in.readFully(buf);
+                ByteBuffer buffer = ByteBuffer.wrap(buf);
+                while (bytesInBuffer > 0) {
+                    byte val = buffer.get();
                     nullStatuses.addLast(val);
-                    cap--;
+                    bytesInBuffer--;
                     for (int i = 0; i < 8; i++) {
                         if (!BytesHelper.getBitByPos(val, i)) {
-                            values.addLast(in.readInt());
-                            cap -= 4;
+                            if (bytesInBuffer >= 4) {
+                                values.addLast(buffer.getInt());
+                                bytesInBuffer -= 4;
+                            } else if (bytesInBuffer == 0) {
+                                values.addLast(in.readInt());
+                            } else {
+                                int temp = 0;
+                                for (int k = 0; k < bytesInBuffer; k++) {
+                                    val |= (buffer.get() & 0xff) << (24 - k * 8);
+                                }
+                                for (int k = bytesInBuffer; k < 4; k++) {
+                                    val |= (in.readByte() & 0xff) << (24 - k * 8);
+                                }
+                                values.addLast(temp);
+                                bytesInBuffer = 0;
+                            }
                         }
+                        increment += 8;
                     }
-                    records -= 8;
                 }
+
+                if (increment > records) {
+                    increment = records;
+                }
+
+                size = increment;
             }
         }
     }
