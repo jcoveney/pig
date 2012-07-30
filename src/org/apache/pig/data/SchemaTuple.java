@@ -112,6 +112,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
                 return set((SchemaTuple<?>)t, false);
             }
         }
+        }
 
         return set(t.getAll());
     }
