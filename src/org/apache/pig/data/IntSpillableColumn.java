@@ -18,6 +18,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.data.utils.BytesHelper;
 
+import com.carrotsearch.hppc.ArraySizingStrategy;
 import com.carrotsearch.hppc.ByteArrayDeque;
 import com.carrotsearch.hppc.IntArrayDeque;
 import com.carrotsearch.hppc.cursors.ByteCursor;
@@ -29,6 +30,17 @@ public class IntSpillableColumn implements SpillableColumn {
     private static final int SPILL_INPUT_BUFFER = 4 * 1024 * 1024;
     private static final int READ_BYTE_CAP = 4 * 1024 * 1024;
     private static final int WRITE_BYTE_CAP = 4 * 1024 * 1024;
+    private static final ArraySizingStrategy dontResizeStrategy = new ArraySizingStrategy() {
+        @Override
+        public int round(int capacity) {
+            return capacity; //no requirements
+        }
+
+        @Override
+        public int grow(int currentBufferLength, int elementsCount, int expectedAdditions) {
+            return 0; //don't grow
+        }
+    };
 
     private final IntArrayDeque values = new IntArrayDeque();
     private final ByteArrayDeque nullStatuses = new ByteArrayDeque();
@@ -182,7 +194,7 @@ public class IntSpillableColumn implements SpillableColumn {
             }
 
             byte byteToSave = 0;
-            IntArrayDeque intsToSave = new IntArrayDeque();
+            IntArrayDeque intsToSave = new IntArrayDeque(8, dontResizeStrategy);
 
             int mod = (int)size & 7;
             if (!currentlyPerformingFinalSpill && mod > 0) {
@@ -194,13 +206,15 @@ public class IntSpillableColumn implements SpillableColumn {
                 }
             }
 
-            while (!nullStatuses.isEmpty()) {
-            	byte value = nullStatuses.removeFirst();
+            Iterator<IntCursor> valuesIterator = values.iterator();
+
+            for (ByteCursor byteContainer : nullStatuses) {
+            	byte value = byteContainer.value;
             	spillInfo.writeByte(value);
             	boolean flush = false;
             	for (int i = 0; i < 8; i++) {
             		if (!BytesHelper.getBitByPos(value, i)) {
-            			spillInfo.writeInt(values.removeFirst());
+            			spillInfo.writeInt(valuesIterator.next().value);
             		}
             		if ((spilled++ & progressEvery) == 0) {
                         reportProgress();
