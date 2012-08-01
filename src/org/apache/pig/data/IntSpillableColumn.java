@@ -12,16 +12,12 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Iterator;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.data.ByteCompactLinkedArray.ByteLink;
 import org.apache.pig.data.IntCompactLinkedArray.IntLink;
 import org.apache.pig.data.utils.BytesHelper;
-
-import com.carrotsearch.hppc.cursors.ByteCursor;
-import com.carrotsearch.hppc.cursors.IntCursor;
 
 //TODO we need to incorporate some sort of nullability strategy. should make it generic?
 public class IntSpillableColumn implements SpillableColumn {
@@ -57,10 +53,10 @@ public class IntSpillableColumn implements SpillableColumn {
         private DataOutputStream nullSpillOutputStream;
         private DataOutputStream valueSpillOutputStream;
         private volatile boolean havePerformedFinalSpill = false;
-        private volatile long safeNullStacksInSpillFile = 0L; //this represents the number of values that can safely be read from the file
-        private volatile long safeValueStacksInSpillFile = 0L; //this represents the number of values that can safely be read from the file
-        private long nullStacksWrittenSinceLastFlush = 0L;
-        private long valueStacksWrittenSinceLastFlush = 0L;
+        private volatile int safeNullStacksInSpillFile = 0; //this represents the number of values that can safely be read from the file
+        private volatile int safeValueStacksInSpillFile = 0; //this represents the number of values that can safely be read from the file
+        private int nullStacksWrittenSinceLastFlush = 0;
+        private int valueStacksWrittenSinceLastFlush = 0;
 
         public File getNullSpillFile() {
             if (nullSpillFile == null) {
@@ -120,7 +116,7 @@ public class IntSpillableColumn implements SpillableColumn {
             nullStacksWrittenSinceLastFlush += incr;
         }
 
-        public long checkSafeNullStacksInSpillFile() {
+        public int checkSafeNullStacksInSpillFile() {
             return safeNullStacksInSpillFile;
         }
 
@@ -128,7 +124,7 @@ public class IntSpillableColumn implements SpillableColumn {
             valueStacksWrittenSinceLastFlush += incr;
         }
 
-        public long checkSafeValueStacksInSpillFile() {
+        public int checkSafeValueStacksInSpillFile() {
             return safeValueStacksInSpillFile;
         }
 
@@ -140,7 +136,7 @@ public class IntSpillableColumn implements SpillableColumn {
                     abort(e);
                 }
                 safeValueStacksInSpillFile += valueStacksWrittenSinceLastFlush;
-                valueStacksWrittenSinceLastFlush = 0L;
+                valueStacksWrittenSinceLastFlush = 0;
             }
             if (nullSpillOutputStream != null) {
                 try {
@@ -149,7 +145,7 @@ public class IntSpillableColumn implements SpillableColumn {
                     abort(e);
                 }
                 safeNullStacksInSpillFile += nullStacksWrittenSinceLastFlush;
-                nullStacksWrittenSinceLastFlush = 0L;
+                nullStacksWrittenSinceLastFlush = 0;
             }
         }
 
@@ -295,6 +291,8 @@ public class IntSpillableColumn implements SpillableColumn {
 		private IntContainer container = new IntContainer();
 		private int nullStacksReadFromFile = 0;
 		private int valueStacksReadFromFile = 0;
+		private int nullBytesReadFromMemory = 0;
+        private int valueBytesReadFromMemory = 0;
 		private ByteLink memoryByteLink;
 		private IntLink memoryIntLink;
         private DataInputStream nullInputStream;
@@ -374,6 +372,8 @@ public class IntSpillableColumn implements SpillableColumn {
 
             byteBuffer = memoryByteLink.buf;
 
+            nullBytesReadFromMemory += 4 + byteBuffer.length;
+
             mod = 1;
             byteBufferPosition = 0;
 
@@ -417,7 +417,7 @@ public class IntSpillableColumn implements SpillableColumn {
 
             int values;
             try {
-                values = nullInputStream.readInt();
+                values = valuesInputStream.readInt();
             } catch (IOException e) {
                 throw new RuntimeException(e); //TODO do more
             }
@@ -444,6 +444,8 @@ public class IntSpillableColumn implements SpillableColumn {
             }
 
             intBuffer = memoryIntLink.buf;
+
+            valueBytesReadFromMemory += 4 + 4 * intBuffer.length;
 
             intBufferPosition = 1;
 
@@ -490,9 +492,16 @@ public class IntSpillableColumn implements SpillableColumn {
         // this exist in Pig... but that doesn't mean I want to introduce
         // a new one.
         public void finish() {
-            if (dis != null) {
+            if (valuesInputStream == null) {
                 try {
-                    dis.close();
+                    valuesInputStream.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e); //TODO do more
+                }
+            }
+            if (nullInputStream == null) {
+                try {
+                    nullInputStream.close();
                 } catch (IOException e) {
                     throw new RuntimeException(e); //TODO do more
                 }
@@ -500,81 +509,29 @@ public class IntSpillableColumn implements SpillableColumn {
         }
 
         private void updateForFinalSpill() {
-            if (dis == null) {
+            if (valuesInputStream == null) {
                 try {
-                    dis = new DataInputStream(new BufferedInputStream(new FileInputStream(spillInfo.getSpillFile()), SPILL_INPUT_BUFFER));
+                    valuesInputStream = new DataInputStream(new BufferedInputStream(new FileInputStream(spillInfo.getValueSpillFile()), SPILL_INPUT_BUFFER));
                 } catch (FileNotFoundException e) {
                     throw new RuntimeException(e); //TODO do more
                 }
             }
-            forceSkip(dis, bytesReadFromMemory);
-            intIterator = null;
-            byteIterator = null;
+            if (nullInputStream == null) {
+                try {
+                    nullInputStream = new DataInputStream(new BufferedInputStream(new FileInputStream(spillInfo.getNullSpillFile()), SPILL_INPUT_BUFFER));
+                } catch (FileNotFoundException e) {
+                    throw new RuntimeException(e); //TODO do more
+                }
+            }
+            forceSkip(nullInputStream, nullBytesReadFromMemory);
+            forceSkip(valuesInputStream, valueBytesReadFromMemory);
+            memoryByteLink = null;
+            memoryIntLink = null;
             haveDetectedFinalSpill = true;
         }
 
         public boolean hasNext() {
             return remaining > 0;
-        }
-
-        private IntContainer readFromFile() {
-            if (dis == null) {
-                try {
-                    dis = new DataInputStream(new BufferedInputStream(new FileInputStream(spillInfo.getSpillFile()), SPILL_INPUT_BUFFER));
-                } catch (FileNotFoundException e) {
-                    throw new RuntimeException(e); //TODO do more
-                }
-            }
-
-        	byte cachedByteVal;
-        	try {
-				cachedByteVal = dis.readByte();
-				bytesReadFromFile++;
-			} catch (IOException e) {
-				throw new RuntimeException(e); //TODO do more
-			}
-        	for (int i = 0; i < 8; i++) {
-        		boolean val = BytesHelper.getBitByPos(cachedByteVal, i);
-        		containers[i].isNull = val;
-        		if (!val) {
-        			try {
-						containers[i].value = dis.readInt();
-						bytesReadFromFile += 4;
-					} catch (IOException e) {
-						throw new RuntimeException(e); //TODO do more
-					}
-        		}
-            }
-        	remainingInContainer = 1;
-
-            return containers[0];
-        }
-
-        /**
-         * This assumes that a lock is held and is NOT thread safe!
-         * @return
-         */
-        //TODO buffer this as well, and the reading from file can be updated as well
-        private IntContainer readFromMemory() {
-        	if (byteIterator == null) {
-        		byteIterator = nullStatuses.iterator();
-        	}
-            if (intIterator == null) {
-                intIterator = values.iterator();
-            }
-            byte cachedByteVal = byteIterator.next().value;
-            bytesReadFromMemory++;
-            for (int i = 0; i < 8; i++) {
-                boolean val = BytesHelper.getBitByPos(cachedByteVal, i);
-                containers[i].isNull = val;
-                if (!val) {
-                    containers[i].value = intIterator.next().value;
-                    bytesReadFromMemory += 4;
-                }
-            }
-            remainingInContainer = 1;
-
-            return containers[0];
         }
 
         @Override
@@ -606,19 +563,9 @@ public class IntSpillableColumn implements SpillableColumn {
         synchronized (values) {
             haveStartedIterating = true;
 
-            long memoryBytes = values.size() * 4 + nullStatuses.size();
-            long bytesToWrite = memoryBytes;
-
-
-            File spillFile = null;
+            File spillFile = spillInfo.getNullSpillFile();
             if (spillInfo != null) {
-                spillFile = spillInfo.getSpillFile();
-                bytesToWrite += spillFile.length();
-            }
-
-            out.writeLong(bytesToWrite);
-
-            if (spillFile != null) {
+                out.writeInt(spillInfo.checkSafeNullStacksInSpillFile());
                 DataInputStream in = new DataInputStream(new FileInputStream(spillFile));
                 byte[] buf = new byte[SPILL_INPUT_BUFFER]; //TODO tune this? make it settable?
                 int read;
@@ -626,50 +573,30 @@ public class IntSpillableColumn implements SpillableColumn {
                     out.write(buf, 0, read);
                 }
                 in.close();
+            } else {
+                out.writeLong(0L);
             }
 
-            Iterator<IntCursor> valuesIterator = values.iterator();
-            Iterator<ByteCursor> nullsIterator = nullStatuses.iterator();
+            if (!spillInfo.checkIfHavePerformedFinalSpill()) {
+                nullStatuses.writeAll(out);
+            }
 
-            while (memoryBytes > 0) {
-                int currentBytesToWrite = (int)Math.min(memoryBytes, WRITE_BYTE_CAP);
-                byte[] buf = new byte[currentBytesToWrite];
-                ByteBuffer buffer = ByteBuffer.wrap(buf);
-                memoryBytes -= currentBytesToWrite;
-
-                boolean alreadyFlushed = false;
-                while (currentBytesToWrite > 0) {
-                    byte value = nullsIterator.next().value;
-                    buffer.put(value);
-                    currentBytesToWrite--;
-                    for (int i = 0; i < 8; i++) {
-                        if (!BytesHelper.getBitByPos(value, i)) {
-                            int nextInt = valuesIterator.next().value;
-
-                            if (currentBytesToWrite >= 4) {
-                                buffer.putInt(nextInt);
-                                currentBytesToWrite -= 4;
-                            } else if (currentBytesToWrite == 0) {
-                                if (!alreadyFlushed) {
-                                    out.write(buf);
-                                    alreadyFlushed = true;
-                                }
-                                out.writeInt(nextInt);
-                            } else {
-                                if (!alreadyFlushed) {
-                                    out.write(buf, 0, buf.length - currentBytesToWrite);
-                                    alreadyFlushed = true;
-                                }
-                                out.writeInt(nextInt);
-                                currentBytesToWrite = 0;
-                            }
-                        }
-                    }
+            spillFile = spillInfo.getValueSpillFile();
+            if (spillInfo != null) {
+                out.writeInt(spillInfo.checkSafeValueStacksInSpillFile());
+                DataInputStream in = new DataInputStream(new FileInputStream(spillFile));
+                byte[] buf = new byte[SPILL_INPUT_BUFFER]; //TODO tune this? make it settable?
+                int read;
+                while ((read = in.read(buf)) != -1) {
+                    out.write(buf, 0, read);
                 }
+                in.close();
+            } else {
+                out.writeLong(0L);
+            }
 
-                if (!alreadyFlushed) {
-                    out.write(buf);
-                }
+            if (!spillInfo.checkIfHavePerformedFinalSpill()) {
+                values.writeAll(out);
             }
         }
     }
