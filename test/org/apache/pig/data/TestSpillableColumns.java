@@ -396,7 +396,90 @@ public class TestSpillableColumns {
     }
 
     @Test
-    public void testIntSpillableColumnSerDeNoNulls() throws Exception {
+    public void testIntSpillableColumnSerDeSpillNoNulls() throws Exception {
+        IntSpillableColumn intSpillable = new IntSpillableColumn();
+        long total = 0;
+        int records = 20000;
+        for (int i = 0; i < (records >> 2); i++) {
+            intSpillable.add(i, false);
+            total += i;
+        }
+        intSpillable.spill();
+        for (int i = (records >> 2); i < records; i++) {
+            intSpillable.add(i, false);
+            total += i;
+        }
+
+        File f = File.createTempFile("tmp", "tmp");
+        DataOutputStream out = new DataOutputStream(new FileOutputStream(f));
+
+        intSpillable.writeData(out);
+        out.close();
+
+        DataInputStream in = new DataInputStream(new FileInputStream(f));
+        IntSpillableColumn intSpillable2 = new IntSpillableColumn();
+        intSpillable2.readData(in, records);
+        in.close();
+        f.delete();
+
+        assertEquals(intSpillable.size(), intSpillable2.size());
+
+        IntIterator it = (IntIterator)intSpillable2.iterator();
+
+        while (it.hasNext()) {
+            total -= it.next().value;
+        }
+
+        assertEquals(0L, total);
+    }
+
+    @Test
+    public void testIntSpillableColumnSerDeSpillWithNulls() throws Exception {
+        IntSpillableColumn intSpillable = new IntSpillableColumn();
+        long total = 0;
+        int records = 20000;
+        for (int i = 0; i < (records>>2); i++) {
+            boolean isNull = i % 3 == 0;
+            intSpillable.add(i, isNull);
+            if (!isNull) {
+                total += i;
+            }
+        }
+        intSpillable.spill();
+        for (int i = (records >> 2); i < records; i++) {
+            boolean isNull = i % 3 == 0;
+            intSpillable.add(i, isNull);
+            if (!isNull) {
+                total += i;
+            }
+        }
+
+        File f = File.createTempFile("tmp", "tmp");
+        DataOutputStream out = new DataOutputStream(new FileOutputStream(f));
+
+        intSpillable.writeData(out);
+        out.close();
+
+        DataInputStream in = new DataInputStream(new FileInputStream(f));
+        IntSpillableColumn intSpillable2 = new IntSpillableColumn();
+        intSpillable2.readData(in, records);
+
+        assertEquals(intSpillable.size(), intSpillable2.size());
+
+        IntIterator it = (IntIterator)intSpillable2.iterator();
+
+        while (it.hasNext()) {
+            IntContainer cont = it.next();
+            if (!cont.isNull) {
+                total -= cont.value;
+            }
+        }
+
+        assertEquals(0L, total);
+    }
+
+    @Test
+    public void testIntSpillableColumnSerDeSpillNoSpillNoNulls() throws Exception {
         IntSpillableColumn intSpillable = new IntSpillableColumn();
         long total = 0;
         int records = 1000;
@@ -429,10 +512,10 @@ public class TestSpillableColumns {
     }
 
     @Test
-    public void testIntSpillableColumnSerDeWithNulls() throws Exception {
+    public void testIntSpillableColumnSerDeNoSpillWithNulls() throws Exception {
         IntSpillableColumn intSpillable = new IntSpillableColumn();
         long total = 0;
-        int records = 1000;
+        int records = 10000;
         for (int i = 0; i < records; i++) {
             boolean isNull = i % 3 == 0;
             intSpillable.add(i, isNull);

@@ -11,7 +11,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -214,20 +213,24 @@ public class IntSpillableColumn implements SpillableColumn {
             DataOutput nullOut = spillInfo.getNullOutputStream();
             DataOutput valueOut = spillInfo.getValueOutputStream();
 
-            int nullStacksSpilled = nullStatuses.spill(nullOut);
-            int valueStacksSpilled = values.spill(valueOut);
+            try {
+                int nullStacksSpilled = nullStatuses.spill(nullOut);
+                int valueStacksSpilled = values.spill(valueOut);
 
-            // once we have started iterating, this spill will be the last
-            // spill to disk, as there can be no new additions
-            if (currentlyPerformingFinalSpill) {
-                nullStacksSpilled += nullStatuses.finalSpill(nullOut);
-                valueStacksSpilled += values.finalSpill(valueOut);
+                // once we have started iterating, this spill will be the last
+                // spill to disk, as there can be no new additions
+                if (currentlyPerformingFinalSpill) {
+                    nullStacksSpilled += nullStatuses.finalSpill(nullOut);
+                    valueStacksSpilled += values.finalSpill(valueOut);
 
-                spillInfo.havePerformedFinalSpill();
+                    spillInfo.havePerformedFinalSpill();
+                }
+
+                spillInfo.incrementNullStacksInSpillFile(nullStacksSpilled);
+                spillInfo.incrementValueStacksInSpillFile(valueStacksSpilled);
+            } catch (IOException e) {
+                throw new RuntimeException(e);//TODO do more
             }
-
-            spillInfo.incrementNullStacksInSpillFile(nullStacksSpilled);
-            spillInfo.incrementValueStacksInSpillFile(valueStacksSpilled);
 
             spillInfo.flushOutputStream();
         }
@@ -304,9 +307,9 @@ public class IntSpillableColumn implements SpillableColumn {
 
         public boolean nextIsNull() {
             if (byteBufferPosition < byteBuffer.length) {
-                boolean val = BytesHelper.getBitByPos(byteBuffer[byteBufferPosition++], mod);
+                boolean val = BytesHelper.getBitByPos(byteBuffer[byteBufferPosition], mod++);
 
-                if (++mod == 8) {
+                if (mod == 8) {
                     mod = 0;
                     byteBufferPosition++;
                 }
@@ -492,14 +495,14 @@ public class IntSpillableColumn implements SpillableColumn {
         // this exist in Pig... but that doesn't mean I want to introduce
         // a new one.
         public void finish() {
-            if (valuesInputStream == null) {
+            if (valuesInputStream != null) {
                 try {
                     valuesInputStream.close();
                 } catch (IOException e) {
                     throw new RuntimeException(e); //TODO do more
                 }
             }
-            if (nullInputStream == null) {
+            if (nullInputStream != null) {
                 try {
                     nullInputStream.close();
                 } catch (IOException e) {
@@ -563,41 +566,44 @@ public class IntSpillableColumn implements SpillableColumn {
         synchronized (values) {
             haveStartedIterating = true;
 
-            File spillFile = spillInfo.getNullSpillFile();
             if (spillInfo != null) {
-                out.writeInt(spillInfo.checkSafeNullStacksInSpillFile());
-                DataInputStream in = new DataInputStream(new FileInputStream(spillFile));
+                DataInputStream in = new DataInputStream(new FileInputStream(spillInfo.getNullSpillFile()));
                 byte[] buf = new byte[SPILL_INPUT_BUFFER]; //TODO tune this? make it settable?
                 int read;
                 while ((read = in.read(buf)) != -1) {
                     out.write(buf, 0, read);
                 }
                 in.close();
-            } else {
-                out.writeLong(0L);
-            }
+                if (!spillInfo.checkIfHavePerformedFinalSpill()) {
+                    nullStatuses.writeAll(out); //writes the remainder, will have a -1 length at the end
+                }
 
-            if (!spillInfo.checkIfHavePerformedFinalSpill()) {
-                nullStatuses.writeAll(out);
-            }
-
-            spillFile = spillInfo.getValueSpillFile();
-            if (spillInfo != null) {
-                out.writeInt(spillInfo.checkSafeValueStacksInSpillFile());
-                DataInputStream in = new DataInputStream(new FileInputStream(spillFile));
-                byte[] buf = new byte[SPILL_INPUT_BUFFER]; //TODO tune this? make it settable?
-                int read;
+                in = new DataInputStream(new FileInputStream(spillInfo.getValueSpillFile()));
+                buf = new byte[SPILL_INPUT_BUFFER]; //TODO tune this? make it settable?
                 while ((read = in.read(buf)) != -1) {
                     out.write(buf, 0, read);
                 }
                 in.close();
+                if (!spillInfo.checkIfHavePerformedFinalSpill()) {
+                    values.writeAll(out); //writes the remainder, will have a -1 length at the end
+                }
             } else {
-                out.writeLong(0L);
+                nullStatuses.writeAll(out); //writes the remainder, will have a -1 length at the end
+                values.writeAll(out); //writes the remainder, will have a -1 length at the end
             }
+        }
+    }
 
-            if (!spillInfo.checkIfHavePerformedFinalSpill()) {
-                values.writeAll(out);
-            }
+    public void readData(DataInput in, long records) throws IOException {
+        synchronized (values) {
+            clear();
+
+            nullStatuses.readAll(in);
+            values.readAll(in);
+
+            haveStartedIterating = true;
+            size = records;
+
         }
     }
 
@@ -608,7 +614,7 @@ public class IntSpillableColumn implements SpillableColumn {
     // Note also that this doesn't protect against someone trying to add, which would be bad (but shouldn't
     // happen since Pig is singlethreaded, excepting the spill manager).
     //TODO we can also read into a byte buffer records bytes long, and then patch together the bytes ourselves
-    @Override
+    /*@Override
     public void readData(DataInput in, long records) throws IOException {
         boolean isFirst = true;
 
@@ -661,7 +667,7 @@ public class IntSpillableColumn implements SpillableColumn {
                 size = increment;
             }
         }
-    }
+    }*/
 
     @Override
     public void getFromPosition(Tuple t, int i) throws ExecException {
