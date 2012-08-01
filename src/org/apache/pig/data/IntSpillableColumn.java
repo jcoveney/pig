@@ -16,11 +16,10 @@ import java.util.Iterator;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.data.ByteCompactLinkedArray.ByteLink;
+import org.apache.pig.data.IntCompactLinkedArray.IntLink;
 import org.apache.pig.data.utils.BytesHelper;
 
-import com.carrotsearch.hppc.ArraySizingStrategy;
-import com.carrotsearch.hppc.ByteArrayDeque;
-import com.carrotsearch.hppc.IntArrayDeque;
 import com.carrotsearch.hppc.cursors.ByteCursor;
 import com.carrotsearch.hppc.cursors.IntCursor;
 
@@ -30,20 +29,14 @@ public class IntSpillableColumn implements SpillableColumn {
     private static final int SPILL_INPUT_BUFFER = 4 * 1024 * 1024;
     private static final int READ_BYTE_CAP = 4 * 1024 * 1024;
     private static final int WRITE_BYTE_CAP = 4 * 1024 * 1024;
-    private static final ArraySizingStrategy dontResizeStrategy = new ArraySizingStrategy() {
-        @Override
-        public int round(int capacity) {
-            return capacity; //no requirements
-        }
 
-        @Override
-        public int grow(int currentBufferLength, int elementsCount, int expectedAdditions) {
-            return 0; //don't grow
-        }
-    };
+    private static final int VALUES_PER_LINK = 1000;
 
-    private final IntArrayDeque values = new IntArrayDeque();
-    private final ByteArrayDeque nullStatuses = new ByteArrayDeque();
+    private final IntCompactLinkedArray values = new IntCompactLinkedArray(VALUES_PER_LINK);
+    private final ByteCompactLinkedArray nullStatuses = new ByteCompactLinkedArray(VALUES_PER_LINK);
+
+    //private final IntArrayDeque values = new IntArrayDeque();
+    //private final ByteArrayDeque nullStatuses = new ByteArrayDeque();
     private volatile EncapsulatedSpillInformation spillInfo;
 
     //TODO the size and count could be pushed into the parent, since that should be parallel
@@ -59,54 +52,60 @@ public class IntSpillableColumn implements SpillableColumn {
     }
 
     private class EncapsulatedSpillInformation {
-        private File spillFile;
-        private DataOutputStream spillOutputStream;
+        private File nullSpillFile;
+        private File valueSpillFile;
+        private DataOutputStream nullSpillOutputStream;
+        private DataOutputStream valueSpillOutputStream;
         private volatile boolean havePerformedFinalSpill = false;
-        private volatile long bytesSafeToReadFromSpillFile = 0L; //this represents the number of values that can safely be read from the file
-        private long bytesWrittenSinceLastFlush = 0L;
+        private volatile long safeNullStacksInSpillFile = 0L; //this represents the number of values that can safely be read from the file
+        private volatile long safeValueStacksInSpillFile = 0L; //this represents the number of values that can safely be read from the file
+        private long nullStacksWrittenSinceLastFlush = 0L;
+        private long valueStacksWrittenSinceLastFlush = 0L;
 
-        public File getSpillFile() {
-            if (spillFile == null) {
+        public File getNullSpillFile() {
+            if (nullSpillFile == null) {
                 try {
-                    spillFile = File.createTempFile("pig", "bag");
+                    nullSpillFile = File.createTempFile("pig", "bag");
                 } catch (IOException e) {
                     throw new RuntimeException(e); //TODO do more
                 }
-                spillFile.deleteOnExit();
+                nullSpillFile.deleteOnExit();
             }
-            return spillFile;
+            return nullSpillFile;
         }
 
-		public void writeByte(byte v) {
-			if (spillOutputStream == null) {
+        public DataOutputStream getNullOutputStream() {
+            if (nullSpillOutputStream == null) {
                 try {
-                    spillOutputStream = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(getSpillFile(), true), SPILL_OUTPUT_BUFFER));
+                    nullSpillOutputStream = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(getNullSpillFile(), true), SPILL_OUTPUT_BUFFER));
                 } catch (FileNotFoundException e) {
                     abort(e); //TODO do more
                 }
             }
-            try {
-                spillOutputStream.writeByte(v);
-            } catch (IOException e) {
-                abort(e); //TODO do more
-            }
-            bytesWrittenSinceLastFlush++;
-		}
+            return nullSpillOutputStream;
+        }
 
-        public void writeInt(int v) {
-            if (spillOutputStream == null) {
+        public DataOutputStream getValueOutputStream() {
+            if (valueSpillOutputStream == null) {
                 try {
-                    spillOutputStream = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(getSpillFile(), true), SPILL_OUTPUT_BUFFER));
+                    valueSpillOutputStream = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(getValueSpillFile(), true), SPILL_OUTPUT_BUFFER));
                 } catch (FileNotFoundException e) {
                     abort(e); //TODO do more
                 }
             }
-            try {
-                spillOutputStream.writeInt(v);
-            } catch (IOException e) {
-                abort(e); //TODO do more
+            return valueSpillOutputStream;
+        }
+
+        public File getValueSpillFile() {
+            if (valueSpillFile == null) {
+                try {
+                    valueSpillFile = File.createTempFile("pig", "bag");
+                } catch (IOException e) {
+                    throw new RuntimeException(e); //TODO do more
+                }
+                valueSpillFile.deleteOnExit();
             }
-            bytesWrittenSinceLastFlush += 4;
+            return valueSpillFile;
         }
 
         public boolean checkIfHavePerformedFinalSpill() {
@@ -117,29 +116,60 @@ public class IntSpillableColumn implements SpillableColumn {
             havePerformedFinalSpill = true;
         }
 
-        public long checkBytesSafeToReadFromSpillFile() {
-            return bytesSafeToReadFromSpillFile;
+        public void incrementNullStacksInSpillFile(long incr) {
+            nullStacksWrittenSinceLastFlush += incr;
+        }
+
+        public long checkSafeNullStacksInSpillFile() {
+            return safeNullStacksInSpillFile;
+        }
+
+        public void incrementValueStacksInSpillFile(long incr) {
+            valueStacksWrittenSinceLastFlush += incr;
+        }
+
+        public long checkSafeValueStacksInSpillFile() {
+            return safeValueStacksInSpillFile;
         }
 
         public void flushOutputStream() {
-            if (spillOutputStream != null) {
+            if (valueSpillOutputStream != null) {
                 try {
-                    spillOutputStream.flush();
+                    valueSpillOutputStream.flush();
                 } catch (IOException e) {
                     abort(e);
                 }
-                bytesSafeToReadFromSpillFile += bytesWrittenSinceLastFlush;
-                bytesWrittenSinceLastFlush = 0L;
+                safeValueStacksInSpillFile += valueStacksWrittenSinceLastFlush;
+                valueStacksWrittenSinceLastFlush = 0L;
+            }
+            if (nullSpillOutputStream != null) {
+                try {
+                    nullSpillOutputStream.flush();
+                } catch (IOException e) {
+                    abort(e);
+                }
+                safeNullStacksInSpillFile += nullStacksWrittenSinceLastFlush;
+                nullStacksWrittenSinceLastFlush = 0L;
             }
         }
 
         public void clear() {
             try {
-                spillOutputStream.close();
+                if (nullSpillOutputStream != null) {
+                    nullSpillOutputStream.close();
+                }
+                if (valueSpillOutputStream != null) {
+                    valueSpillOutputStream.close();
+                }
             } catch (IOException e) {
                 abort(e);
             }
-            spillFile.delete();
+            if (nullSpillFile != null) {
+                nullSpillFile.delete();
+            }
+            if (valueSpillFile != null) {
+                valueSpillFile.delete();
+            }
         }
     }
 
@@ -156,18 +186,10 @@ public class IntSpillableColumn implements SpillableColumn {
     		throw new RuntimeException("Cannot write to a Bag once iteration has begun");
     	}
         synchronized (values) {
+            nullStatuses.add(isNull);
         	if (!isNull) {
-        		values.addLast(v);
+        	    values.add(v);
         	}
-        	int mod = (int)size & 7;
-        	byte lastNullStatusByte;
-        	if (mod == 0) {
-        		lastNullStatusByte = (byte)0xFF;
-        	} else {
-        		lastNullStatusByte = nullStatuses.removeLast();
-        	}
-        	lastNullStatusByte = BytesHelper.setBitByPos(lastNullStatusByte, isNull, mod);
-        	nullStatuses.addLast(lastNullStatusByte);
             size++;
         }
     }
@@ -193,56 +215,23 @@ public class IntSpillableColumn implements SpillableColumn {
                 currentlyPerformingFinalSpill = true;
             }
 
-            byte byteToSave = 0;
-            IntArrayDeque intsToSave = new IntArrayDeque(8, dontResizeStrategy);
+            DataOutput nullOut = spillInfo.getNullOutputStream();
+            DataOutput valueOut = spillInfo.getValueOutputStream();
 
-            int mod = (int)size & 7;
-            if (!currentlyPerformingFinalSpill && mod > 0) {
-                byteToSave = nullStatuses.removeLast();
-                for (int i = mod - 1; i >= 0; i--) {
-                    if (!BytesHelper.getBitByPos(byteToSave, i)) {
-                        intsToSave.addFirst(values.removeLast());
-                    }
-                }
-            }
-
-            Iterator<IntCursor> valuesIterator = values.iterator();
-
-            for (ByteCursor byteContainer : nullStatuses) {
-            	byte value = byteContainer.value;
-            	spillInfo.writeByte(value);
-            	boolean flush = false;
-            	for (int i = 0; i < 8; i++) {
-            		if (!BytesHelper.getBitByPos(value, i)) {
-            			spillInfo.writeInt(valuesIterator.next().value);
-            		}
-            		if ((spilled++ & progressEvery) == 0) {
-                        reportProgress();
-                    }
-            		if (!currentlyPerformingFinalSpill && (spilled & flushEvery) == 0) {
-                        flush = true;
-                    }
-            	}
-        		if (flush) {
-        			spillInfo.flushOutputStream();
-        		}
-            }
-
-            nullStatuses.clear();
-            values.clear();
-
-            if (!currentlyPerformingFinalSpill && mod > 0) {
-                nullStatuses.addFirst(byteToSave);
-                for (IntCursor cursor : intsToSave) {
-                    values.addLast(cursor.value);
-                }
-            }
+            int nullStacksSpilled = nullStatuses.spill(nullOut);
+            int valueStacksSpilled = values.spill(valueOut);
 
             // once we have started iterating, this spill will be the last
             // spill to disk, as there can be no new additions
-            if (haveStartedIterating) {
-            	spillInfo.havePerformedFinalSpill();
+            if (currentlyPerformingFinalSpill) {
+                nullStacksSpilled += nullStatuses.finalSpill(nullOut);
+                valueStacksSpilled += values.finalSpill(valueOut);
+
+                spillInfo.havePerformedFinalSpill();
             }
+
+            spillInfo.incrementNullStacksInSpillFile(nullStacksSpilled);
+            spillInfo.incrementValueStacksInSpillFile(valueStacksSpilled);
 
             spillInfo.flushOutputStream();
         }
@@ -251,8 +240,7 @@ public class IntSpillableColumn implements SpillableColumn {
 
     @Override
     public long getMemorySize() {
-        int sz = values.size();
-        return sz * 4 + ( sz % 2 == 0 ? 0 : 4); //TODO include new fields, esp. the booleans
+        return values.getMemorySize() + nullStatuses.getMemorySize(); //TODO need to take into account the members
     }
 
     @Override
@@ -261,7 +249,8 @@ public class IntSpillableColumn implements SpillableColumn {
             spillInfo.clear();
             spillInfo = null;
         }
-        values.clear();
+        values.reset();
+        nullStatuses.reset();
         size = 0;
         haveStartedIterating = false;
     }
@@ -296,20 +285,169 @@ public class IntSpillableColumn implements SpillableColumn {
 
     final public class IntIterator extends SpillableColumnIterator {
         private long remaining;
-        private DataInputStream dis;
-        private Iterator<IntCursor> intIterator;
-        private Iterator<ByteCursor> byteIterator;
 		private boolean haveDetectedFinalSpill = false;
-		private final IntContainer[] containers = new IntContainer[8];
-		private int remainingInContainer = 8;
-		private long bytesReadFromFile = 0;
-		private long bytesReadFromMemory = 0;
+
+		private int[] intBuffer = new int[0];
+		private byte[] byteBuffer = new byte[0];
+		private int intBufferPosition = 0;
+		private int byteBufferPosition = 0;
+		private int mod = 0;
+		private IntContainer container = new IntContainer();
+		private int nullStacksReadFromFile = 0;
+		private int valueStacksReadFromFile = 0;
+		private ByteLink memoryByteLink;
+		private IntLink memoryIntLink;
+        private DataInputStream nullInputStream;
+        private DataInputStream valuesInputStream;
 
         private IntIterator() {
             remaining = size;
-        	for (int i = 0; i < 8; i++) {
-				containers[i] = new IntContainer();
-			}
+        }
+
+        public boolean nextIsNull() {
+            if (byteBufferPosition < byteBuffer.length) {
+                boolean val = BytesHelper.getBitByPos(byteBuffer[byteBufferPosition++], mod);
+
+                if (++mod == 8) {
+                    mod = 0;
+                    byteBufferPosition++;
+                }
+
+                return val;
+            }
+
+            if (haveDetectedFinalSpill) {
+                return fillNullBytesFromFile();
+            } else if (spillInfo != null && nullStacksReadFromFile < spillInfo.checkSafeNullStacksInSpillFile()) {
+                if (memoryByteLink != null) {
+                    updateForFinalSpill();
+                }
+                return fillNullBytesFromFile();
+            } else if (spillInfo != null && spillInfo.checkIfHavePerformedFinalSpill()) {
+                updateForFinalSpill();
+                return fillNullBytesFromFile();
+            } else {
+                synchronized (values) {
+                    if (!(spillInfo != null && spillInfo.checkIfHavePerformedFinalSpill())) {
+                        return fillNullBytesFromMemory();
+                    }
+                }
+                updateForFinalSpill();
+                return fillNullBytesFromFile();
+            }
+        }
+
+        public boolean fillNullBytesFromFile() {
+            if (nullInputStream == null) {
+                try {
+                    nullInputStream = new DataInputStream(new BufferedInputStream(new FileInputStream(spillInfo.getNullSpillFile()), SPILL_INPUT_BUFFER));
+                } catch (FileNotFoundException e) {
+                    throw new RuntimeException(e); //TODO do more
+                }
+            }
+
+            int values;
+            try {
+                values = nullInputStream.readInt();
+            } catch (IOException e) {
+                throw new RuntimeException(e); //TODO do more
+            }
+            byteBuffer = new byte[values];
+            try {
+                nullInputStream.readFully(byteBuffer);
+            } catch (IOException e) {
+                throw new RuntimeException(e); //TODO do more
+            }
+            nullStacksReadFromFile++;
+            mod = 1;
+            byteBufferPosition = 0;
+
+            return BytesHelper.getBitByPos(byteBuffer[0], 0);
+        }
+
+        public boolean fillNullBytesFromMemory() {
+            if (memoryByteLink == null) {
+                memoryByteLink = nullStatuses.first;
+            } else {
+                memoryByteLink = memoryByteLink.next;
+            }
+
+            byteBuffer = memoryByteLink.buf;
+
+            mod = 1;
+            byteBufferPosition = 0;
+
+            return BytesHelper.getBitByPos(byteBuffer[0], 0);
+        }
+
+        public int nextValue() {
+            if (intBufferPosition < intBuffer.length) {
+                return intBuffer[intBufferPosition++];
+            }
+
+            if (haveDetectedFinalSpill) {
+                return fillValuesFromFile();
+            } else if (spillInfo != null && valueStacksReadFromFile < spillInfo.checkSafeValueStacksInSpillFile()) {
+                if (memoryIntLink != null) {
+                    updateForFinalSpill();
+                }
+                return fillValuesFromFile();
+            } else if (spillInfo != null && spillInfo.checkIfHavePerformedFinalSpill()) {
+                updateForFinalSpill();
+                return fillValuesFromFile();
+            } else {
+                synchronized (values) {
+                    if (!(spillInfo != null && spillInfo.checkIfHavePerformedFinalSpill())) {
+                        return fillValuesFromMemory();
+                    }
+                }
+                updateForFinalSpill();
+                return fillValuesFromFile();
+            }
+        }
+
+        public int fillValuesFromFile() {
+            if (valuesInputStream == null) {
+                try {
+                    valuesInputStream = new DataInputStream(new BufferedInputStream(new FileInputStream(spillInfo.getValueSpillFile()), SPILL_INPUT_BUFFER));
+                } catch (FileNotFoundException e) {
+                    throw new RuntimeException(e); //TODO do more
+                }
+            }
+
+            int values;
+            try {
+                values = nullInputStream.readInt();
+            } catch (IOException e) {
+                throw new RuntimeException(e); //TODO do more
+            }
+            intBuffer = new int[values];
+            for (int i = 0; i < intBuffer.length; i++) {
+                try {
+                    intBuffer[i] = valuesInputStream.readInt();
+                } catch (IOException e) {
+                    throw new RuntimeException(e); //TODO do more
+                }
+            }
+            valueStacksReadFromFile++;
+            intBufferPosition = 1;
+
+            return intBuffer[0];
+        }
+
+        //Note that this will keep returning values for the last array, so it's important that they call hasNext to not go over
+        public int fillValuesFromMemory() {
+            if (memoryIntLink == null) {
+                memoryIntLink = values.first;
+            } else {
+                memoryIntLink = memoryIntLink.next;
+            }
+
+            intBuffer = memoryIntLink.buf;
+
+            intBufferPosition = 1;
+
+            return intBuffer[0];
         }
 
         public IntContainer next() {
@@ -317,30 +455,13 @@ public class IntSpillableColumn implements SpillableColumn {
                 reportProgress();
             }
 
-            if (remainingInContainer < 8) {
-            	IntContainer retVal = containers[remainingInContainer++];
-            	return retVal;
+            boolean isNull = nextIsNull();
+            container.isNull = isNull;
+            if (!isNull) {
+                container.value = nextValue();
             }
 
-            if (haveDetectedFinalSpill) {
-                return readFromFile();
-            } else if (spillInfo != null && bytesReadFromFile < spillInfo.checkBytesSafeToReadFromSpillFile()) {
-                if (bytesReadFromMemory > 0) {
-                    updateForFinalSpill();
-                }
-            	return readFromFile();
-            } else if (spillInfo != null && spillInfo.checkIfHavePerformedFinalSpill()) {
-                updateForFinalSpill();
-                return readFromFile();
-            } else {
-                synchronized (values) {
-                    if (!(spillInfo != null && spillInfo.checkIfHavePerformedFinalSpill())) {
-                        return readFromMemory();
-                    }
-                }
-                updateForFinalSpill();
-                return readFromFile();
-            }
+            return container;
         }
 
         private void forceSkip(DataInputStream dis, long toSkip) {
