@@ -49,6 +49,7 @@ public class IntCompactLinkedArray {
                 out.writeInt(buf[i]);
             }
             iter = iter.next;
+            first = iter; //want to orphan the values as we go along so GC could happen if necessary
         }
         first = last;
         int stackCt = stacks - 1;
