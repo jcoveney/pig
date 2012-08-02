@@ -36,7 +36,7 @@ public class IntSpillableColumn implements SpillableColumn {
     //would complicate things, but would be more efficient. Then again, the savings compared to even a couple
     //of tuples is immense, so... just need to benchmark
     //TODO many of these may not need to be volatile as synchronizing should flush as well
-    private volatile long size = 0;
+    private long size = 0;
     private volatile boolean haveStartedIterating = false;
 
     public void abort(Exception e) {
@@ -603,68 +603,6 @@ public class IntSpillableColumn implements SpillableColumn {
 
         }
     }
-
-    // Note that this opens up the synchronization every 1000 or so records to let
-    // the spill manager spill it if necessary.
-    //TODO We could then optionally decide to just write directly to the file instead,
-    //TODO since spilling has started.
-    // Note also that this doesn't protect against someone trying to add, which would be bad (but shouldn't
-    // happen since Pig is singlethreaded, excepting the spill manager).
-    //TODO we can also read into a byte buffer records bytes long, and then patch together the bytes ourselves
-    /*@Override
-    public void readData(DataInput in, long records) throws IOException {
-        boolean isFirst = true;
-
-        long increment = 0;
-        long remainingBytes = in.readLong();
-
-        while (remainingBytes > 0) {
-            synchronized (values) {
-                if (isFirst) {
-                    clear(); //TODO consider throwing an exception if this is not an empty column?
-                    isFirst = false;
-                }
-
-                int bytesInBuffer = (int) Math.min(remainingBytes, READ_BYTE_CAP);
-                remainingBytes -= bytesInBuffer;
-                byte[] buf = new byte[bytesInBuffer];
-                in.readFully(buf);
-                ByteBuffer buffer = ByteBuffer.wrap(buf);
-                while (bytesInBuffer > 0) {
-                    byte val = buffer.get();
-                    nullStatuses.addLast(val);
-                    bytesInBuffer--;
-                    for (int i = 0; i < 8; i++) {
-                        if (!BytesHelper.getBitByPos(val, i)) {
-                            if (bytesInBuffer >= 4) {
-                                values.addLast(buffer.getInt());
-                                bytesInBuffer -= 4;
-                            } else if (bytesInBuffer == 0) {
-                                values.addLast(in.readInt());
-                            } else {
-                                int temp = 0;
-                                for (int k = 0; k < bytesInBuffer; k++) {
-                                    val |= (buffer.get() & 0xff) << (24 - k * 8);
-                                }
-                                for (int k = bytesInBuffer; k < 4; k++) {
-                                    val |= (in.readByte() & 0xff) << (24 - k * 8);
-                                }
-                                values.addLast(temp);
-                                bytesInBuffer = 0;
-                            }
-                        }
-                        increment += 8;
-                    }
-                }
-
-                if (increment > records) {
-                    increment = records;
-                }
-
-                size = increment;
-            }
-        }
-    }*/
 
     @Override
     public void getFromPosition(Tuple t, int i) throws ExecException {
