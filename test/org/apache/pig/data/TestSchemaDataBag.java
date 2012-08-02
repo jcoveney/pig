@@ -109,7 +109,7 @@ public class TestSchemaDataBag {
         Random r = new Random(100L);
         Set<Tuple> tuples = Sets.newHashSet();
 
-        for (int i = 0; i < 1; i++) {
+        for (int i = 0; i < 10000; i++) {
             Tuple t = mTupleFactory.newTuple(udfSchema.size());
             for (int j = 0; j < udfSchema.size(); j++) {
                 t.set(j, Integer.valueOf(r.nextInt()));
@@ -117,6 +117,19 @@ public class TestSchemaDataBag {
             sdb.add(t);
             tuples.add(t);
         }
+
+        sdb.spill();
+
+        for (int i = 10000; i < 20000; i++) {
+            Tuple t = mTupleFactory.newTuple(udfSchema.size());
+            for (int j = 0; j < udfSchema.size(); j++) {
+                t.set(j, Integer.valueOf(r.nextInt()));
+            }
+            sdb.add(t);
+            tuples.add(t);
+        }
+
+
 
         File f = File.createTempFile("tmp","tmp");
         f.deleteOnExit();

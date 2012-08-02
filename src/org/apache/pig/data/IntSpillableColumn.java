@@ -22,8 +22,6 @@ import org.apache.pig.data.utils.BytesHelper;
 public class IntSpillableColumn implements SpillableColumn {
     private static final int SPILL_OUTPUT_BUFFER = 4 * 1024 * 1024;
     private static final int SPILL_INPUT_BUFFER = 4 * 1024 * 1024;
-    private static final int READ_BYTE_CAP = 4 * 1024 * 1024;
-    private static final int WRITE_BYTE_CAP = 4 * 1024 * 1024;
 
     private static final int VALUES_PER_LINK = 1000;
 
@@ -168,9 +166,6 @@ public class IntSpillableColumn implements SpillableColumn {
         }
     }
 
-    private static final long flushEvery = 0x3fff; //while spilling, will flush to disk every time this many values is spilled
-    private static final int progressEvery = 0x3fff;
-
     protected IntSpillableColumn() {}
 
     public void add(int v, boolean isNull) {
@@ -189,6 +184,7 @@ public class IntSpillableColumn implements SpillableColumn {
         }
     }
 
+    //TODO we need to report progress, and to flush every some odd. Base it on the # per stack and some ratio
     @Override
     public long spill() {
         if (spillInfo != null && spillInfo.checkIfHavePerformedFinalSpill()) {
@@ -594,6 +590,7 @@ public class IntSpillableColumn implements SpillableColumn {
         }
     }
 
+    //TODO need to do something if they request spilling
     public void readData(DataInput in, long records) throws IOException {
         synchronized (values) {
             clear();
