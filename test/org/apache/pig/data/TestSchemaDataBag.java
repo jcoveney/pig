@@ -130,7 +130,6 @@ public class TestSchemaDataBag {
         }
 
 
-
         File f = File.createTempFile("tmp","tmp");
         f.deleteOnExit();
         DataOutputStream out = new DataOutputStream(new FileOutputStream(f));
