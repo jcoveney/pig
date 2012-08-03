@@ -30,7 +30,7 @@ import org.apache.pig.data.Tuple;
 /**
  * Default implementation of format of Tuple. Dump and PigDump use this default
  * implementation
- * 
+ *
  */
 public class TupleFormat {
 
@@ -39,7 +39,7 @@ public class TupleFormat {
     /**
      * Default implementation of format of tuple (each filed is delimited by
      * tab)
-     * 
+     *
      * @param tuple
      * @return Default format of Tuple
      */

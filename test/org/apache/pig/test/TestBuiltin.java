@@ -32,7 +32,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -985,6 +984,7 @@ public class TestBuiltin {
          int i=0;
          final int expectedOutputTupleSize = 1;
          final long expectedCount = 3;
+
          while (it.hasNext()) {
              Tuple t = it.next();
              assertEquals("Testing SIZE(<Tuple>): ", expectedOutputTupleSize, t.size());
@@ -1523,7 +1523,7 @@ public class TestBuiltin {
         t3.set(0, null);
         t3.set(1, "^\\/search\\/iy\\/(.*?)\\/.*");
         t3.set(2, 2);
-        
+
         Tuple t4 = tupleFactory.newTuple(3);
         t4.set(0,"this is a match");
         t4.set(1, "this is a (.+?)");
@@ -1776,7 +1776,7 @@ public class TestBuiltin {
         }
         assertTrue("null in tobag result", s.contains(null));
     }
-        
+
     @Test
     public void testTOBAGSupportsTuplesInInput() throws IOException {
         String[][] expected = {
@@ -2320,11 +2320,11 @@ public class TestBuiltin {
         assertTrue(rt.get(0).equals("456"));
         rt = i.next();
         assertTrue(rt.get(0).equals("789"));
-        
+
         // Check when delim specified
         Tuple t4 = tf.newTuple(2);
         t4.set(0, "123|456|78\"9");
-        t4.set(1, "|");        
+        t4.set(1, "|");
         b = f.exec(t4);
         assertTrue(b.size()==3);
         i = b.iterator();
@@ -2337,7 +2337,7 @@ public class TestBuiltin {
 
         b = f.exec(t2);
         assertTrue(b==null);
-        
+
         b = f.exec(t3);
         assertTrue(b==null);
     }
@@ -2379,7 +2379,7 @@ public class TestBuiltin {
         result = d.exec(t);
         assertEquals(2, result.size());
     }
-    
+
     //see PIG-2331
     @Test
     public void testURIwithCurlyBrace() throws Exception {

@@ -17,6 +17,7 @@ import java.util.List;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.data.NewDefaultDataBag.LinkedTuples.TupleLink;
+import org.apache.pig.impl.util.BagFormat;
 
 import com.carrotsearch.hppc.LongArrayList;
 
@@ -392,7 +393,7 @@ public class NewDefaultDataBag implements DataBag {
         private int stacks = 1;
 
         public void add(Tuple t) {
-            Tuple[] buf = first.buf;
+            Tuple[] buf = last.buf;
             buf[ct++] = t;
             if (ct == buf.length) {
                 TupleLink temp = new TupleLink(ct);
@@ -591,5 +592,10 @@ public class NewDefaultDataBag implements DataBag {
         if (PhysicalOperator.reporter != null) {
             PhysicalOperator.reporter.progress();
         }
+    }
+
+    @Override
+    public String toString() {
+        return BagFormat.format(this);
     }
 }

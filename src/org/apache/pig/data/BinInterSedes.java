@@ -83,6 +83,16 @@ public class BinInterSedes implements InterSedes {
     public static final byte TUPLE = 19;
     public static final byte SMALLTUPLE = 20;
     public static final byte TINYTUPLE = 21;
+    public static final byte TUPLE_0 = 36;
+    public static final byte TUPLE_1 = 37;
+    public static final byte TUPLE_2 = 38;
+    public static final byte TUPLE_3 = 39;
+    public static final byte TUPLE_4 = 40;
+    public static final byte TUPLE_5 = 41;
+    public static final byte TUPLE_6 = 42;
+    public static final byte TUPLE_7 = 43;
+    public static final byte TUPLE_8 = 44;
+    public static final byte TUPLE_9 = 45;
 
     public static final byte BAG = 22;
     public static final byte SMALLBAG = 23;
@@ -114,6 +124,16 @@ public class BinInterSedes implements InterSedes {
         case TUPLE:
         case TINYTUPLE:
         case SMALLTUPLE:
+        case TUPLE_0:
+        case TUPLE_1:
+        case TUPLE_2:
+        case TUPLE_3:
+        case TUPLE_4:
+        case TUPLE_5:
+        case TUPLE_6:
+        case TUPLE_7:
+        case TUPLE_8:
+        case TUPLE_9:
             return SedesHelper.readGenericTuple(in, type);
         case SCHEMA_TUPLE_BYTE_INDEX:
         case SCHEMA_TUPLE_SHORT_INDEX:
@@ -142,6 +162,26 @@ public class BinInterSedes implements InterSedes {
     public int getTupleSize(DataInput in, byte type) throws IOException {
         int sz;
         switch (type) {
+        case TUPLE_0:
+            return 0;
+        case TUPLE_1:
+            return 1;
+        case TUPLE_2:
+            return 2;
+        case TUPLE_3:
+            return 3;
+        case TUPLE_4:
+            return 4;
+        case TUPLE_5:
+            return 5;
+        case TUPLE_6:
+            return 6;
+        case TUPLE_7:
+            return 7;
+        case TUPLE_8:
+            return 8;
+        case TUPLE_9:
+            return 9;
         case TINYTUPLE:
             sz = in.readUnsignedByte();
             break;
@@ -166,24 +206,6 @@ public class BinInterSedes implements InterSedes {
 
     private DataBag readBag(DataInput in, byte type) throws IOException {
         NewDefaultDataBag bag = (NewDefaultDataBag)mBagFactory.newDefaultBag();
-        long size;
-        // determine size of bag
-        switch (type) {
-        case TINYBAG:
-            size = in.readUnsignedByte();
-            break;
-        case SMALLBAG:
-            size = in.readUnsignedShort();
-            break;
-        case BAG:
-            size = in.readLong();
-            break;
-        default:
-            int errCode = 2219;
-            String msg = "Unexpected data while reading bag " + "from binary file.";
-            throw new ExecException(msg, errCode, PigException.BUG);
-        }
-
         bag.readFields(in, type);
         return bag;
     }
@@ -268,6 +290,16 @@ public class BinInterSedes implements InterSedes {
     @Override
     public Object readDatum(DataInput in, byte type) throws IOException, ExecException {
         switch (type) {
+        case TUPLE_0:
+        case TUPLE_1:
+        case TUPLE_2:
+        case TUPLE_3:
+        case TUPLE_4:
+        case TUPLE_5:
+        case TUPLE_6:
+        case TUPLE_7:
+        case TUPLE_8:
+        case TUPLE_9:
         case TUPLE:
         case TINYTUPLE:
         case SMALLTUPLE:
