@@ -74,10 +74,19 @@ public class NewDefaultDataBag implements DataBag {
         public void writeStack(Tuple[] buf, int size, int ct) throws IOException {
             spillOutputStream.writeInt(ct);
             for (int i = 0; i < ct; i++) {
-                bis.writeDatum(spillOutputStream, buf[i], DataType.TUPLE);
+                Tuple t = buf[i];
+                if (t != null) {
+                    bis.writeDatum(spillOutputStream, t, DataType.TUPLE);
+                } else {
+                    spillOutputStream.writeByte(BinInterSedes.NULL);
+                }
             }
             spillOutputStream.flush();
             stackLocationInSpillFile.add(spillFile.length());
+        }
+
+        public DataOutput getSpillOutputStream() {
+            return spillOutputStream;
         }
     }
 
@@ -114,12 +123,53 @@ public class NewDefaultDataBag implements DataBag {
 
     @Override
     public void readFields(DataInput in) throws IOException {
-        throw new RuntimeException("NEED TO IMPLEMENT readFields");
+        readFields(in, in.readByte());
+    }
+
+    public void readFields(DataInput in, byte type) throws IOException {
+        synchronized (values) {
+            clear();
+            switch (type) {
+                case BinInterSedes.TINYNEWBAG: size = in.readUnsignedByte(); break;
+                case BinInterSedes.SMALLNEWBAG: size = in.readUnsignedShort(); break;
+                case BinInterSedes.NEWBAG: size = in.readLong(); break;
+                default: throw new RuntimeException("Unknown type found in NewDefaultDataBag#readFields");
+            }
+
+            values.read(in);
+
+            haveStartedIterating = true;
+        }
     }
 
     @Override
     public void write(DataOutput out) throws IOException {
-        throw new RuntimeException("NEED TO IMPLEMENT write");
+        if (size < BinInterSedes.UNSIGNED_BYTE_MAX) {
+            out.writeByte(BinInterSedes.TINYNEWBAG);
+            out.writeByte((int) size);
+        } else if (size < BinInterSedes.UNSIGNED_SHORT_MAX) {
+            out.writeByte(BinInterSedes.SMALLNEWBAG);
+            out.writeShort((int) size);
+        } else {
+            out.writeByte(BinInterSedes.NEWBAG);
+            out.writeLong(size);
+        }
+        synchronized (values) {
+            if (spillInfo != null) {
+                DataInputStream in = new DataInputStream(new FileInputStream(spillInfo.getSpillFile()));
+                byte[] buf = new byte[SPILL_IN_BUFFER]; //TODO tune this? make it settable?
+                int read;
+                while ((read = in.read(buf)) != -1) {
+                    out.write(buf, 0, read);
+                }
+                in.close();
+                if (!spillInfo.checkIfHavePerformedFinalSpill()) {
+                    values.write(out); //writes the remainder, will have a -1 length at the end
+                }
+            } else {
+                values.write(out);
+            }
+        }
     }
 
     @Override
@@ -144,6 +194,7 @@ public class NewDefaultDataBag implements DataBag {
 
     @Override
     public Iterator<Tuple> iterator() {
+        haveStartedIterating = true;
         return new BagIterator();
     }
 
@@ -180,7 +231,7 @@ public class NewDefaultDataBag implements DataBag {
     private class BagIterator implements Iterator<Tuple> {
         private long remaining = 0;
         private Tuple[] tuples = new Tuple[VALUES_PER_LINK];
-        private int tuplesPointer = 0;
+        private int tuplesPointer = VALUES_PER_LINK;
         private boolean haveDetectedFinalSpill;
         private int stacksReadFromFile;
         private int stacksReadFromMemory;
@@ -320,6 +371,25 @@ public class NewDefaultDataBag implements DataBag {
             }
         }
 
+        public void read(DataInput in) throws IOException {
+            reset();
+            int length;
+            boolean first = true;
+            while ((length = in.readInt()) != -1) {
+                if (first) {
+                    first = false;
+                } else {
+                    TupleLink temp = new TupleLink(last.buf.length);
+                    last.next = temp;
+                    last = temp;
+                }
+                Tuple[] buf = last.buf;
+                for (int i = 0; i < length; i++) {
+                    buf[i] = (Tuple) bis.readDatum(in);
+                }
+            }
+        }
+
         private void reset() {
             first = new TupleLink(first.buf.length);
             last = first;
@@ -341,12 +411,42 @@ public class NewDefaultDataBag implements DataBag {
             current = last;
             if (spillAll) {
                 spillInfo.writeStack(current.buf, size, ct);
+                spillInfo.getSpillOutputStream().writeInt(-1);
                 recordsSpilled += ct;
                 reset();
             }
 
             // TODO Auto-generated method stub
             return recordsSpilled;
+        }
+
+        public void write(DataOutput out) throws IOException {
+            TupleLink current = first;
+            int size = current.buf.length;
+            while (current.next != null) {
+                Tuple[] buf = current.buf;
+                out.writeInt(buf.length);
+                for (int i = 0; i < size; i++) {
+                    Tuple t = buf[i];
+                    if (t == null) {
+                        out.writeByte(BinInterSedes.NULL);
+                    } else {
+                        bis.writeDatum(out, t, DataType.TUPLE);
+                    }
+                }
+                current = current.next;
+            }
+            out.writeInt(ct);
+            Tuple[] buf = current.buf;
+            for (int i = 0; i < ct; i++) {
+                Tuple t = buf[i];
+                if (t == null) {
+                    out.writeByte(BinInterSedes.NULL);
+                } else {
+                    bis.writeDatum(out, t, DataType.TUPLE);
+                }
+            }
+            out.writeInt(-1);
         }
 
         public long getMemorySize() {

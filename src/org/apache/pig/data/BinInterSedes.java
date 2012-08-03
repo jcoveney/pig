@@ -116,6 +116,10 @@ public class BinInterSedes implements InterSedes {
     public static final byte SCHEMA_TUPLE_BAG_INT_ID_INT_SIZE = 46;
     public static final byte SCHEMA_TUPLE_BAG_INT_ID_LONG_SIZE = 47;
 
+    public static final byte TINYNEWBAG = 48;
+    public static final byte SMALLNEWBAG = 49;
+    public static final byte NEWBAG = 50;
+
     private static BagFactory mBagFactory = BagFactory.getInstance();
     public static final int UNSIGNED_SHORT_MAX = 65535;
     public static final int UNSIGNED_BYTE_MAX = 255;
@@ -297,6 +301,13 @@ public class BinInterSedes implements InterSedes {
         case TINYBAG:
         case SMALLBAG:
             return readBag(in, type);
+
+        case NEWBAG:
+        case TINYNEWBAG:
+        case SMALLNEWBAG:
+            NewDefaultDataBag bag = new NewDefaultDataBag();
+            bag.readFields(in, type);
+            return bag;
 
         case SCHEMA_TUPLE_BAG_BYTE_ID_BYTE_SIZE:
         case SCHEMA_TUPLE_BAG_BYTE_ID_SHORT_SIZE:
@@ -547,6 +558,8 @@ public class BinInterSedes implements InterSedes {
     private void writeBag(DataOutput out, DataBag bag) throws IOException {
         if (bag instanceof SchemaDataBag) {
             ((SchemaDataBag)bag).write(out);
+        } else if (bag instanceof NewDefaultDataBag) {
+            ((NewDefaultDataBag)bag).write(out);
         } else {
             writeGenericBag(out, bag);
         }

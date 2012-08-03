@@ -60,6 +60,7 @@ public class TestSchemaDataBag {
         SchemaTupleFactory tf = SchemaTupleFactory.getInstance(udfSchema, isAppendable, context);
 
         SchemaDataBag sdb = new SchemaDataBag(tf);
+
         Random r = new Random(100L);
         Set<Tuple> tuples = Sets.newHashSet();
 
@@ -74,7 +75,7 @@ public class TestSchemaDataBag {
 
         sdb.spill();
 
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 1000; i < 2000; i++) {
             Tuple t = mTupleFactory.newTuple(udfSchema.size());
             for (int j = 0; j < udfSchema.size(); j++) {
                 t.set(j, Integer.valueOf(r.nextInt()));
