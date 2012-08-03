@@ -17,8 +17,6 @@
  */
 package org.apache.pig.data;
 
-import java.lang.Class;
-import java.lang.ClassLoader;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Comparator;
@@ -35,7 +33,7 @@ import org.apache.pig.impl.util.SpillableMemoryManager;
  * returns their implementation of a bag.  If the property
  * pig.data.bag.factory.name is set to a class name and
  * pig.data.bag.factory.jar is set to a URL pointing to a jar that
- * contains the above named class, then getInstance() will create 
+ * contains the above named class, then getInstance() will create
  * an instance of the named class using the indicated jar.  Otherwise, it
  * will create an instance of DefaultBagFactory.
  */
@@ -83,7 +81,7 @@ public abstract class BagFactory {
         }
         return gSelf;
     }
-    
+
     /**
      * Get a default (unordered, not distinct) data bag.
      * @return default data bag.
@@ -98,7 +96,7 @@ public abstract class BagFactory {
      * @return default data bag.
      */
     public abstract DataBag newDefaultBag(List<Tuple> listOfTuples);
-    
+
     /**
      * Get a sorted data bag.  Sorted bags guarantee that when an iterator
      * is opened on the bag the tuples will be returned in sorted order.
@@ -107,7 +105,7 @@ public abstract class BagFactory {
      * @return a sorted data bag
      */
     public abstract DataBag newSortedBag(Comparator<Tuple> comp);
-    
+
     /**
      * Get a distinct data bag.  Distinct bags guarantee that when an
      * iterator is opened on the bag, no two tuples returned from the
@@ -120,9 +118,7 @@ public abstract class BagFactory {
      * Construct a new BagFactory
      */
     protected BagFactory() {
-    	if (gMemMgr == null) {
-    		gMemMgr = new SpillableMemoryManager();
-    	}
+        gMemMgr = new SpillableMemoryManager();
     }
 
     /**
@@ -143,16 +139,5 @@ public abstract class BagFactory {
      */
     public static void resetSelf() {
         gSelf = null;
-    }
-    
-    // Still undecided if it's better just to register the parent bag, or if we should
-    // register each one independently. This exists mainly for testing atm.
-    public static IntSpillableColumn getIntSpillableColumn() {
-    	if (gMemMgr == null) {
-    		gMemMgr = new SpillableMemoryManager();
-    	}
-    	IntSpillableColumn column = new IntSpillableColumn();
-    	gMemMgr.registerSpillable(column);
-    	return column;
     }
 }
