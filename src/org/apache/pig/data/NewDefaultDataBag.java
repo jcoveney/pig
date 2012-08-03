@@ -25,6 +25,7 @@ public class NewDefaultDataBag implements DataBag {
     private static final int VALUES_PER_LINK = 1000;
     private static final int SPILL_OUT_BUFFER = 4 * 1024 * 1024;
     private static final int SPILL_IN_BUFFER = 4 * 1024 * 1024;
+    private static final int BREAK_FOR_SPILL_EVERY = 10;
 
     private LinkedTuples values = new LinkedTuples(VALUES_PER_LINK);
     private long size;
@@ -90,6 +91,16 @@ public class NewDefaultDataBag implements DataBag {
         }
     }
 
+    protected NewDefaultDataBag(List<Tuple> listOfTuples) {
+        this();
+        for (Tuple t : listOfTuples) {
+            add(t);
+        }
+    }
+
+    protected NewDefaultDataBag() {
+    }
+
     @Override
     public long spill() {
         if (spillInfo != null && spillInfo.checkIfHavePerformedFinalSpill()) {
@@ -127,31 +138,41 @@ public class NewDefaultDataBag implements DataBag {
     }
 
     public void readFields(DataInput in, byte type) throws IOException {
-        synchronized (values) {
-            clear();
-            switch (type) {
-                case BinInterSedes.TINYNEWBAG: size = in.readUnsignedByte(); break;
-                case BinInterSedes.SMALLNEWBAG: size = in.readUnsignedShort(); break;
-                case BinInterSedes.NEWBAG: size = in.readLong(); break;
-                default: throw new RuntimeException("Unknown type found in NewDefaultDataBag#readFields");
+        boolean isFirst = true;
+        boolean shouldContinue = true;
+        while (shouldContinue) {
+            synchronized (values) {
+                if (isFirst) {
+                    clear();
+                    switch (type) {
+                        case BinInterSedes.TINYBAG: size = in.readUnsignedByte(); break;
+                        case BinInterSedes.SMALLBAG: size = in.readUnsignedShort(); break;
+                        case BinInterSedes.BAG: size = in.readLong(); break;
+                        default: throw new RuntimeException("Unknown type found in NewDefaultDataBag#readFields");
+                    }
+                }
+
+                shouldContinue = values.read(in, isFirst);
+
+                isFirst = false;
+
+                if (!shouldContinue) {
+                    haveStartedIterating = true;
+                }
             }
-
-            values.read(in);
-
-            haveStartedIterating = true;
         }
     }
 
     @Override
     public void write(DataOutput out) throws IOException {
         if (size < BinInterSedes.UNSIGNED_BYTE_MAX) {
-            out.writeByte(BinInterSedes.TINYNEWBAG);
+            out.writeByte(BinInterSedes.TINYBAG);
             out.writeByte((int) size);
         } else if (size < BinInterSedes.UNSIGNED_SHORT_MAX) {
-            out.writeByte(BinInterSedes.SMALLNEWBAG);
+            out.writeByte(BinInterSedes.SMALLBAG);
             out.writeShort((int) size);
         } else {
-            out.writeByte(BinInterSedes.NEWBAG);
+            out.writeByte(BinInterSedes.BAG);
             out.writeLong(size);
         }
         synchronized (values) {
@@ -170,11 +191,6 @@ public class NewDefaultDataBag implements DataBag {
                 values.write(out);
             }
         }
-    }
-
-    @Override
-    public int compareTo(Object o) {
-        throw new RuntimeException("NEED TO IMPLEMENT compareTo");
     }
 
     @Override
@@ -224,9 +240,6 @@ public class NewDefaultDataBag implements DataBag {
         spillInfo = null;
         haveStartedIterating = false;
     }
-
-    @Override
-    public void markStale(boolean stale) {}
 
     private class BagIterator implements Iterator<Tuple> {
         private long remaining = 0;
@@ -371,13 +384,13 @@ public class NewDefaultDataBag implements DataBag {
             }
         }
 
-        public void read(DataInput in) throws IOException {
-            reset();
-            int length;
-            boolean first = true;
-            while ((length = in.readInt()) != -1) {
-                if (first) {
-                    first = false;
+        public boolean read(DataInput in, boolean isFirst) throws IOException {
+            int length = 0;
+            int shouldBreakForSpill = 0;
+
+            while (shouldBreakForSpill++ < BREAK_FOR_SPILL_EVERY && (length = in.readInt()) != -1) {
+                if (isFirst) {
+                    isFirst = false;
                 } else {
                     TupleLink temp = new TupleLink(last.buf.length);
                     last.next = temp;
@@ -388,6 +401,11 @@ public class NewDefaultDataBag implements DataBag {
                     buf[i] = (Tuple) bis.readDatum(in);
                 }
             }
+            return length != -1;
+        }
+
+        public void read(DataInput in, TupleLink current) {
+
         }
 
         private void reset() {
@@ -416,7 +434,6 @@ public class NewDefaultDataBag implements DataBag {
                 reset();
             }
 
-            // TODO Auto-generated method stub
             return recordsSpilled;
         }
 
@@ -450,7 +467,21 @@ public class NewDefaultDataBag implements DataBag {
         }
 
         public long getMemorySize() {
-            return 24 + stacks * (24 + 4 * last.buf.length);
+            long est = 24; //the base cost of a TupleLink
+
+            int upper = first == last && ct < 100 ? ct : 100;
+            double scale = 1.0 * VALUES_PER_LINK / 100;
+            Tuple[] buf = first.buf;
+            for (int i = 0; i < upper; i++) {
+                Tuple t = buf[i];
+                est += t == null ? 8 : t.getMemorySize();
+            }
+            if (first == last && ct < 100) {
+                est += (8 * VALUES_PER_LINK - ct);
+            } else {
+                est *= scale;
+            }
+            return 24 + stacks * est;
         }
 
         private LinkedTuples(int size) {
@@ -465,6 +496,75 @@ public class NewDefaultDataBag implements DataBag {
             public TupleLink(int size) {
                 buf = new Tuple[size];
             }
+        }
+    }
+
+    @Override
+    public void markStale(boolean stale) {}
+
+    @Override
+    public boolean equals(Object o) {
+        return compareTo(o) == 0;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 1;
+        for (Tuple t : this) {
+            // Use 37 because we want a prime, and tuple uses 31.
+            hash = 37 * hash + t.hashCode();
+        }
+        return hash;
+    }
+
+    @SuppressWarnings("unchecked")
+    public int compareTo(Object other) {
+        if (this == other)
+            return 0;
+        if (other instanceof DataBag) {
+            DataBag bOther = (DataBag) other;
+            if (this.size() != bOther.size()) {
+                if (this.size() > bOther.size()) return 1;
+                else return -1;
+            }
+
+            // Ugh, this is bogus.  But I have to know if two bags have the
+            // same tuples, regardless of order.  Hopefully most of the
+            // time the size check above will prevent this.
+            // If either bag isn't already sorted, create a sorted bag out
+            // of it so I can guarantee order.
+            DataBag thisClone;
+            DataBag otherClone;
+            BagFactory factory = BagFactory.getInstance();
+
+            if (this.isSorted() || this.isDistinct()) {
+                thisClone = this;
+            } else {
+                thisClone = factory.newSortedBag(null);
+                Iterator<Tuple> i = iterator();
+                while (i.hasNext()) thisClone.add(i.next());
+
+            }
+            if (((DataBag) other).isSorted() || ((DataBag)other).isDistinct()) {
+                otherClone = bOther;
+            } else {
+                otherClone = factory.newSortedBag(null);
+                Iterator<Tuple> i = bOther.iterator();
+                while (i.hasNext()) otherClone.add(i.next());
+            }
+            Iterator<Tuple> thisIt = thisClone.iterator();
+            Iterator<Tuple> otherIt = otherClone.iterator();
+            while (thisIt.hasNext() && otherIt.hasNext()) {
+                Tuple thisT = thisIt.next();
+                Tuple otherT = otherIt.next();
+
+                int c = thisT.compareTo(otherT);
+                if (c != 0) return c;
+            }
+
+            return 0;   // if we got this far, they must be equal
+        } else {
+            return DataType.compare(this, other);
         }
     }
 

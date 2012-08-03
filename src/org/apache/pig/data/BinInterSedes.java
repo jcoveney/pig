@@ -103,23 +103,6 @@ public class BinInterSedes implements InterSedes {
     public static final byte LONG_0 = 34;
     public static final byte LONG_1 = 35;
 
-    public static final byte SCHEMA_TUPLE_BAG_BYTE_ID_BYTE_SIZE = 36;
-    public static final byte SCHEMA_TUPLE_BAG_BYTE_ID_SHORT_SIZE = 37;
-    public static final byte SCHEMA_TUPLE_BAG_BYTE_ID_INT_SIZE = 38;
-    public static final byte SCHEMA_TUPLE_BAG_BYTE_ID_LONG_SIZE = 39;
-    public static final byte SCHEMA_TUPLE_BAG_SHORT_ID_BYTE_SIZE = 40;
-    public static final byte SCHEMA_TUPLE_BAG_SHORT_ID_SHORT_SIZE = 41;
-    public static final byte SCHEMA_TUPLE_BAG_SHORT_ID_INT_SIZE = 42;
-    public static final byte SCHEMA_TUPLE_BAG_SHORT_ID_LONG_SIZE = 43;
-    public static final byte SCHEMA_TUPLE_BAG_INT_ID_BYTE_SIZE = 44;
-    public static final byte SCHEMA_TUPLE_BAG_INT_ID_SHORT_SIZE = 45;
-    public static final byte SCHEMA_TUPLE_BAG_INT_ID_INT_SIZE = 46;
-    public static final byte SCHEMA_TUPLE_BAG_INT_ID_LONG_SIZE = 47;
-
-    public static final byte TINYNEWBAG = 48;
-    public static final byte SMALLNEWBAG = 49;
-    public static final byte NEWBAG = 50;
-
     private static BagFactory mBagFactory = BagFactory.getInstance();
     public static final int UNSIGNED_SHORT_MAX = 65535;
     public static final int UNSIGNED_BYTE_MAX = 255;
@@ -182,7 +165,7 @@ public class BinInterSedes implements InterSedes {
     }
 
     private DataBag readBag(DataInput in, byte type) throws IOException {
-        DataBag bag = mBagFactory.newDefaultBag();
+        NewDefaultDataBag bag = (NewDefaultDataBag)mBagFactory.newDefaultBag();
         long size;
         // determine size of bag
         switch (type) {
@@ -201,14 +184,7 @@ public class BinInterSedes implements InterSedes {
             throw new ExecException(msg, errCode, PigException.BUG);
         }
 
-        for (long i = 0; i < size; i++) {
-            try {
-                Object o = readDatum(in);
-                bag.add((Tuple) o);
-            } catch (ExecException ee) {
-                throw ee;
-            }
-        }
+        bag.readFields(in, type);
         return bag;
     }
 
@@ -301,27 +277,6 @@ public class BinInterSedes implements InterSedes {
         case TINYBAG:
         case SMALLBAG:
             return readBag(in, type);
-
-        case NEWBAG:
-        case TINYNEWBAG:
-        case SMALLNEWBAG:
-            NewDefaultDataBag bag = new NewDefaultDataBag();
-            bag.readFields(in, type);
-            return bag;
-
-        case SCHEMA_TUPLE_BAG_BYTE_ID_BYTE_SIZE:
-        case SCHEMA_TUPLE_BAG_BYTE_ID_SHORT_SIZE:
-        case SCHEMA_TUPLE_BAG_BYTE_ID_INT_SIZE:
-        case SCHEMA_TUPLE_BAG_BYTE_ID_LONG_SIZE:
-        case SCHEMA_TUPLE_BAG_SHORT_ID_BYTE_SIZE:
-        case SCHEMA_TUPLE_BAG_SHORT_ID_SHORT_SIZE:
-        case SCHEMA_TUPLE_BAG_SHORT_ID_INT_SIZE:
-        case SCHEMA_TUPLE_BAG_SHORT_ID_LONG_SIZE:
-        case SCHEMA_TUPLE_BAG_INT_ID_BYTE_SIZE:
-        case SCHEMA_TUPLE_BAG_INT_ID_SHORT_SIZE:
-        case SCHEMA_TUPLE_BAG_INT_ID_INT_SIZE:
-        case SCHEMA_TUPLE_BAG_INT_ID_LONG_SIZE:
-            return readSchemaBag(in, type);
 
         case MAP:
         case TINYMAP:
@@ -890,18 +845,6 @@ public class BinInterSedes implements InterSedes {
                 }
                 break;
             }
-            case BinInterSedes.SCHEMA_TUPLE_BAG_BYTE_ID_BYTE_SIZE:
-            case BinInterSedes.SCHEMA_TUPLE_BAG_BYTE_ID_SHORT_SIZE:
-            case BinInterSedes.SCHEMA_TUPLE_BAG_BYTE_ID_INT_SIZE:
-            case BinInterSedes.SCHEMA_TUPLE_BAG_BYTE_ID_LONG_SIZE:
-            case BinInterSedes.SCHEMA_TUPLE_BAG_SHORT_ID_BYTE_SIZE:
-            case BinInterSedes.SCHEMA_TUPLE_BAG_SHORT_ID_SHORT_SIZE:
-            case BinInterSedes.SCHEMA_TUPLE_BAG_SHORT_ID_INT_SIZE:
-            case BinInterSedes.SCHEMA_TUPLE_BAG_SHORT_ID_LONG_SIZE:
-            case BinInterSedes.SCHEMA_TUPLE_BAG_INT_ID_BYTE_SIZE:
-            case BinInterSedes.SCHEMA_TUPLE_BAG_INT_ID_SHORT_SIZE:
-            case BinInterSedes.SCHEMA_TUPLE_BAG_INT_ID_INT_SIZE:
-            case BinInterSedes.SCHEMA_TUPLE_BAG_INT_ID_LONG_SIZE:
             case BinInterSedes.TINYBAG:
             case BinInterSedes.SMALLBAG:
             case BinInterSedes.BAG: {
@@ -1124,18 +1067,6 @@ public class BinInterSedes implements InterSedes {
             case BinInterSedes.TINYTUPLE:
             case BinInterSedes.SMALLTUPLE:
                 return DataType.TUPLE;
-            case BinInterSedes.SCHEMA_TUPLE_BAG_BYTE_ID_BYTE_SIZE:
-            case BinInterSedes.SCHEMA_TUPLE_BAG_BYTE_ID_SHORT_SIZE:
-            case BinInterSedes.SCHEMA_TUPLE_BAG_BYTE_ID_INT_SIZE:
-            case BinInterSedes.SCHEMA_TUPLE_BAG_BYTE_ID_LONG_SIZE:
-            case BinInterSedes.SCHEMA_TUPLE_BAG_SHORT_ID_BYTE_SIZE:
-            case BinInterSedes.SCHEMA_TUPLE_BAG_SHORT_ID_SHORT_SIZE:
-            case BinInterSedes.SCHEMA_TUPLE_BAG_SHORT_ID_INT_SIZE:
-            case BinInterSedes.SCHEMA_TUPLE_BAG_SHORT_ID_LONG_SIZE:
-            case BinInterSedes.SCHEMA_TUPLE_BAG_INT_ID_BYTE_SIZE:
-            case BinInterSedes.SCHEMA_TUPLE_BAG_INT_ID_SHORT_SIZE:
-            case BinInterSedes.SCHEMA_TUPLE_BAG_INT_ID_INT_SIZE:
-            case BinInterSedes.SCHEMA_TUPLE_BAG_INT_ID_LONG_SIZE:
             case BinInterSedes.BAG:
             case BinInterSedes.TINYBAG:
             case BinInterSedes.SMALLBAG:
