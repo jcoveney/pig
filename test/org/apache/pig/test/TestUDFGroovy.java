@@ -39,9 +39,9 @@ import junit.framework.TestCase;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.mock.Storage.Data;
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
-import org.apache.pig.data.DefaultDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.scripting.groovy.GroovyUtils;
@@ -234,7 +234,7 @@ public class TestUDFGroovy extends TestCase {
     pigObject = GroovyUtils.groovyToPig(groovyObject);
     Assert.assertSame(groovyObject, pigObject);
 
-    groovyObject = new DefaultDataBag();
+    groovyObject = BagFactory.getInstance().newDefaultBag();
     pigObject = GroovyUtils.groovyToPig(groovyObject);
     Assert.assertSame(groovyObject, pigObject);
 

@@ -17,7 +17,7 @@
  */
 
 /**
- * 
+ *
  */
 package org.apache.pig.data;
 
@@ -26,7 +26,6 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Iterator;
 
-import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 
 /**
@@ -36,6 +35,7 @@ import org.apache.pig.backend.executionengine.ExecException;
  * a single Tuple non-serializable DataBag is required.
  */
 public class SingleTupleBag implements DataBag {
+    private static final BinInterSedes bis = new BinInterSedes();
 
     private static final long serialVersionUID = 1L;
     Tuple item;
@@ -135,12 +135,13 @@ public class SingleTupleBag implements DataBag {
 
         for (long i = 0; i < size; i++) {
             try {
-                Object o = DataReaderWriter.readDatum(in);
-                add((Tuple)o);
+                add((Tuple)bis.readDatum(in));
             } catch (ExecException ee) {
                 throw ee;
             }
         }
+
+        in.readInt();
     }
 
     /* (non-Javadoc)
@@ -150,10 +151,11 @@ public class SingleTupleBag implements DataBag {
     public void write(DataOutput out) throws IOException {
         out.writeLong(size());
         Iterator<Tuple> it = iterator();
+        out.writeInt(1);
         while (it.hasNext()) {
-            Tuple item = it.next();
-            item.write(out);
-        }    
+            bis.writeDatum(out, it.next(), DataType.TUPLE);
+        }
+        out.writeInt(-1);
     }
 
     /* (non-Javadoc)
@@ -171,7 +173,7 @@ public class SingleTupleBag implements DataBag {
     }
 
     public int hashCode() {
-        return 42; 
+        return 42;
     }
 
     class TBIterator implements Iterator<Tuple> {
@@ -199,7 +201,7 @@ public class SingleTupleBag implements DataBag {
          */
         @Override
         public void remove() {
-            throw new RuntimeException("SingleTupleBag.iterator().remove() is not allowed");    
+            throw new RuntimeException("SingleTupleBag.iterator().remove() is not allowed");
         }
     }
 

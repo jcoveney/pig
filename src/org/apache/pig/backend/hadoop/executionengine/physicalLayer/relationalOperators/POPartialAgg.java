@@ -34,9 +34,9 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.DefaultDataBag;
 import org.apache.pig.data.SelfSpillBag.MemoryLimits;
 import org.apache.pig.data.SizeUtil;
 import org.apache.pig.data.Tuple;
@@ -51,6 +51,8 @@ import org.apache.pig.impl.plan.VisitorException;
  * disabled when input data is sorted on group-by keys
  */
 public class POPartialAgg extends PhysicalOperator {
+    private static final TupleFactory tupleFact = TupleFactory.getInstance();
+    private static final BagFactory bagFact = BagFactory.getInstance();
 
     public static final String PROP_PARTAGG_MINREDUCTION = "pig.exec.mapPartAgg.minReduction";
 
@@ -96,7 +98,6 @@ public class POPartialAgg extends PhysicalOperator {
 
     private transient int maxHashMapSize;
 
-    private transient TupleFactory tupleFact;
     private transient MemoryLimits memLimits;
 
     public POPartialAgg(OperatorKey k) {
@@ -128,7 +129,7 @@ public class POPartialAgg extends PhysicalOperator {
                 if (disableMapAgg) {
                     // the in-map partial aggregation is an optional step, just
                     // like the combiner.
-                    // act as if this operator was never there, by just 
+                    // act as if this operator was never there, by just
                     // returning the input
                     return inp;
                 }
@@ -234,7 +235,7 @@ public class POPartialAgg extends PhysicalOperator {
 
                     // if there are enough number of values,
                     // aggregate the values accumulated in valueTuple
-                    if (((DefaultDataBag) valueTuple.get(1)).size() >= MAX_SIZE_CURVAL_CACHE) {
+                    if (((DataBag) valueTuple.get(1)).size() >= MAX_SIZE_CURVAL_CACHE) {
                         // not a key change, so store the agg result back to bag
                         aggregateCurrentValues();
                     }
@@ -246,7 +247,7 @@ public class POPartialAgg extends PhysicalOperator {
                     if (output.returnStatus != POStatus.STATUS_OK) {
                         return ERR_RESULT;
                     }
-                    
+
                     // set new current key, value
                     currentKey = key;
                     resetCurrentValues();
@@ -299,7 +300,7 @@ public class POPartialAgg extends PhysicalOperator {
 
     /**
      * Aggregate values accumulated in
-     * 
+     *
      * @throws ExecException
      */
     private void aggregateCurrentValues() throws ExecException {
@@ -325,13 +326,11 @@ public class POPartialAgg extends PhysicalOperator {
     }
 
     private void init(Object key, Tuple inpTuple) throws ExecException {
-        tupleFact = TupleFactory.getInstance();
-
         // value tuple has bags of values for currentKey
         valueTuple = tupleFact.newTuple(valuePlans.size() + 1);
 
         for (int i = 0; i < valuePlans.size(); i++) {
-            valueTuple.set(i + 1, new DefaultDataBag(new ArrayList<Tuple>(
+            valueTuple.set(i + 1, bagFact.newDefaultBag(new ArrayList<Tuple>(
                     MAX_SIZE_CURVAL_CACHE)));
         }
 
@@ -411,7 +410,7 @@ public class POPartialAgg extends PhysicalOperator {
     private int getMinOutputReductionFromProp() {
         int minReduction = PigMapReduce.sJobConfInternal.get().getInt(
                 PROP_PARTAGG_MINREDUCTION, 0);
-     
+
         if (minReduction <= 0) {
             // the default minimum reduction is 10
             minReduction = DEFAULT_MIN_REDUCTION;

@@ -18,9 +18,10 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.data.NewDefaultDataBag.LinkedTuples.TupleLink;
 
-import com.google.common.collect.Lists;
+import com.carrotsearch.hppc.LongArrayList;
 
 public class NewDefaultDataBag implements DataBag {
+    private static final long serialVersionUID = 1L;
     private static final BinInterSedes bis = new BinInterSedes();
     private static final int VALUES_PER_LINK = 1000;
     private static final int SPILL_OUT_BUFFER = 4 * 1024 * 1024;
@@ -37,7 +38,12 @@ public class NewDefaultDataBag implements DataBag {
         private DataOutputStream spillOutputStream;
         private volatile boolean havePerformedFinalSpill = false;
         //NOTE: this is the ENDING of the location (which happens to be more useful for us)
-        private List<Long> stackLocationInSpillFile = Lists.newArrayList(); //TODO may need to be j.u.c
+        private LongArrayList stackLocationInSpillFile = new LongArrayList(); //TODO analyze need for thread safety
+
+        private long getMemorySize() {
+            // spillFile ptr (8) + spillOutputStrea ptr (8) + stackLocationInSpillFile ptr (8) + havePerformedfinalSpill (8 after padding) + size of stackLocationInSpillFile
+            return 32 + stackLocationInSpillFile.buffer.length * 8;
+        }
 
         public SpillInfo() {
             try {
@@ -65,6 +71,11 @@ public class NewDefaultDataBag implements DataBag {
         }
 
         public void havePerformedFinalSpill() {
+            try {
+                spillOutputStream.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e); //TODO do more
+            }
             havePerformedFinalSpill = true;
         }
 
@@ -91,14 +102,14 @@ public class NewDefaultDataBag implements DataBag {
         }
     }
 
-    protected NewDefaultDataBag(List<Tuple> listOfTuples) {
+    public NewDefaultDataBag(List<Tuple> listOfTuples) {
         this();
         for (Tuple t : listOfTuples) {
             add(t);
         }
     }
 
-    protected NewDefaultDataBag() {
+    public NewDefaultDataBag() {
     }
 
     @Override
@@ -128,8 +139,8 @@ public class NewDefaultDataBag implements DataBag {
 
     @Override
     public long getMemorySize() {
-        // values.getMemorySize() + size (8) + spillInfo ptr (8) + 8 (padding)
-        return values.getMemorySize() + 24; //NEED TO INCLUDE SIZE OF SPILLINFO OBJECT
+        // values.getMemorySize() + values ptr (8) + size (8) + spillInfo ptr (8) + 8 (padding)
+        return values.getMemorySize() + 32; //NEED TO INCLUDE SIZE OF SPILLINFO OBJECT
     }
 
     @Override
@@ -148,7 +159,7 @@ public class NewDefaultDataBag implements DataBag {
                         case BinInterSedes.TINYBAG: size = in.readUnsignedByte(); break;
                         case BinInterSedes.SMALLBAG: size = in.readUnsignedShort(); break;
                         case BinInterSedes.BAG: size = in.readLong(); break;
-                        default: throw new RuntimeException("Unknown type found in NewDefaultDataBag#readFields");
+                        default: throw new RuntimeException("Unknown type found in NewDefaultDataBag#readFields: " + type);
                     }
                 }
 
@@ -257,6 +268,14 @@ public class NewDefaultDataBag implements DataBag {
 
         @Override
         public boolean hasNext() {
+            boolean res = remaining > 0L;
+            if (!res && spillInput != null) {
+                try {
+                    spillInput.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
             return remaining > 0;
         }
 
@@ -512,7 +531,7 @@ public class NewDefaultDataBag implements DataBag {
         int hash = 1;
         for (Tuple t : this) {
             // Use 37 because we want a prime, and tuple uses 31.
-            hash = 37 * hash + t.hashCode();
+            hash = t == null ? hash : 37 * hash + t.hashCode();
         }
         return hash;
     }

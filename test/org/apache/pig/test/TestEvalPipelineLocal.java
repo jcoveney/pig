@@ -49,7 +49,7 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.DefaultDataBag;
+import org.apache.pig.data.NewDefaultDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -62,20 +62,20 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestEvalPipelineLocal {
-    
+
     private PigServer pigServer;
 
     static final int MAX_SIZE = 100000;
-    
+
     TupleFactory mTf = TupleFactory.getInstance();
-    
+
     @Before
     public void setUp() throws Exception{
         FileLocalizer.setR(new Random());
 //        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         pigServer = new PigServer(ExecType.LOCAL);
     }
-    
+
     static public class MyBagFunction extends EvalFunc<DataBag>{
         @Override
         public DataBag exec(Tuple input) throws IOException {
@@ -85,11 +85,11 @@ public class TestEvalPipelineLocal {
             output.add(tf.newTuple("a"));
             output.add(tf.newTuple("a"));
             return output;
-            
+
         }
     }
-    
-    
+
+
     private File createFile(String[] data) throws Exception{
         File f = File.createTempFile("tmp", "");
         PrintWriter pw = new PrintWriter(f);
@@ -100,10 +100,10 @@ public class TestEvalPipelineLocal {
         f.deleteOnExit();
         return f;
     }
-    
+
     @Test
     public void testFunctionInsideFunction() throws Exception{
-        
+
         File f1 = createFile(new String[]{"a:1","b:1","a:1"});
 
         pigServer.registerQuery("a = load '"
@@ -111,28 +111,28 @@ public class TestEvalPipelineLocal {
                 + "' using " + PigStorage.class.getName() + "(':');");
         pigServer.registerQuery("b = foreach a generate 1-1/1;");
         Iterator<Tuple> iter  = pigServer.openIterator("b");
-        
+
         for (int i=0 ;i<3; i++){
             Assert.assertEquals(DataType.toDouble(iter.next().get(0)), 0.0);
         }
-        
+
     }
-    
+
     @Test
     public void testJoin() throws Exception{
-                
+
         File f1 = createFile(new String[]{"a:1","b:1","a:1"});
         File f2 = createFile(new String[]{"b","b","a"});
-        
+
         pigServer.registerQuery("a = load '"
                 + Util.generateURI(f1.toString(), pigServer.getPigContext())
                 + "' using " + PigStorage.class.getName() + "(':');");
         pigServer.registerQuery("b = load '"
                 + Util.generateURI(f2.toString(), pigServer.getPigContext())
                 + "';");
-        pigServer.registerQuery("c = cogroup a by $0, b by $0;");        
+        pigServer.registerQuery("c = cogroup a by $0, b by $0;");
         pigServer.registerQuery("d = foreach c generate flatten($1),flatten($2);");
-        
+
         Iterator<Tuple> iter = pigServer.openIterator("d");
         int count = 0;
         while(iter.hasNext()){
@@ -142,7 +142,7 @@ public class TestEvalPipelineLocal {
         }
         Assert.assertEquals(count, 4);
     }
-    
+
     @Test
     public void testDriverMethod() throws Exception{
         File f = File.createTempFile("tmp", "");
@@ -166,31 +166,31 @@ public class TestEvalPipelineLocal {
         Assert.assertEquals(count, 6);
         f.delete();
     }
-    
-    
+
+
     @Test
     public void testMapLookup() throws Exception {
         DataBag b = BagFactory.getInstance().newDefaultBag();
         Map<String, Object> colors = new HashMap<String, Object>();
         colors.put("apple","red");
         colors.put("orange","orange");
-        
+
         Map<String, Object> weights = new HashMap<String, Object>();
         weights.put("apple","0.1");
         weights.put("orange","0.3");
-        
+
         Tuple t = mTf.newTuple();
         t.append(colors);
         t.append(weights);
         b.add(t);
-        
+
         File tempF = File.createTempFile("tmp", "");
         String fileName = tempF.getCanonicalPath();
         tempF.delete(); // we only needed the temp file name, so delete the file
         PigFile f = new PigFile(fileName);
         f.store(b, new FuncSpec(BinStorage.class.getCanonicalName()), pigServer.getPigContext());
-        
-        
+
+
         pigServer.registerQuery("a = load '" + fileName + "' using BinStorage();");
         pigServer.registerQuery("b = foreach a generate $0#'apple',flatten($1#'orange');");
         Iterator<Tuple> iter = pigServer.openIterator("b");
@@ -199,27 +199,27 @@ public class TestEvalPipelineLocal {
         Assert.assertEquals(DataType.toDouble(t.get(1)), 0.3);
         Assert.assertFalse(iter.hasNext());
     }
-    
+
     static public class TitleNGrams extends EvalFunc<DataBag> {
-        
+
         @Override
-        public DataBag exec(Tuple input) throws IOException {    
+        public DataBag exec(Tuple input) throws IOException {
             try {
                 DataBag output = BagFactory.getInstance().newDefaultBag();
                 String str = input.get(0).toString();
-            
+
                 String title = str;
 
                 if (title != null) {
                     List<String> nGrams = makeNGrams(title);
-                    
+
                     for (Iterator<String> it = nGrams.iterator(); it.hasNext(); ) {
                         Tuple t = TupleFactory.getInstance().newTuple(1);
                         t.set(0, it.next());
                         output.add(t);
                     }
                 }
-    
+
                 return output;
             } catch (ExecException ee) {
                 IOException ioe = new IOException(ee.getMessage());
@@ -227,28 +227,28 @@ public class TestEvalPipelineLocal {
                 throw ioe;
             }
         }
-        
-        
+
+
         List<String> makeNGrams(String str) {
             List<String> tokens = new ArrayList<String>();
-            
+
             StringTokenizer st = new StringTokenizer(str);
             while (st.hasMoreTokens())
                 tokens.add(st.nextToken());
-            
+
             return nGramHelper(tokens, new ArrayList<String>());
         }
-        
+
         ArrayList<String> nGramHelper(List<String> str, ArrayList<String> nGrams) {
             if (str.size() == 0)
                 return nGrams;
-            
+
             for (int i = 0; i < str.size(); i++)
                 nGrams.add(makeString(str.subList(0, i+1)));
-            
+
             return nGramHelper(str.subList(1, str.size()), nGrams);
         }
-        
+
         String makeString(List<String> list) {
             StringBuffer sb = new StringBuffer();
             for (Iterator<String> it = list.iterator(); it.hasNext(); ) {
@@ -300,19 +300,19 @@ public class TestEvalPipelineLocal {
             myMap.put("map", mapInMap);
             myMap.put("tuple", tuple);
             myMap.put("bag", bag);
-            return myMap; 
+            return myMap;
         }
 
         public Schema outputSchema(Schema input) {
             return new Schema(new Schema.FieldSchema(null, DataType.MAP));
         }
     }
-    
-    
+
+
     @Test
     public void testBagFunctionWithFlattening() throws Exception{
         File queryLogFile = createFile(
-                    new String[]{ 
+                    new String[]{
                         "stanford\tdeer\tsighting",
                         "bush\tpresident",
                         "stanford\tbush",
@@ -322,22 +322,22 @@ public class TestEvalPipelineLocal {
                         "stanford\tpresident",
                     }
                 );
-                
+
         File newsFile = createFile(
                     new String[]{
                         "deer seen at stanford",
-                        "george bush visits stanford", 
-                        "yahoo hosting a conference in the bay area", 
+                        "george bush visits stanford",
+                        "yahoo hosting a conference in the bay area",
                         "who will win the world cup"
                     }
-                );    
-        
+                );
+
         Map<String, Integer> expectedResults = new HashMap<String, Integer>();
         expectedResults.put("bush", 2);
         expectedResults.put("stanford", 3);
         expectedResults.put("world", 1);
         expectedResults.put("conference", 1);
-        
+
         pigServer.registerQuery("newsArticles = LOAD '"
                 + Util.generateURI(newsFile.toString(), pigServer
                         .getPigContext()) + "' USING "
@@ -349,7 +349,7 @@ public class TestEvalPipelineLocal {
         pigServer.registerQuery("titleNGrams = FOREACH newsArticles GENERATE flatten(" + TitleNGrams.class.getName() + "(*));");
         pigServer.registerQuery("cogrouped = COGROUP titleNGrams BY $0 INNER, queryLog BY $0 INNER;");
         pigServer.registerQuery("answer = FOREACH cogrouped GENERATE COUNT(queryLog),group;");
-        
+
         Iterator<Tuple> iter = pigServer.openIterator("answer");
         if(!iter.hasNext()) Assert.fail("No Output received");
         while(iter.hasNext()){
@@ -359,27 +359,26 @@ public class TestEvalPipelineLocal {
                     (DataType.toDouble(t.get(0))).doubleValue());
         }
     }
-    
 
-    
+
+
     /*
     @Test
     public void testSort() throws Exception{
         testSortDistinct(false, false);
     }
     */
-    
+
     @Test
     public void testSortWithUDF() throws Exception{
         testSortDistinct(false, true);
     }
-    
 
     @Test
     public void testDistinct() throws Exception{
         testSortDistinct(true, false);
     }
-    
+
     public static class TupComp extends ComparisonFunc {
 
         @Override
@@ -396,8 +395,8 @@ public class TestEvalPipelineLocal {
         for(int i = 0; i < LOOP_SIZE; i++) {
             ps.println(r.nextInt(LOOP_SIZE/2) + "\t" + i);
         }
-        ps.close(); 
-        
+        ps.close();
+
         String tmpOutputFile = FileLocalizer.getTemporaryPath(pigServer.getPigContext()).toString();
         pigServer.registerQuery("A = LOAD '"
                 + Util.generateURI(tmpFile.toString(), pigServer
@@ -412,7 +411,7 @@ public class TestEvalPipelineLocal {
             }
         }
         pigServer.store("B", tmpOutputFile);
-        
+
         pigServer.registerQuery("A = load '" + tmpOutputFile + "';");
         Iterator<Tuple> iter = pigServer.openIterator("A");
         String last = "";
@@ -431,9 +430,9 @@ public class TestEvalPipelineLocal {
                 last = t.get(0).toString();
             }
         }
-        
+
     }
-    
+
     public void testNestedPlan() throws Exception{
         int LOOP_COUNT = 10;
         File tmpFile = Util.createTempFileDelOnExit("test", "txt");
@@ -541,13 +540,13 @@ public class TestEvalPipelineLocal {
         }
         Assert.assertEquals(5, numIdentity);
     }
-    
+
     @Test
     public void testComplexData() throws IOException, ExecException {
         // Create input file with ascii data
-        File input = Util.createInputFile("tmp", "", 
+        File input = Util.createInputFile("tmp", "",
                 new String[] {"{(f1, f2),(f3, f4)}\t(1,2)\t[key1#value1,key2#value2]"});
-        
+
         pigServer.registerQuery("a = load '"
                 + Util.generateURI(input.toString(), pigServer.getPigContext())
                 + "' using PigStorage() "
@@ -560,7 +559,7 @@ public class TestEvalPipelineLocal {
         Assert.assertEquals("2", t.get(2).toString());
         Assert.assertEquals("value1", t.get(3).toString());
         Assert.assertEquals("value2", t.get(4).toString());
-        
+
         //test with BinStorage
         pigServer.registerQuery("a = load '"
                 + Util.generateURI(input.toString(), pigServer.getPigContext())
@@ -580,16 +579,16 @@ public class TestEvalPipelineLocal {
         Assert.assertEquals("value1", t.get(3).toString());
         Assert.assertEquals("value2", t.get(4).toString());
         pigServer.deleteFile(output);
-        
+
     }
-    
-    
+
+
     @Test
     public void testBinStorageDetermineSchema() throws IOException, ExecException {
         // Create input file with ascii data
-        File input = Util.createInputFile("tmp", "", 
+        File input = Util.createInputFile("tmp", "",
                 new String[] {"{(f1, f2),(f3, f4)}\t(1,2)\t[key1#value1,key2#value2]"});
-        
+
         pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' using PigStorage() " +
                 "as (b:bag{t:tuple(x:chararray,y:chararray)}, t2:tuple(a:int,b:int), m:map[]);");
         pigServer.registerQuery("b = foreach a generate COUNT(b), t2.a, t2.b, m#'key1', m#'key2';");
@@ -600,7 +599,7 @@ public class TestEvalPipelineLocal {
         Assert.assertEquals(2, t.get(2));
         Assert.assertEquals("value1", t.get(3).toString());
         Assert.assertEquals("value2", t.get(4).toString());
-        
+
         //test with BinStorage
         pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' using PigStorage() " +
                 "as (b:bag{t:tuple(x:chararray,y:chararray)}, t2:tuple(a:int,b:int), m:map[]);");
@@ -617,7 +616,7 @@ public class TestEvalPipelineLocal {
         String[] generates = {"q = foreach p generate COUNT(b), t2.a, t2.b as t2b, m#'key1', m#'key2', b;",
                 "q = foreach p generate COUNT(b), t2.$0, t2.$1, m#'key1', m#'key2', b;",
                 "q = foreach p generate COUNT($0), $1.$0, $1.$1, $2#'key1', $2#'key2', $0;"};
-        
+
         for (int i = 0; i < loads.length; i++) {
             pigServer.registerQuery(loads[i]);
             pigServer.registerQuery(generates[i]);
@@ -630,14 +629,14 @@ public class TestEvalPipelineLocal {
             Assert.assertEquals(2, t.get(2));
             Assert.assertEquals("value1", t.get(3).toString());
             Assert.assertEquals("value2", t.get(4).toString());
-            Assert.assertEquals(DefaultDataBag.class, t.get(5).getClass());
+            Assert.assertEquals(NewDefaultDataBag.class, t.get(5).getClass());
             DataBag bg = (DataBag)t.get(5);
             for (Iterator<Tuple> bit = bg.iterator(); bit.hasNext();) {
                 Tuple bt = bit.next();
                 Assert.assertEquals(String.class, bt.get(0).getClass());
-                Assert.assertEquals(String.class, bt.get(1).getClass());            
+                Assert.assertEquals(String.class, bt.get(1).getClass());
             }
-        }        
+        }
         pigServer.deleteFile(output);
     }
 
@@ -645,7 +644,7 @@ public class TestEvalPipelineLocal {
     public void testProjectBag() throws IOException, ExecException {
         // This tests make sure that when a bag with multiple columns is
         // projected all columns apear in the output
-        File input = Util.createInputFile("tmp", "", 
+        File input = Util.createInputFile("tmp", "",
                 new String[] {"f1\tf2\tf3"});
         pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' as (x, y, z);");
         pigServer.registerQuery("b = group a by x;");
@@ -660,9 +659,9 @@ public class TestEvalPipelineLocal {
     @Test
     public void testBinStorageDetermineSchema2() throws IOException, ExecException {
         // Create input file with ascii data
-        File input = Util.createInputFile("tmp", "", 
+        File input = Util.createInputFile("tmp", "",
                 new String[] {"pigtester\t10\t1.2"});
-        
+
         pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' using PigStorage() " +
                 "as (name:chararray, age:int, gpa:double);");
         String output = "./TestEvalPipeline-testBinStorageDetermineSchema2";
@@ -678,7 +677,7 @@ public class TestEvalPipelineLocal {
         String[] generates = {"q = foreach p generate name, age, gpa;",
                 "q = foreach p generate name, age, gpa;",
                 "q = foreach p generate $0, $1, $2;"};
-        
+
         for (int i = 0; i < loads.length; i++) {
             pigServer.registerQuery(loads[i]);
             pigServer.registerQuery(generates[i]);
@@ -691,7 +690,7 @@ public class TestEvalPipelineLocal {
             Assert.assertEquals(1.2, t.get(2));
             Assert.assertEquals(Double.class, t.get(2).getClass());
         }
-        
+
         // test that valid casting is allowed
         pigServer.registerQuery("p = load '" + output + "' using BinStorage() " +
                 " as (name, age:long, gpa:float);");
@@ -704,7 +703,7 @@ public class TestEvalPipelineLocal {
         Assert.assertEquals(Long.class, t.get(1).getClass());
         Assert.assertEquals(1.2f, t.get(2));
         Assert.assertEquals(Float.class, t.get(2).getClass());
-        
+
         // test that implicit casts work
         pigServer.registerQuery("p = load '" + output + "' using BinStorage() " +
         " as (name, age, gpa);");
@@ -719,15 +718,15 @@ public class TestEvalPipelineLocal {
         Assert.assertEquals(Integer.class, t.get(2).getClass());
         pigServer.deleteFile(output);
     }
-    
+
     @Test
     public void testCogroupWithInputFromGroup() throws IOException, ExecException {
         // Create input file with ascii data
-        File input = Util.createInputFile("tmp", "", 
-                new String[] {"pigtester\t10\t1.2", "pigtester\t15\t1.2", 
+        File input = Util.createInputFile("tmp", "",
+                new String[] {"pigtester\t10\t1.2", "pigtester\t15\t1.2",
                 "pigtester2\t10\t1.2",
                 "pigtester3\t10\t1.2", "pigtester3\t20\t1.2", "pigtester3\t30\t1.2"});
-        
+
         Map<String, Pair<Long, Long>> resultMap = new HashMap<String, Pair<Long, Long>>();
         // we will in essence be doing a group on first column and getting
         // SUM over second column and a count for the group - store
@@ -735,7 +734,7 @@ public class TestEvalPipelineLocal {
         resultMap.put("pigtester", new Pair<Long, Long>(25L, 2L));
         resultMap.put("pigtester2", new Pair<Long, Long>(10L, 1L));
         resultMap.put("pigtester3", new Pair<Long, Long>(60L, 3L));
-        
+
         pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' using PigStorage() " +
                 "as (name:chararray, age:int, gpa:double);");
         pigServer.registerQuery("b = group a by name;");
@@ -747,24 +746,24 @@ public class TestEvalPipelineLocal {
         for(int i = 0; i < resultMap.size(); i++) {
             Tuple t = it.next();
             Assert.assertEquals(true, resultMap.containsKey(t.get(0)));
-            Pair<Long, Long> output = resultMap.get(t.get(0)); 
+            Pair<Long, Long> output = resultMap.get(t.get(0));
             Assert.assertEquals(output.first, t.get(1));
             Assert.assertEquals(output.second, t.get(2));
         }
     }
-    
+
     @Test
     public void testUtf8Dump() throws IOException, ExecException {
-        
+
         // Create input file with unicode data
-        File input = Util.createInputFile("tmp", "", 
+        File input = Util.createInputFile("tmp", "",
                 new String[] {"wendyξ"});
         pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' using PigStorage() " +
         "as (name:chararray);");
         Iterator<Tuple> it = pigServer.openIterator("a");
         Tuple t = it.next();
         Assert.assertEquals("wendyξ", t.get(0));
-        
+
     }
 
     public void testMapUDF() throws Exception{
@@ -844,18 +843,18 @@ public class TestEvalPipelineLocal {
 
     @Test
     public void testLoadCtorArgs() throws IOException, ExecException {
-        
+
         // Create input file
-        File input = Util.createInputFile("tmp", "", 
+        File input = Util.createInputFile("tmp", "",
                 new String[] {"hello:world"});
-        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + 
+        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) +
                 "' using org.apache.pig.test.PigStorageNoDefCtor(':');");
         pigServer.registerQuery("b = foreach a generate (chararray)$0, (chararray)$1;");
         Iterator<Tuple> it = pigServer.openIterator("b");
         Tuple t = it.next();
         Assert.assertEquals("hello", t.get(0));
         Assert.assertEquals("world", t.get(1));
-        
+
     }
 
     @Test
@@ -1026,7 +1025,7 @@ public class TestEvalPipelineLocal {
 
         Assert.assertEquals((LOOP_COUNT * LOOP_COUNT)/2, numRows);
     }
-    
+
     @Test
     public void testExplainInDotGraph() throws Exception{
         pigServer.registerQuery("a = load 'voter' using " + PigStorage.class.getName() + "(',') as (name, age, registration, contributions);");
@@ -1034,12 +1033,12 @@ public class TestEvalPipelineLocal {
         pigServer.registerQuery("c = group b by registration;");
         pigServer.registerQuery("d = foreach c generate (chararray)group, SUM(b.contributions);");
         pigServer.registerQuery("e = order d by $1;");
-        
+
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         pigServer.explain("e", "dot", true, true, ps, System.out, System.out);
         ps.close();
-        
+
         FileInputStream fis1 = new FileInputStream("test/org/apache/pig/test/data/DotFiles/explain1.dot");
         byte[] b1 = new byte[MAX_SIZE];
         fis1.read(b1);
@@ -1047,7 +1046,7 @@ public class TestEvalPipelineLocal {
         goldenPlan = goldenPlan.trim();
         // Filter out the random number generated on hash
         goldenPlan = goldenPlan.replaceAll("\\d{3,}", "");
-        
+
         FileInputStream fis2 = new FileInputStream(tmpFile);
         byte[] b2 = new byte[MAX_SIZE];
         fis2.read(b2);
@@ -1055,16 +1054,16 @@ public class TestEvalPipelineLocal {
         realPlan = realPlan.trim();
         // Filter out the random number generated on hash
         realPlan = realPlan.replaceAll("\\d{3,}", "");
-        
+
         System.out.println("-----------golden");
         System.out.println(goldenPlan);
         System.out.println("-----------");
         System.out.println(realPlan);
-        
-        
+
+
         Assert.assertEquals(realPlan, goldenPlan);
     }
-    
+
     public static class SetLocationTestLoadFunc extends PigStorage {
         String suffix = "test";
         public SetLocationTestLoadFunc() {
@@ -1081,7 +1080,7 @@ public class TestEvalPipelineLocal {
             }
         }
     }
-    
+
     @Test
     public void testSetLocationCalledInFE() throws Exception {
         File f1 = createFile(new String[]{"a","b"});
@@ -1094,7 +1093,7 @@ public class TestEvalPipelineLocal {
         Assert.assertTrue(iter.next().toString().equals("(b)"));
         Assert.assertFalse(iter.hasNext());
     }
-    
+
     @Test
     public void testGroupByTuple() throws Exception {
         File f1 = createFile(new String[]{"1\t2\t3","4\t5\t6"});

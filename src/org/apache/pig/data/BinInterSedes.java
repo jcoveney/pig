@@ -350,12 +350,6 @@ public class BinInterSedes implements InterSedes {
         }
     }
 
-    private SchemaDataBag readSchemaBag(DataInput in, byte type) throws IOException {
-        SchemaDataBag bag = new SchemaDataBag();
-        bag.readFields(in, type);
-        return bag;
-    }
-
     /*
      * (non-Javadoc)
      *
@@ -511,16 +505,10 @@ public class BinInterSedes implements InterSedes {
     }
 
     private void writeBag(DataOutput out, DataBag bag) throws IOException {
-        if (bag instanceof SchemaDataBag) {
-            ((SchemaDataBag)bag).write(out);
-        } else if (bag instanceof NewDefaultDataBag) {
-            ((NewDefaultDataBag)bag).write(out);
-        } else {
-            writeGenericBag(out, bag);
+        if (bag instanceof NewDefaultDataBag) {
+            bag.write(out);
+            return;
         }
-    }
-
-    private void writeGenericBag(DataOutput out, DataBag bag) throws IOException {
         // We don't care whether this bag was sorted or distinct because
         // using the iterator to write it will guarantee those things come
         // correctly. And on the other end there'll be no reason to waste
@@ -992,8 +980,10 @@ public class BinInterSedes implements InterSedes {
                 DataInputBuffer buffer2 = new DataInputBuffer();
                 buffer1.reset(bb1.array(), s1, l1);
                 buffer2.reset(bb2.array(), s2, l2);
-                DataBag bag1 = (DataBag) mSedes.readDatum(buffer1, dt1);
-                DataBag bag2 = (DataBag) mSedes.readDatum(buffer2, dt2);
+                NewDefaultDataBag bag1 = (NewDefaultDataBag)mBagFactory.newDefaultBag();
+                bag1.readFields(buffer1, dt1);
+                NewDefaultDataBag bag2 = (NewDefaultDataBag)mBagFactory.newDefaultBag();
+                bag2.readFields(buffer2, dt2);
                 bb1.position(buffer1.getPosition());
                 bb2.position(buffer2.getPosition());
                 return bag1.compareTo(bag2);

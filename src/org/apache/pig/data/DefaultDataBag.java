@@ -22,11 +22,11 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.io.FileNotFoundException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -39,15 +39,16 @@ import org.apache.pig.PigWarning;
  * are stored in a List, since there is no concern for order or
  * distinctness.
  */
+@Deprecated
 public class DefaultDataBag extends DefaultAbstractBag {
 
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 2L;
 
     private static final Log log = LogFactory.getLog(DefaultDataBag.class);
-    
+
     private static final InterSedes SEDES = InterSedesFactory.getInterSedesInstance();
 
     public DefaultDataBag() {
@@ -69,12 +70,12 @@ public class DefaultDataBag extends DefaultAbstractBag {
     public boolean isSorted() {
         return false;
     }
-    
+
     @Override
     public boolean isDistinct() {
         return false;
     }
-    
+
     @Override
     public Iterator<Tuple> iterator() {
         return new DefaultDataBagIterator();
@@ -155,7 +156,7 @@ public class DefaultDataBag extends DefaultAbstractBag {
         }
 
         @Override
-        public boolean hasNext() { 
+        public boolean hasNext() {
             // Once we call hasNext(), set the flag, so we can call hasNext() repeated without fetching next tuple
             if (hasCachedTuple)
                 return (mBuf != null);
@@ -208,7 +209,7 @@ public class DefaultDataBag extends DefaultAbstractBag {
                 } catch (FileNotFoundException fnfe) {
                     // We can't find our own spill file?  That should never
                     // happen.
-                    String msg = "Unable to find our spill file."; 
+                    String msg = "Unable to find our spill file.";
                     log.fatal(msg, fnfe);
                     throw new RuntimeException(msg, fnfe);
                 }
@@ -222,7 +223,7 @@ public class DefaultDataBag extends DefaultAbstractBag {
                         log.fatal(msg, eof);
                         throw new RuntimeException(msg, eof);
                     } catch (IOException ioe) {
-                        String msg = "Unable to read our spill file."; 
+                        String msg = "Unable to read our spill file.";
                         log.fatal(msg, ioe);
                         throw new RuntimeException(msg, ioe);
                     }
@@ -258,7 +259,7 @@ public class DefaultDataBag extends DefaultAbstractBag {
                         log.warn("Failed to close spill file.", e);
                     }
                 } catch (IOException ioe) {
-                    String msg = "Unable to read our spill file."; 
+                    String msg = "Unable to read our spill file.";
                     log.fatal(msg, ioe);
                     throw new RuntimeException(msg, ioe);
                 }
