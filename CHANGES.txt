@@ -24,7 +24,15 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
-PIG-2854 AvroStorage doesn't work with Avro 1.7.1 (cheolsoo via sms)
+PIG-2837: AvroStorage throws StackOverFlowError (cheolsoo via sms)
+
+PIG-2856: AvroStorage doesn't load files in the directories when a glob pattern matches both files and directories. (cheolsoo via sms)
+
+PIG-2569: Fix org.apache.pig.test.TestInvoker.testSpeed (aklochkov via dvryaboy)
+
+PIG-2858: Improve PlanHelper to allow finding any PhysicalOperator in a plan (dvryaboy)
+
+PIG-2854: AvroStorage doesn't work with Avro 1.7.1 (cheolsoo via sms)
 
 PIG-2779: Refactoring the code for setting number of reducers (jay23jack via billgraham)
 
