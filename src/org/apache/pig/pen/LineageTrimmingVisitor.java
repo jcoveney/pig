@@ -18,8 +18,10 @@
 
 package org.apache.pig.pen;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -28,8 +30,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Comparator;
-import java.io.IOException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -39,30 +39,30 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.IdentityHashSet;
+import org.apache.pig.impl.util.Pair;
+import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
-import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOCross;
 import org.apache.pig.newplan.logical.relational.LODistinct;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOForEach;
+import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplit;
-import org.apache.pig.newplan.logical.relational.LOUnion;
 import org.apache.pig.newplan.logical.relational.LOStore;
-import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
+import org.apache.pig.newplan.logical.relational.LOUnion;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
-import org.apache.pig.newplan.Operator;
-import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.util.IdentityHashSet;
-import org.apache.pig.impl.util.Pair;
-import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
+import org.apache.pig.pen.util.ExampleTuple;
 import org.apache.pig.pen.util.LineageTracer;
 import org.apache.pig.pen.util.MetricEvaluation;
 import org.apache.pig.pen.util.PreOrderDepthFirstWalker;
-import org.apache.pig.pen.util.ExampleTuple;
 
 public class LineageTrimmingVisitor extends LogicalRelationalNodesVisitor {
 
@@ -120,12 +120,12 @@ public class LineageTrimmingVisitor extends LogicalRelationalNodesVisitor {
         // can't separate CoGroup from succeeding ForEach
         if (plan.getSuccessors(cg) != null && plan.getSuccessors(cg).get(0) instanceof LOForEach)
             return;
-        
+
         if (continueTrimming) {
             try {
 
                 continueTrimming = checkCompleteness(cg);
-                
+
                 LineageTracer lineage = null;
                 // create affinity groups
                 if (cg.getInputs(plan).size() == 1) {
@@ -171,7 +171,7 @@ public class LineageTrimmingVisitor extends LogicalRelationalNodesVisitor {
         if (continueTrimming)
             processOperator(filter);
     }
-    
+
     @Override
     public void visit(LOStore store) throws FrontendException {
         if (continueTrimming)
@@ -345,7 +345,7 @@ public class LineageTrimmingVisitor extends LogicalRelationalNodesVisitor {
             baseData.put(ld, inputToDataMap.get(ld.getFileSpec()));
             return;
         }
-        
+
         DataBag data = baseData.get(ld);
         if (data == null || data.size() < 2)
             return;
@@ -358,7 +358,7 @@ public class LineageTrimmingVisitor extends LogicalRelationalNodesVisitor {
             else
               realData.add(t);
         }
-        
+
         Map<LOLoad, DataBag> newBaseData = new HashMap<LOLoad, DataBag>();
         DataBag newData = BagFactory.getInstance().newDefaultBag();
         newBaseData.put(ld, newData);
@@ -370,13 +370,13 @@ public class LineageTrimmingVisitor extends LogicalRelationalNodesVisitor {
                     newBaseData.put(entry.getKey(), newData);
             }
         }
-        
+
         if (checkNewBaseData(newData, newBaseData, realData))
             checkNewBaseData(newData, newBaseData, syntheticData);
-        
+
         inputToDataMap.put(ld.getFileSpec(), baseData.get(ld));
     }
-    
+
     private boolean checkNewBaseData(DataBag data, Map<LOLoad, DataBag> newBaseData, Set<Tuple> loadData) throws FrontendException {
         List<Pair<Tuple, Double>> sortedBase = new LinkedList<Pair<Tuple, Double>>();
         DataBag oldData = BagFactory.getInstance().newDefaultBag();
@@ -384,7 +384,7 @@ public class LineageTrimmingVisitor extends LogicalRelationalNodesVisitor {
         double tmpCompleteness = completeness;
         for (Tuple t : loadData) {
             data.add(t);
-            // obtain the derived data 
+            // obtain the derived data
             Map<Operator, DataBag> derivedData;
             try {
                 derivedData = eg.getData(newBaseData);
@@ -398,7 +398,7 @@ public class LineageTrimmingVisitor extends LogicalRelationalNodesVisitor {
             if (newCompleteness >= tmpCompleteness)
                 break;
         }
-        
+
         Collections.sort(sortedBase, new Comparator<Pair<Tuple, Double>>() {
             @Override
             public int compare(Pair<Tuple, Double> o1,
@@ -412,7 +412,7 @@ public class LineageTrimmingVisitor extends LogicalRelationalNodesVisitor {
         data.addAll(oldData);
         for (Pair<Tuple, Double> p : sortedBase) {
             data.add(p.first);
-            // obtain the derived data 
+            // obtain the derived data
             Map<Operator, DataBag> derivedData;
             try {
                 derivedData = eg.getData(newBaseData);
@@ -430,20 +430,20 @@ public class LineageTrimmingVisitor extends LogicalRelationalNodesVisitor {
         }
         return true;
     }
-    
+
     private void processOperator(LogicalRelationalOperator op) throws FrontendException {
-        
+
         try {
             if (op instanceof LOLoad) {
                 processLoad((LOLoad) op);
                 return;
             }
-            
+
             continueTrimming = checkCompleteness(op);
 
             if (plan.getPredecessors(op) == null)
                 return;
-            
+
             if (continueTrimming == false)
                 return;
 
@@ -463,8 +463,7 @@ public class LineageTrimmingVisitor extends LogicalRelationalNodesVisitor {
                 }
             }
         } catch (Exception e) {
-          e.printStackTrace(System.out);
-          throw new FrontendException("Exception: "+e.getMessage());
+            throw new FrontendException(e);
         }
     }
 
@@ -493,7 +492,7 @@ public class LineageTrimmingVisitor extends LogicalRelationalNodesVisitor {
 
         return continueTrimming;
     }
-    
+
     Map<LOLoad, DataBag> getBaseData() {
         return baseData;
     }

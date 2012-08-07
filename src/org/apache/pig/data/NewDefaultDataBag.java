@@ -424,10 +424,6 @@ public class NewDefaultDataBag implements DataBag {
             return length != -1;
         }
 
-        public void read(DataInput in, TupleLink current) {
-
-        }
-
         private void reset() {
             first = new TupleLink(first.buf.length);
             last = first;

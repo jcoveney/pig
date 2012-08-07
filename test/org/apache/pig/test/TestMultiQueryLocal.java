@@ -17,38 +17,36 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.StringReader;
-import java.io.IOException;
 import java.io.File;
-import java.util.Iterator;
-import java.util.List;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Properties;
-
-import junit.framework.Assert;
-import junit.framework.TestCase;
 
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorPlan;
-import org.apache.pig.impl.PigContext;
-import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
-import org.apache.pig.tools.pigscript.parser.ParseException;
+import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.After;
@@ -74,7 +72,7 @@ public class TestMultiQueryLocal {
     }
 
     @Test
-    public void testMultiQueryWithTwoStores() {
+    public void testMultiQueryWithTwoStores() throws Exception {
 
         System.out.println("===== test multi-query with 2 stores =====");
 
@@ -94,34 +92,24 @@ public class TestMultiQueryLocal {
             // XXX Physical plan has one less node in the local case
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 11);
 
-            Assert.assertTrue(executePlan(pp));
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            Assert.fail();
+            assertTrue(executePlan(pp));
         } finally {
             deleteOutputFiles();
         }
     }
 
     @Test
-    public void testEmptyExecute() {
+    public void testEmptyExecute() throws Exception {
         System.out.println("=== test empty execute ===");
-        
-        try {
-            myPig.setBatchOn();
-            myPig.executeBatch();
-            myPig.executeBatch();
-            myPig.discardBatch();
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-            Assert.fail();
-        }
+
+        myPig.setBatchOn();
+        myPig.executeBatch();
+        myPig.executeBatch();
+        myPig.discardBatch();
     }
 
     @Test
-    public void testMultiQueryWithTwoStores2() {
+    public void testMultiQueryWithTwoStores2() throws Exception {
 
         System.out.println("===== test multi-query with 2 stores (2) =====");
 
@@ -136,20 +124,16 @@ public class TestMultiQueryLocal {
             myPig.registerQuery("store c into '/tmp/Pig-TestMultiQueryLocal2';");
 
             myPig.executeBatch();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            Assert.fail();
         } finally {
             deleteOutputFiles();
         }
     }
 
     @Test
-    public void testMultiQueryWithTwoStores2Execs() {
+    public void testMultiQueryWithTwoStores2Execs() throws Exception {
 
         System.out.println("===== test multi-query with 2 stores (2) =====");
-        
+
         try {
             myPig.setBatchOn();
 
@@ -164,17 +148,13 @@ public class TestMultiQueryLocal {
 
             myPig.executeBatch();
             myPig.discardBatch();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            Assert.fail();
         } finally {
             deleteOutputFiles();
         }
     }
 
     @Test
-    public void testMultiQueryWithThreeStores() {
+    public void testMultiQueryWithThreeStores() throws Exception {
 
         System.out.println("===== test multi-query with 3 stores =====");
 
@@ -194,18 +174,14 @@ public class TestMultiQueryLocal {
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 14);
 
-            Assert.assertTrue(executePlan(pp));
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            Assert.fail();
+            assertTrue(executePlan(pp));
         } finally {
             deleteOutputFiles();
         }
     }
 
     @Test
-    public void testMultiQueryWithThreeStores2() {
+    public void testMultiQueryWithThreeStores2() throws Exception {
 
         System.out.println("===== test multi-query with 3 stores (2) =====");
 
@@ -223,17 +199,13 @@ public class TestMultiQueryLocal {
 
             myPig.executeBatch();
             myPig.discardBatch();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            Assert.fail();
         } finally {
             deleteOutputFiles();
         }
     }
 
     @Test
-    public void testMultiQueryWithTwoLoads() {
+    public void testMultiQueryWithTwoLoads() throws Exception {
 
         System.out.println("===== test multi-query with two loads =====");
 
@@ -256,18 +228,14 @@ public class TestMultiQueryLocal {
             // XXX the total number of ops is one less in the local case
             PhysicalPlan pp = checkPhysicalPlan(lp, 2, 3, 19);
 
-            Assert.assertTrue(executePlan(pp));
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            Assert.fail();
+            assertTrue(executePlan(pp));
         } finally {
             deleteOutputFiles();
         }
     }
 
     @Test
-    public void testMultiQueryWithTwoLoads2() {
+    public void testMultiQueryWithTwoLoads2() throws Exception {
 
         System.out.println("===== test multi-query with two loads (2) =====");
 
@@ -287,61 +255,45 @@ public class TestMultiQueryLocal {
 
             myPig.executeBatch();
             myPig.discardBatch();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            Assert.fail();
         } finally {
             deleteOutputFiles();
         }
     }
 
     @Test
-    public void testMultiQueryWithNoStore() {
+    public void testMultiQueryWithNoStore() throws Exception {
 
         System.out.println("===== test multi-query with no store =====");
 
-        try {
-            myPig.setBatchOn();
+        myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'test/org/apache/pig/test/data/passwd' " +
-                                "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
-            myPig.registerQuery("b = filter a by uid > 5;");
-            myPig.registerQuery("group b by gid;");
+        myPig.registerQuery("a = load 'test/org/apache/pig/test/data/passwd' " +
+                            "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
+        myPig.registerQuery("b = filter a by uid > 5;");
+        myPig.registerQuery("group b by gid;");
 
-            LogicalPlan lp = checkLogicalPlan(0, 0, 0);
-            
-            // XXX Physical plan has one less node in the local case
-            PhysicalPlan pp = checkPhysicalPlan(lp, 0, 0, 0);
-            
-        } catch (Exception e) {
-            e.printStackTrace();
-            Assert.fail();
-        }
+        LogicalPlan lp = checkLogicalPlan(0, 0, 0);
+
+        // XXX Physical plan has one less node in the local case
+        PhysicalPlan pp = checkPhysicalPlan(lp, 0, 0, 0);
     }
 
     @Test
-    public void testMultiQueryWithNoStore2() {
+    public void testMultiQueryWithNoStore2() throws Exception {
 
         System.out.println("===== test multi-query with no store (2) =====");
 
-        try {
-            myPig.setBatchOn();
+        myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'test/org/apache/pig/test/data/passwd' " +
-                                "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
-            myPig.registerQuery("b = filter a by uid > 5;");
-            myPig.registerQuery("group b by gid;");
+        myPig.registerQuery("a = load 'test/org/apache/pig/test/data/passwd' " +
+                            "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
+        myPig.registerQuery("b = filter a by uid > 5;");
+        myPig.registerQuery("group b by gid;");
 
-            myPig.executeBatch();
-            myPig.discardBatch();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            Assert.fail();
-        }
+        myPig.executeBatch();
+        myPig.discardBatch();
     }
-    
+
     public static class PigStorageWithSuffix extends PigStorage {
 
         private String suffix;
@@ -357,7 +309,7 @@ public class TestMultiQueryLocal {
             }
             suffix = job.getConfiguration().get(key);
         }
-        
+
         @Override
         public void putNext(Tuple f) throws IOException {
             try {
@@ -372,41 +324,35 @@ public class TestMultiQueryLocal {
             }
         }
     }
-    
+
     // See PIG-2578
     @Test
-    public void testMultiStoreWithConfig() {
+    public void testMultiStoreWithConfig() throws Exception {
 
         System.out.println("===== test multi-query with competing config =====");
 
-        try {
-            myPig.setBatchOn();
+        myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'test/org/apache/pig/test/data/passwd' " +
-                                "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
-            myPig.registerQuery("store a into '/tmp/Pig-TestMultiQueryLocal1' using " + PigStorageWithSuffix.class.getName() + "('a');");
-            myPig.registerQuery("store a into '/tmp/Pig-TestMultiQueryLocal2' using " + PigStorageWithSuffix.class.getName() + "('b');");
+        myPig.registerQuery("a = load 'test/org/apache/pig/test/data/passwd' " +
+                            "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
+        myPig.registerQuery("store a into '/tmp/Pig-TestMultiQueryLocal1' using " + PigStorageWithSuffix.class.getName() + "('a');");
+        myPig.registerQuery("store a into '/tmp/Pig-TestMultiQueryLocal2' using " + PigStorageWithSuffix.class.getName() + "('b');");
 
-            myPig.executeBatch();
-            myPig.discardBatch();
-            BufferedReader reader = new BufferedReader(new FileReader("/tmp/Pig-TestMultiQueryLocal1/part-m-00000"));
-            String line;
-            while ((line = reader.readLine())!=null) {
-                Assert.assertTrue(line.endsWith("a"));
-            }
-            reader = new BufferedReader(new FileReader("/tmp/Pig-TestMultiQueryLocal2/part-m-00000"));
-            while ((line = reader.readLine())!=null) {
-                Assert.assertTrue(line.endsWith("b"));
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            Assert.fail();
+        myPig.executeBatch();
+        myPig.discardBatch();
+        BufferedReader reader = new BufferedReader(new FileReader("/tmp/Pig-TestMultiQueryLocal1/part-m-00000"));
+        String line;
+        while ((line = reader.readLine())!=null) {
+            assertTrue(line.endsWith("a"));
+        }
+        reader = new BufferedReader(new FileReader("/tmp/Pig-TestMultiQueryLocal2/part-m-00000"));
+        while ((line = reader.readLine())!=null) {
+            assertTrue(line.endsWith("b"));
         }
     }
 
     @Test
-    public void testMultiQueryWithExplain() {
+    public void testMultiQueryWithExplain() throws Exception {
 
         System.out.println("===== test multi-query with explain =====");
 
@@ -416,22 +362,18 @@ public class TestMultiQueryLocal {
                           + "b = filter a by uid > 5;"
                           + "explain b;"
                           + "store b into '/tmp/Pig-TestMultiQueryLocal1';\n";
-            
+
             GruntParser parser = new GruntParser(new StringReader(script));
             parser.setInteractive(false);
             parser.setParams(myPig);
             parser.parseStopOnError();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            Assert.fail();
         } finally {
             deleteOutputFiles();
         }
     }
 
     @Test
-    public void testMultiQueryWithDump() {
+    public void testMultiQueryWithDump() throws Exception {
 
         System.out.println("===== test multi-query with dump =====");
 
@@ -441,22 +383,18 @@ public class TestMultiQueryLocal {
                           + "b = filter a by uid > 5;"
                           + "dump b;"
                           + "store b into '/tmp/Pig-TestMultiQueryLocal1';\n";
-            
+
             GruntParser parser = new GruntParser(new StringReader(script));
             parser.setInteractive(false);
             parser.setParams(myPig);
             parser.parseStopOnError();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            Assert.fail();
         } finally {
             deleteOutputFiles();
         }
     }
 
     @Test
-    public void testMultiQueryWithDescribe() {
+    public void testMultiQueryWithDescribe() throws Exception {
 
         System.out.println("===== test multi-query with describe =====");
 
@@ -466,22 +404,18 @@ public class TestMultiQueryLocal {
                           + "b = filter a by uid > 5;"
                           + "describe b;"
                           + "store b into '/tmp/Pig-TestMultiQueryLocal1';\n";
-            
+
             GruntParser parser = new GruntParser(new StringReader(script));
             parser.setInteractive(false);
             parser.setParams(myPig);
             parser.parseStopOnError();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            Assert.fail();
         } finally {
             deleteOutputFiles();
         }
     }
 
     @Test
-    public void testMultiQueryWithIllustrate() {
+    public void testMultiQueryWithIllustrate() throws Exception {
 
         System.out.println("===== test multi-query with illustrate =====");
 
@@ -491,16 +425,12 @@ public class TestMultiQueryLocal {
                           + "b = filter a by uid > 5;"
                           + "illustrate b;"
                           + "store b into '/tmp/Pig-TestMultiQueryLocal1';\n";
-            
+
             GruntParser parser = new GruntParser(new StringReader(script));
             parser.setInteractive(false);
             myPig.getPigContext().getProperties().setProperty("pig.usenewlogicalplan", "true");
             parser.setParams(myPig);
             parser.parseStopOnError();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            Assert.fail();
         } finally {
             deleteOutputFiles();
             myPig.getPigContext().getProperties().setProperty("pig.usenewlogicalplan", "false");
@@ -508,9 +438,9 @@ public class TestMultiQueryLocal {
     }
 
     @Test
-    public void testStoreOrder() {
+    public void testStoreOrder() throws Exception {
         System.out.println("===== multi-query store order =====");
-        
+
         try {
             myPig.setBatchOn();
             myPig.registerQuery("a = load 'test/org/apache/pig/test/data/passwd';");
@@ -530,18 +460,13 @@ public class TestMultiQueryLocal {
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 15);
 
             myPig.executeBatch();
-            myPig.discardBatch(); 
+            myPig.discardBatch();
 
-            Assert.assertTrue(new File("/tmp/Pig-TestMultiQueryLocal1").exists());
-            Assert.assertTrue(new File("/tmp/Pig-TestMultiQueryLocal2").exists());
-            Assert.assertTrue(new File("/tmp/Pig-TestMultiQueryLocal3").exists());
-            Assert.assertTrue(new File("/tmp/Pig-TestMultiQueryLocal4").exists());
-            Assert.assertTrue(new File("/tmp/Pig-TestMultiQueryLocal5").exists());
-
-            
-        } catch (Exception e) {
-            e.printStackTrace();
-            Assert.fail();
+            assertTrue(new File("/tmp/Pig-TestMultiQueryLocal1").exists());
+            assertTrue(new File("/tmp/Pig-TestMultiQueryLocal2").exists());
+            assertTrue(new File("/tmp/Pig-TestMultiQueryLocal3").exists());
+            assertTrue(new File("/tmp/Pig-TestMultiQueryLocal4").exists());
+            assertTrue(new File("/tmp/Pig-TestMultiQueryLocal5").exists());
         } finally {
             deleteOutputFiles();
         }
@@ -550,7 +475,7 @@ public class TestMultiQueryLocal {
     // --------------------------------------------------------------------------
     // Helper methods
 
-    private <T extends OperatorPlan<? extends Operator<?>>> 
+    private <T extends OperatorPlan<? extends Operator<?>>>
     void showPlanOperators(T p) {
         System.out.println("Operators:");
 
@@ -564,11 +489,10 @@ public class TestMultiQueryLocal {
     }
 
     private LogicalPlan checkLogicalPlan(int expectedRoots,
-            int expectedLeaves, int expectedSize) throws IOException,
-            ParseException {
+            int expectedLeaves, int expectedSize) throws Exception {
 
         System.out.println("===== check logical plan =====");
-    
+
         LogicalPlan lp = null;
 
         try {
@@ -576,21 +500,20 @@ public class TestMultiQueryLocal {
             buildLp.setAccessible(true);
             lp = (LogicalPlan) buildLp.invoke( myPig );
 
-            Assert.assertNotNull(lp);
+            assertNotNull(lp);
 
         } catch (Exception e) {
             PigException pe = LogUtils.getPigException(e);
             if (pe != null) {
                 throw pe;
             } else {
-                e.printStackTrace();
-                Assert.fail();
+                throw e;
             }
         }
 
-        Assert.assertEquals(expectedRoots, lp.getSources().size());
-        Assert.assertEquals(expectedLeaves, lp.getSinks().size());
-        Assert.assertEquals(expectedSize, lp.size());
+        assertEquals(expectedRoots, lp.getSources().size());
+        assertEquals(expectedLeaves, lp.getSinks().size());
+        assertEquals(expectedSize, lp.size());
 
         TestMultiQueryCompiler.showLPOperators(lp);
 
@@ -600,14 +523,14 @@ public class TestMultiQueryLocal {
     private PhysicalPlan checkPhysicalPlan(LogicalPlan lp, int expectedRoots,
             int expectedLeaves, int expectedSize) throws IOException {
 
-        System.out.println("===== check physical plan =====");        
+        System.out.println("===== check physical plan =====");
 
         PhysicalPlan pp = myPig.getPigContext().getExecutionEngine().compile(
                 lp, null);
 
-        Assert.assertEquals(expectedRoots, pp.getRoots().size());
-        Assert.assertEquals(expectedLeaves, pp.getLeaves().size());
-        Assert.assertEquals(expectedSize, pp.size());
+        assertEquals(expectedRoots, pp.getRoots().size());
+        assertEquals(expectedLeaves, pp.getLeaves().size());
+        assertEquals(expectedSize, pp.size());
 
         showPlanOperators(pp);
 
@@ -635,27 +558,22 @@ public class TestMultiQueryLocal {
         return !failed;
     }
 
-    private void deleteOutputFiles() {
+    private void deleteOutputFiles() throws Exception {
         String outputFiles[] = { "/tmp/Pig-TestMultiQueryLocal1",
                                  "/tmp/Pig-TestMultiQueryLocal2",
                                  "/tmp/Pig-TestMultiQueryLocal3",
                                  "/tmp/Pig-TestMultiQueryLocal4",
                                  "/tmp/Pig-TestMultiQueryLocal5"
                 };
-        try {
-            for( String outputFile : outputFiles ) {
-                if( isDirectory(outputFile) ) {
-                    deleteDir( new File( outputFile ) );
-                } else {
-                    FileLocalizer.delete(outputFile, myPig.getPigContext());
-                }    
-            }            
-        } catch (IOException e) {
-            e.printStackTrace();
-            Assert.fail();
+        for( String outputFile : outputFiles ) {
+            if( isDirectory(outputFile) ) {
+                deleteDir( new File( outputFile ) );
+            } else {
+                FileLocalizer.delete(outputFile, myPig.getPigContext());
+            }
         }
     }
-    
+
     private void deleteDir( File file ) {
         if( file.isDirectory() && file.listFiles().length != 0 ) {
             for( File innerFile : file.listFiles() ) {
@@ -664,10 +582,9 @@ public class TestMultiQueryLocal {
         }
         file.delete();
     }
-    
+
     private boolean isDirectory( String filepath ) {
         File file = new File( filepath );
         return file.isDirectory();
     }
-
 }
