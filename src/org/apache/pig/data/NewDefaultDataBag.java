@@ -267,7 +267,9 @@ public class NewDefaultDataBag implements DataBag {
         values.reset();
         values = new LinkedTuples(VALUES_PER_LINK);
         size = 0;
-        spillInfo.clear();
+        if (spillInfo != null) {
+            spillInfo.clear();
+        }
         spillInfo = null;
         haveStartedIterating = false;
     }

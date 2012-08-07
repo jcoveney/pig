@@ -39,34 +39,21 @@ import org.junit.Test;
 
 
 public class TestExampleGenerator {
-
-
     static PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
-
 
     static int MAX = 100;
     static String A, B;
-    static  File fileA, fileB;
-
-    {
-        try {
-            pigContext.connect();
-        } catch (ExecException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-    }
+    static File fileA, fileB;
 
     @BeforeClass
     public static void oneTimeSetup() throws Exception {
-
+        pigContext.connect();
 
         fileA = File.createTempFile("dataA", ".dat");
         fileB = File.createTempFile("dataB", ".dat");
 
         writeData(fileA);
         writeData(fileB);
-
 
         fileA.deleteOnExit();
         fileB.deleteOnExit();
@@ -100,7 +87,6 @@ public class TestExampleGenerator {
         Map<Operator, DataBag> derivedData = pigserver.getExamples("A");
 
         assertNotNull(derivedData);
-
     }
 
     @Test
@@ -116,7 +102,6 @@ public class TestExampleGenerator {
         Map<Operator, DataBag> derivedData = pigserver.getExamples("B");
 
         assertNotNull(derivedData);
-
     }
 
     @Test
@@ -286,12 +271,12 @@ public class TestExampleGenerator {
     public void testFilterUnion() throws Exception {
         PigServer pigServer = new PigServer(pigContext);
         pigServer.registerQuery("A = load " + A.toString() + " as (x:int, y:int);");
-        pigServer.registerQuery("B = FILTER A by x  > 3;");
+        pigServer.registerQuery("B = FILTER A by x > 3;");
         pigServer.registerQuery("C = FILTER A by x < 3;");
         pigServer.registerQuery("D = UNION B, C;");
         Map<Operator, DataBag> derivedData = pigServer.getExamples("D");
 
-        assertTrue(derivedData != null);
+        assertNotNull(derivedData);
 
     }
 
@@ -303,7 +288,7 @@ public class TestExampleGenerator {
         pigServer.registerQuery("C = foreach B { FA = filter A by y == 6; generate group, COUNT(FA);};");
         Map<Operator, DataBag> derivedData = pigServer.getExamples("C");
 
-        assertTrue(derivedData != null);
+        assertNotNull(derivedData);
 
     }
 
@@ -363,7 +348,7 @@ public class TestExampleGenerator {
 
     //see PIG-2275
     @Test
-    public void testFilterWithIsNull() throws ExecException, IOException {
+    public void testFilterWithIsNull() throws Exception {
         PigServer pigServer = new PigServer(pigContext);
 
         pigServer.registerQuery("A = load " + A
@@ -372,7 +357,7 @@ public class TestExampleGenerator {
 
         Map<Operator, DataBag> derivedData = pigServer.getExamples("B");
 
-        assertTrue(derivedData != null);
+        assertNotNull(derivedData);
     }
 
     @Test
@@ -386,7 +371,7 @@ public class TestExampleGenerator {
 
         Map<Operator, DataBag> derivedData = pigServer.getExamples("C");
 
-        assertTrue(derivedData != null);
+        assertNotNull(derivedData);
     }
 
     @Test
@@ -404,7 +389,6 @@ public class TestExampleGenerator {
         pigServer.registerQuery("store D into '" +  out.getAbsolutePath() + "';");
         Map<Operator, DataBag> derivedData = pigServer.getExamples(null);
 
-        assertTrue(derivedData != null);
+        assertNotNull(derivedData);
     }
-
 }

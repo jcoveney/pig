@@ -399,51 +399,52 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
 
     @Override
     public void visit(LODistinct dt) throws FrontendException {
-        if (limit && !((PreOrderDepthFirstWalker) currentWalker).getBranchFlag())
+        if (limit && !((PreOrderDepthFirstWalker) currentWalker).getBranchFlag()) {
             return;
+        }
 
         DataBag outputConstraints = outputConstraintsMap.get(dt);
         outputConstraintsMap.remove(dt);
 
-        DataBag inputConstraints = outputConstraintsMap.get(dt.getInput((LogicalPlan) plan));
+        Operator outputConstraintsMapKey = dt.getInput((LogicalPlan) plan);
+
+        DataBag inputConstraints = outputConstraintsMap.get(outputConstraintsMapKey);
         if (inputConstraints == null) {
-            inputConstraints = BagFactory.getInstance().newDefaultBag();
-            outputConstraintsMap.put(dt.getInput((LogicalPlan) plan), inputConstraints);
+            inputConstraints = mBagFactory.newDefaultBag();
+            outputConstraintsMap.put(outputConstraintsMapKey, inputConstraints);
         }
 
         if (outputConstraints != null && outputConstraints.size() > 0) {
-            for (Iterator<Tuple> it = outputConstraints.iterator(); it.hasNext();)
-            {
-                inputConstraints.add(it.next());
-            }
+            inputConstraints.addAll(outputConstraints);
         }
 
         boolean emptyInputConstraints = inputConstraints.size() == 0;
         if (emptyInputConstraints) {
             DataBag inputData = derivedData.get(dt.getInput((LogicalPlan) plan));
-            for (Iterator<Tuple> it = inputData.iterator(); it.hasNext();)
-            {
-                inputConstraints.add(it.next());
-            }
+            inputConstraints.addAll(inputData);
         }
         Set<Tuple> distinctSet = new HashSet<Tuple>();
         Iterator<Tuple> it;
         for (it = inputConstraints.iterator(); it.hasNext();) {
-            if (!distinctSet.add(it.next()))
+            if (!distinctSet.add(it.next())) {
                 break;
+            }
         }
-        if (!it.hasNext())
-        {
+        DataBag inputConstraintsCopy = mBagFactory.newDefaultBag();
+        inputConstraintsCopy.addAll(inputConstraints);
+        if (!it.hasNext()) {
             // no duplicates found: generate one
-            if (inputConstraints.size()> 0) {
+            if (inputConstraints.size() > 0) {
                 Tuple src = ((ExampleTuple)inputConstraints.iterator().next()).toTuple(),
                       tgt = TupleFactory.getInstance().newTuple(src.getAll());
                 ExampleTuple inputConstraint = new ExampleTuple(tgt);
                 inputConstraint.synthetic = true;
-                inputConstraints.add(inputConstraint);
-            } else if (emptyInputConstraints)
-                inputConstraints.clear();
+                inputConstraintsCopy.add(inputConstraint);
+            } else if (emptyInputConstraints) {
+                inputConstraintsCopy.clear();
+            }
         }
+        outputConstraintsMap.put(outputConstraintsMapKey, inputConstraintsCopy);
     }
 
     @Override

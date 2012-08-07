@@ -65,6 +65,7 @@ import org.apache.pig.pen.util.MetricEvaluation;
 import org.apache.pig.pen.util.PreOrderDepthFirstWalker;
 
 public class LineageTrimmingVisitor extends LogicalRelationalNodesVisitor {
+    private static final BagFactory mBagFactory = BagFactory.getInstance();
 
     LogicalPlan plan = null;
     Map<LOLoad, DataBag> baseData;
@@ -310,8 +311,9 @@ public class LineageTrimmingVisitor extends LogicalRelationalNodesVisitor {
                     toRemove.add(lineageGroup);
 
             }
-            for (Tuple removeMe : toRemove)
+            for (Tuple removeMe : toRemove) {
                 lineageGroupToEquivClasses.remove(removeMe);
+            }
         }
 
         // revise baseData to only contain the tuples that are part of
@@ -319,19 +321,21 @@ public class LineageTrimmingVisitor extends LogicalRelationalNodesVisitor {
         IdentityHashSet<Tuple> tuplesToRetain = new IdentityHashSet<Tuple>();
         for (Tuple lineageGroup : selectedLineageGroups) {
             Collection<Tuple> members = membershipMap.get(lineageGroup);
-            for (Tuple t : members)
+            for (Tuple t : members) {
                 tuplesToRetain.add(t);
+            }
         }
 
         Map<LOLoad, DataBag> newBaseData = new HashMap<LOLoad, DataBag>();
         for (LOLoad loadOp : baseData.keySet()) {
             DataBag data = baseData.get(loadOp);
             // DataBag newData = new DataBag();
-            DataBag newData = BagFactory.getInstance().newDefaultBag();
+            DataBag newData = mBagFactory.newDefaultBag();
             for (Iterator<Tuple> it = data.iterator(); it.hasNext();) {
                 Tuple t = it.next();
-                if (tuplesToRetain.contains(t))
+                if (tuplesToRetain.contains(t)) {
                     newData.add(t);
+                }
             }
             newBaseData.put(loadOp, newData);
         }
@@ -347,43 +351,51 @@ public class LineageTrimmingVisitor extends LogicalRelationalNodesVisitor {
         }
 
         DataBag data = baseData.get(ld);
-        if (data == null || data.size() < 2)
+        if (data == null || data.size() < 2) {
             return;
+        }
         Set<Tuple> realData = new HashSet<Tuple>(), syntheticData = new HashSet<Tuple>();
 
-        for (Iterator<Tuple> it = data.iterator(); it.hasNext(); ) {
-            Tuple t = it.next();
-            if (((ExampleTuple)t).synthetic)
+        for (Tuple t : data) {
+            if (((ExampleTuple)t).synthetic) {
                 syntheticData.add(t);
-            else
+            } else {
               realData.add(t);
-        }
-
-        Map<LOLoad, DataBag> newBaseData = new HashMap<LOLoad, DataBag>();
-        DataBag newData = BagFactory.getInstance().newDefaultBag();
-        newBaseData.put(ld, newData);
-        for (Map.Entry<LOLoad, DataBag> entry : baseData.entrySet()) {
-            if (entry.getKey() != ld) {
-                if (!entry.getKey().getFileSpec().equals(ld.getFileSpec()))
-                    newBaseData.put(entry.getKey(), entry.getValue());
-                else
-                    newBaseData.put(entry.getKey(), newData);
             }
         }
 
-        if (checkNewBaseData(newData, newBaseData, realData))
+        Map<LOLoad, DataBag> newBaseData = new HashMap<LOLoad, DataBag>();
+        DataBag newData = mBagFactory.newDefaultBag();
+        newBaseData.put(ld, newData);
+        for (Map.Entry<LOLoad, DataBag> entry : baseData.entrySet()) {
+            if (entry.getKey() != ld) {
+                if (!entry.getKey().getFileSpec().equals(ld.getFileSpec())) {
+                    newBaseData.put(entry.getKey(), entry.getValue());
+                } else {
+                    newBaseData.put(entry.getKey(), newData);
+                }
+            }
+        }
+
+        if (checkNewBaseData(newData, newBaseData, realData)) {
             checkNewBaseData(newData, newBaseData, syntheticData);
+        }
 
         inputToDataMap.put(ld.getFileSpec(), baseData.get(ld));
     }
 
     private boolean checkNewBaseData(DataBag data, Map<LOLoad, DataBag> newBaseData, Set<Tuple> loadData) throws FrontendException {
         List<Pair<Tuple, Double>> sortedBase = new LinkedList<Pair<Tuple, Double>>();
-        DataBag oldData = BagFactory.getInstance().newDefaultBag();
+        DataBag oldData = mBagFactory.newDefaultBag();
         oldData.addAll(data);
+
         double tmpCompleteness = completeness;
         for (Tuple t : loadData) {
-            oldData.add(t);
+            DataBag copyInPlace = mBagFactory.newDefaultBag();
+            copyInPlace.addAll(data);
+            data.clear();
+            data.addAll(copyInPlace);
+            data.add(t);
             // obtain the derived data
             Map<Operator, DataBag> derivedData;
             try {
@@ -405,12 +417,15 @@ public class LineageTrimmingVisitor extends LogicalRelationalNodesVisitor {
                                Pair<Tuple, Double> o2) {
                 return o1.second > o2.second ? -1 : o1.second == o2.second ? 0 : 1;
             }
-        }
-        );
+        });
 
         data.clear();
         data.addAll(oldData);
         for (Pair<Tuple, Double> p : sortedBase) {
+            DataBag copyInPlace = mBagFactory.newDefaultBag();
+            copyInPlace.addAll(data);
+            data.clear();
+            data.addAll(copyInPlace);
             data.add(p.first);
             // obtain the derived data
             Map<Operator, DataBag> derivedData;
@@ -441,15 +456,16 @@ public class LineageTrimmingVisitor extends LogicalRelationalNodesVisitor {
 
             continueTrimming = checkCompleteness(op);
 
-            if (plan.getPredecessors(op) == null)
+            if (plan.getPredecessors(op) == null) {
                 return;
+            }
 
-            if (continueTrimming == false)
+            if (continueTrimming == false) {
                 return;
+            }
 
             Operator childOp = plan.getPredecessors(op).get(0);
-            if (op instanceof LOForEach && childOp instanceof LOCogroup)
-            {
+            if (op instanceof LOForEach && childOp instanceof LOCogroup) {
                 LOCogroup cg = (LOCogroup) childOp;
                 for (Operator input : cg.getInputs(plan)) {
                     AffinityGroups.put(input, eg.getEqClasses());
