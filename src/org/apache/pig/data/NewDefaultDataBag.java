@@ -77,6 +77,7 @@ public class NewDefaultDataBag implements DataBag {
             } catch (IOException e) {
                 throw new RuntimeException(e); //TODO do more
             }
+            spillOutputStream = null;
             havePerformedFinalSpill = true;
         }
 
@@ -100,6 +101,23 @@ public class NewDefaultDataBag implements DataBag {
 
         public DataOutput getSpillOutputStream() {
             return spillOutputStream;
+        }
+
+        public void clear() {
+            if (spillOutputStream != null) {
+                try {
+                    spillOutputStream.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            spillOutputStream = null;
+            if (spillFile != null) {
+                spillFile.delete();
+            }
+            spillFile = null;
+            stackLocationInSpillFile.clear();
+            stackLocationInSpillFile = null;
         }
     }
 
@@ -141,7 +159,7 @@ public class NewDefaultDataBag implements DataBag {
     @Override
     public long getMemorySize() {
         // values.getMemorySize() + values ptr (8) + size (8) + spillInfo ptr (8) + 8 (padding)
-        return values.getMemorySize() + 32; //NEED TO INCLUDE SIZE OF SPILLINFO OBJECT
+        return values.getMemorySize() + 32 + (spillInfo != null ? spillInfo.getMemorySize() : 0);
     }
 
     @Override
@@ -249,6 +267,7 @@ public class NewDefaultDataBag implements DataBag {
         values.reset();
         values = new LinkedTuples(VALUES_PER_LINK);
         size = 0;
+        spillInfo.clear();
         spillInfo = null;
         haveStartedIterating = false;
     }
@@ -523,6 +542,7 @@ public class NewDefaultDataBag implements DataBag {
         return compareTo(o) == 0;
     }
 
+    // Taken from old DataBag
     @Override
     public int hashCode() {
         int hash = 1;
@@ -533,6 +553,7 @@ public class NewDefaultDataBag implements DataBag {
         return hash;
     }
 
+    // Taken from old DataBag
     @SuppressWarnings("unchecked")
     public int compareTo(Object other) {
         if (this == other)

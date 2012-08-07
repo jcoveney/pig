@@ -54,3 +54,4 @@
 **/TestTupleFormat.java
 **/TestStringUDFs.java
 **/TestLOLoadDeterminedSchema.java
+**/TestNewDefaultDataBag.java

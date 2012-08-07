@@ -91,6 +91,7 @@ import org.apache.pig.pen.util.PreOrderDepthFirstWalker;
 //and try to replace the constraints with values as far as possible. We only deal with simple conditions right now
 
 public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
+    private static final BagFactory mBagFactory = BagFactory.getInstance();
 
     Map<LOLoad, DataBag> baseData = null;
     Map<LOLoad, DataBag> newBaseData = new HashMap<LOLoad, DataBag>();
@@ -127,16 +128,13 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
             inputDataMap.put(e.getKey().getFileSpec(), e.getValue());
         }
 
-        int index = 0;
         for (FileSpec fs : inputDataMap.keySet()) {
             int maxSchemaSize = 0;
             Tuple tupleOfMaxSchemaSize = null;
             for (DataBag bag : inputDataMap.get(fs)) {
                 if (bag.size() > 0) {
-                    int size = 0;
-                    Tuple t = null;
-                    t = bag.iterator().next();
-                    size = t.size();
+                    Tuple t = bag.iterator().next();
+                    int size = t.size();
                     if (size > maxSchemaSize) {
                         maxSchemaSize = size;
                         tupleOfMaxSchemaSize = t;
@@ -145,24 +143,26 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
             }
             for (DataBag bag : inputDataMap.get(fs)) {
                 if (bag.size() > 0) {
-                    for (Iterator<Tuple> it = bag.iterator(); it.hasNext();) {
-                        Tuple t = it.next();
+                    for (Tuple t : bag) {
                         for (int i = t.size(); i < maxSchemaSize; ++i) {
                             t.append(tupleOfMaxSchemaSize.get(i));
                         }
                     }
                 }
             }
-            index++;
         }
 
         for (Map.Entry<LOLoad, DataBag> e : baseData.entrySet()) {
-            DataBag bag = newBaseData.get(e.getKey());
+            LOLoad key = e.getKey();
+            DataBag bag = newBaseData.get(key);
             if (bag == null) {
-                bag = BagFactory.getInstance().newDefaultBag();
-                newBaseData.put(e.getKey(), bag);
+                bag = mBagFactory.newDefaultBag();
+                newBaseData.put(key, bag);
             }
-            bag.addAll(e.getValue());
+            DataBag bagCopy = mBagFactory.newDefaultBag();
+            bagCopy.addAll(bag);
+            bagCopy.addAll(e.getValue());
+            newBaseData.put(key, bagCopy);
         }
         return newBaseData;
     }

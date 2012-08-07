@@ -383,7 +383,7 @@ public class LineageTrimmingVisitor extends LogicalRelationalNodesVisitor {
         oldData.addAll(data);
         double tmpCompleteness = completeness;
         for (Tuple t : loadData) {
-            data.add(t);
+            oldData.add(t);
             // obtain the derived data
             Map<Operator, DataBag> derivedData;
             try {
