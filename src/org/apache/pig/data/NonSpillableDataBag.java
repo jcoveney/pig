@@ -24,7 +24,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 
 
@@ -36,19 +37,21 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
  * will be done on this bag to disk.
  */
 public class NonSpillableDataBag implements DataBag {
+    private static final Log log = LogFactory.getLog(NonSpillableDataBag.class);
+
     // the reason this class does NOT extend DefaultAbstractBag
     // is that we don't want to bloat this class with members it
     // does not need (DefaultAbstractBag has many members related
     // to spilling which are not needed here)
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
 
     /**
-     * 
+     *
      */
-    private List<Tuple> mContents;    
+    private List<Tuple> mContents;
 
     public NonSpillableDataBag() {
         mContents = new ArrayList<Tuple>();
@@ -62,7 +65,7 @@ public class NonSpillableDataBag implements DataBag {
     public NonSpillableDataBag(int tupleCount){
         mContents = new ArrayList<Tuple>(tupleCount);
     }
-    
+
     /**
      * This constructor creates a bag out of an existing list
      * of tuples by taking ownership of the list and NOT
@@ -76,11 +79,11 @@ public class NonSpillableDataBag implements DataBag {
     public boolean isSorted() {
         return false;
     }
-    
+
     public boolean isDistinct() {
         return false;
     }
-    
+
     public Iterator<Tuple> iterator() {
         return new NonSpillableDataBagIterator();
     }
@@ -92,7 +95,7 @@ public class NonSpillableDataBag implements DataBag {
 
         private int mCntr = 0;
 
-        public boolean hasNext() { 
+        public boolean hasNext() {
             return (mCntr < mContents.size());
         }
 
@@ -108,7 +111,7 @@ public class NonSpillableDataBag implements DataBag {
          * Not implemented.
          */
         public void remove() { throw new RuntimeException("Cannot remove() from NonSpillableDataBag.iterator()");}
-    }    
+    }
 
     /**
      * Report progress to HDFS.
@@ -133,7 +136,7 @@ public class NonSpillableDataBag implements DataBag {
 
     @Override
     public void clear() {
-        mContents.clear();        
+        mContents.clear();
     }
 
     @Override
@@ -172,9 +175,9 @@ public class NonSpillableDataBag implements DataBag {
         while (it.hasNext()) {
             Tuple item = it.next();
             item.write(out);
-        }    
+        }
     }
- 
+
     /**
      * Read a bag from disk.
      * @param in DataInput to read data from.
@@ -182,17 +185,18 @@ public class NonSpillableDataBag implements DataBag {
      */
     public void readFields(DataInput in) throws IOException {
         long size = in.readLong();
-        
+
         for (long i = 0; i < size; i++) {
-            try {
-                Object o = DataReaderWriter.readDatum(in);
-                add((Tuple)o);
-            } catch (ExecException ee) {
-                throw ee;
-            }
+            Object o = DataReaderWriter.readDatum(in);
+            add((Tuple)o);
         }
     }
-    
+
+    public void readFields(DataInput in, byte type) throws IOException {
+        log.warn("readFields(DataInput,byte) has no special implementation in " + getClass());
+        readFields(in);
+    }
+
     /* (non-Javadoc)
      * @see java.lang.Object#equals(java.lang.Object)
      */
@@ -221,9 +225,9 @@ public class NonSpillableDataBag implements DataBag {
             // same tuples, regardless of order.  Hopefully most of the
             // time the size check above will prevent this.
             // If either bag isn't already sorted, create a sorted bag out
-            // of it so I can guarantee order.           
+            // of it so I can guarantee order.
             BagFactory factory = BagFactory.getInstance();
-            
+
             DataBag thisClone;
             DataBag otherClone;
             thisClone = factory.newSortedBag(null);
@@ -241,17 +245,17 @@ public class NonSpillableDataBag implements DataBag {
             while (thisIt.hasNext() && otherIt.hasNext()) {
                 Tuple thisT = thisIt.next();
                 Tuple otherT = otherIt.next();
-                
+
                 int c = thisT.compareTo(otherT);
                 if (c != 0) return c;
             }
-            
+
             return 0;   // if we got this far, they must be equal
         } else {
             return DataType.compare(this, other);
         }
     }
-    
+
     /**
      * Write the bag into a string. */
     @Override
@@ -268,6 +272,6 @@ public class NonSpillableDataBag implements DataBag {
         sb.append('}');
         return sb.toString();
     }
-    
+
 }
 

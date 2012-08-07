@@ -26,7 +26,8 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Iterator;
 
-import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
  * A simple performant implementation of the DataBag
@@ -35,6 +36,7 @@ import org.apache.pig.backend.executionengine.ExecException;
  * a single Tuple non-serializable DataBag is required.
  */
 public class SingleTupleBag implements DataBag {
+    private static final Log log = LogFactory.getLog(SingleTupleBag.class);
     private static final BinInterSedes bis = new BinInterSedes();
 
     private static final long serialVersionUID = 1L;
@@ -134,14 +136,16 @@ public class SingleTupleBag implements DataBag {
         long size = in.readLong();
 
         for (long i = 0; i < size; i++) {
-            try {
-                add((Tuple)bis.readDatum(in));
-            } catch (ExecException ee) {
-                throw ee;
-            }
+            add((Tuple)bis.readDatum(in));
         }
 
         in.readInt();
+    }
+
+    @Override
+    public void readFields(DataInput in, byte type) throws IOException {
+        log.warn("readFields(DataInput,byte) has no special implementation in " + getClass());
+        readFields(in);
     }
 
     /* (non-Javadoc)

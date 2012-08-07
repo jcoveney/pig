@@ -17,20 +17,12 @@
  */
 package org.apache.pig.data;
 
-import java.io.BufferedOutputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.DataInput;
-import java.io.DataOutput;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.Collection;
 import java.util.Iterator;
-import java.util.ArrayList;
 
 import org.apache.hadoop.io.WritableComparable;
-
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.util.Spillable;
@@ -68,7 +60,7 @@ import org.apache.pig.impl.util.Spillable;
  * <p>
  * DataBags come in several types, default, sorted, and distinct.  The type
  * must be chosen up front, there is no way to convert a bag on the fly.
- * Default data bags do not guarantee any particular order of retrieval for 
+ * Default data bags do not guarantee any particular order of retrieval for
  * the tuples and may contain duplicate tuples.  Sorted data bags guarantee
  * that tuples will be retrieved in order, where "in order" is defined either
  * by the default comparator for Tuple or the comparator provided by the
@@ -90,13 +82,13 @@ public interface DataBag extends Spillable, WritableComparable, Iterable<Tuple>,
      * @return true if this is a sorted data bag, false otherwise.
      */
     boolean isSorted();
-    
+
     /**
      * Find out if the bag is distinct.
      * @return true if the bag is a distinct bag, false otherwise.
      */
     boolean isDistinct();
-    
+
     /**
      * Get an iterator to the bag. For default and distinct bags,
      * no particular order is guaranteed. For sorted bags the order
@@ -131,4 +123,6 @@ public interface DataBag extends Spillable, WritableComparable, Iterable<Tuple>,
      */
     @InterfaceAudience.Private
     void markStale(boolean stale);
+
+    void readFields(DataInput in, byte type) throws IOException;
 }

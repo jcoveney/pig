@@ -14,14 +14,21 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigCounters;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigHadoopLogger;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.data.NewDefaultDataBag.LinkedTuples.TupleLink;
 import org.apache.pig.impl.util.BagFormat;
+import org.apache.pig.tools.pigstats.PigStatusReporter;
 
 import com.carrotsearch.hppc.LongArrayList;
 
 public class NewDefaultDataBag implements DataBag {
+    private static final Log log = LogFactory.getLog(NewDefaultDataBag.class);
+
     private static final long serialVersionUID = 1L;
     private static final BinInterSedes bis = new BinInterSedes();
     private static final int VALUES_PER_LINK = 1000;
@@ -133,6 +140,7 @@ public class NewDefaultDataBag implements DataBag {
 
     @Override
     public long spill() {
+        long spilled;
         if (spillInfo != null && spillInfo.checkIfHavePerformedFinalSpill()) {
             return 0L;
         }
@@ -141,7 +149,7 @@ public class NewDefaultDataBag implements DataBag {
                 spillInfo = new SpillInfo();
             }
 
-            long spilled;
+
             try {
                 spilled = values.spill(spillInfo, haveStartedIterating);
             } catch (IOException e) {
@@ -152,7 +160,23 @@ public class NewDefaultDataBag implements DataBag {
                 spillInfo.havePerformedFinalSpill();
             }
 
-            return spilled;
+            incSpillCount(PigCounters.SPILLABLE_MEMORY_MANAGER_SPILL_COUNT);
+        }
+        return spilled;
+    }
+
+    //from DefaultAbstractBag
+    protected void incSpillCount(@SuppressWarnings("rawtypes") Enum counter) {
+        incSpillCount(counter, 1);
+    }
+
+    //from DefaultAbstractBag
+    protected void incSpillCount(@SuppressWarnings("rawtypes") Enum counter, long numRecsSpilled) {
+        PigStatusReporter reporter = PigStatusReporter.getInstance();
+        if (reporter != null && reporter.getCounter(counter)!=null) {
+            reporter.getCounter(counter).increment(numRecsSpilled);
+        } else {
+            PigHadoopLogger.getInstance().warn(this, "Spill counter incremented", counter);
         }
     }
 

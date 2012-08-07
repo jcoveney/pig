@@ -116,7 +116,6 @@ public class BinInterSedes implements InterSedes {
     private static BagFactory mBagFactory = BagFactory.getInstance();
     public static final int UNSIGNED_SHORT_MAX = 65535;
     public static final int UNSIGNED_BYTE_MAX = 255;
-    public static final long UNSIGNED_INT_MAX = 4294967295L;
     public static final String UTF8 = "UTF-8";
 
     public Tuple readTuple(DataInput in, byte type) throws IOException {
@@ -205,7 +204,7 @@ public class BinInterSedes implements InterSedes {
     }
 
     private DataBag readBag(DataInput in, byte type) throws IOException {
-        NewDefaultDataBag bag = (NewDefaultDataBag)mBagFactory.newDefaultBag();
+        DataBag bag = mBagFactory.newDefaultBag();
         bag.readFields(in, type);
         return bag;
     }
@@ -403,7 +402,7 @@ public class BinInterSedes implements InterSedes {
             break;
 
         case DataType.BAG:
-            writeBag(out, (DataBag) val);
+            ((DataBag) val).write(out);
             break;
 
         case DataType.MAP: {
@@ -536,40 +535,12 @@ public class BinInterSedes implements InterSedes {
         }
     }
 
-    private void writeBag(DataOutput out, DataBag bag) throws IOException {
-        if (bag instanceof NewDefaultDataBag) {
-            bag.write(out);
-            return;
-        }
-        // We don't care whether this bag was sorted or distinct because
-        // using the iterator to write it will guarantee those things come
-        // correctly. And on the other end there'll be no reason to waste
-        // time re-sorting or re-applying distinct.
-        final long sz = bag.size();
-        if (sz < UNSIGNED_BYTE_MAX) {
-            out.writeByte(TINYBAG);
-            out.writeByte((int) sz);
-        } else if (sz < UNSIGNED_SHORT_MAX) {
-            out.writeByte(SMALLBAG);
-            out.writeShort((int) sz);
-        } else {
-            out.writeByte(BAG);
-            out.writeLong(sz);
-        }
-
-        Iterator<Tuple> it = bag.iterator();
-        while (it.hasNext()) {
-            writeTuple(out, it.next());
-        }
-
-    }
-
     private void writeTuple(DataOutput out, Tuple t) throws IOException {
         if (t instanceof TypeAwareTuple) {
             t.write(out);
         } else {
             SedesHelper.writeGenericTuple(out, t);
-    }
+        }
     }
 
     /*
@@ -994,7 +965,6 @@ public class BinInterSedes implements InterSedes {
             return writable1.compareTo(writable2);
         }
 
-        @SuppressWarnings("unchecked")
         private int compareBinInterSedesBag(ByteBuffer bb1, ByteBuffer bb2, byte dt1, byte dt2) throws IOException {
             int s1 = bb1.position();
             int s2 = bb2.position();
@@ -1012,9 +982,9 @@ public class BinInterSedes implements InterSedes {
                 DataInputBuffer buffer2 = new DataInputBuffer();
                 buffer1.reset(bb1.array(), s1, l1);
                 buffer2.reset(bb2.array(), s2, l2);
-                NewDefaultDataBag bag1 = (NewDefaultDataBag)mBagFactory.newDefaultBag();
+                DataBag bag1 = mBagFactory.newDefaultBag();
                 bag1.readFields(buffer1, dt1);
-                NewDefaultDataBag bag2 = (NewDefaultDataBag)mBagFactory.newDefaultBag();
+                DataBag bag2 = mBagFactory.newDefaultBag();
                 bag2.readFields(buffer2, dt2);
                 bb1.position(buffer1.getPosition());
                 bb2.position(buffer2.getPosition());
