@@ -45,7 +45,6 @@ import org.apache.pig.data.SchemaTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.TupleMaker;
-import org.apache.pig.data.utils.CollectionsHelper.BasicList;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.DefaultIndexableLoader;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -57,11 +56,11 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 
-/** This operator implements merge join algorithm to do map side joins.
+/** This operator implements merge join algorithm to do map side joins. 
  *  Currently, only two-way joins are supported. One input of join is identified as left
  *  and other is identified as right. Left input tuples are the input records in map.
  *  Right tuples are read from HDFS by opening right stream.
- *
+ *  
  *    This join doesn't support outer join.
  *    Data is assumed to be sorted in ascending order. It will fail if data is sorted in descending order.
  */
@@ -94,7 +93,7 @@ public class POMergeJoin extends PhysicalOperator {
     private FuncSpec rightLoaderFuncSpec;
 
     private String rightInputFileName;
-
+    
     private String indexFile;
 
     // Buffer to hold accumulated left tuples.
@@ -155,14 +154,14 @@ public class POMergeJoin extends PhysicalOperator {
         LRs = new POLocalRearrange[2];
         this.createJoinPlans(inpPlans,keyTypes);
         this.indexFile = null;
-        this.joinType = joinType;
+        this.joinType = joinType;  
         this.leftInputSchema = leftInputSchema;
         this.mergedInputSchema = mergedInputSchema;
     }
 
     /**
      * Configures the Local Rearrange operators to get keys out of tuple.
-     * @throws ExecException
+     * @throws ExecException 
      */
     private void createJoinPlans(MultiMap<PhysicalOperator, PhysicalPlan> inpPlans, List<List<Byte>> keyTypes) throws PlanException{
 
@@ -224,7 +223,7 @@ public class POMergeJoin extends PhysicalOperator {
      * from Tuple to SchemaTuple. This is necessary because we are not getting SchemaTuples
      * from the source, though in the future that is what we would like to do.
      */
-    protected static class TuplesToSchemaTupleList implements BasicList<Tuple> {
+    protected static class TuplesToSchemaTupleList {
         private List<Tuple> tuples;
         private SchemaTupleFactory tf;
 
@@ -248,7 +247,6 @@ public class POMergeJoin extends PhysicalOperator {
             }
         }
 
-        @Override
         public boolean add(Tuple t) {
             if (tf != null) {
                 t = convert(t, tf);
@@ -256,17 +254,14 @@ public class POMergeJoin extends PhysicalOperator {
             return tuples.add(t);
         }
 
-        @Override
         public Tuple get(int i) {
             return tuples.get(i);
         }
 
-        @Override
         public int size() {
             return tuples.size();
         }
 
-        @Override
         public List<Tuple> getList() {
             return tuples;
         }
@@ -291,7 +286,7 @@ public class POMergeJoin extends PhysicalOperator {
             curLeftKey = extractKeysFromTuple(curLeftInp, 0);
             if(null == curLeftKey) // We drop the tuples which have null keys.
                 return new Result(POStatus.STATUS_EOP, null);
-
+            
             try {
                 seekInRightStream(curLeftKey);
             } catch (IOException e) {
@@ -336,7 +331,7 @@ public class POMergeJoin extends PhysicalOperator {
                 }
                 else{
                     Object rightKey = extractKeysFromTuple(rightInp, 1);
-                    if(null == rightKey) // If we see tuple having null keys in stream, we drop them
+                    if(null == rightKey) // If we see tuple having null keys in stream, we drop them 
                         continue;       // and fetch next tuple.
 
                     int cmpval = ((Comparable)rightKey).compareTo(curJoinKey);
@@ -375,7 +370,7 @@ public class POMergeJoin extends PhysicalOperator {
                         String errMsg = "Data is not sorted on right side. Last two tuples encountered were: \n"+
                         curJoiningRightTup+ "\n" + (Tuple)rightInp.result ;
                         throw new ExecException(errMsg,errCode);
-                    }
+                    }    
                 }
             }
         }
@@ -387,7 +382,7 @@ public class POMergeJoin extends PhysicalOperator {
             curLeftKey = extractKeysFromTuple(curLeftInp, 0);
             if(null == curLeftKey) // We drop the tuples which have null keys.
                 return new Result(POStatus.STATUS_EOP, null);
-
+            
             int cmpVal = ((Comparable)curLeftKey).compareTo(prevLeftKey);
             if(cmpVal == 0){
                 // Keep on accumulating.
@@ -396,7 +391,7 @@ public class POMergeJoin extends PhysicalOperator {
             }
             else if(cmpVal > 0){ // Filled with left bag. Move on.
                 curJoinKey = prevLeftKey;
-                break;
+                break;   
             }
             else{   // Current key < Prev Key
                 int errCode = 1102;
@@ -404,14 +399,14 @@ public class POMergeJoin extends PhysicalOperator {
                 prevLeftKey+ "\n" + curLeftKey ;
                 throw new ExecException(errMsg,errCode);
             }
-
+ 
         case POStatus.STATUS_EOP:
             if(this.parentPlan.endOfAllInput){
-                // We hit the end on left input.
+                // We hit the end on left input. 
                 // Tuples in bag may still possibly join with right side.
                 curJoinKey = prevLeftKey;
                 curLeftKey = null;
-                break;
+                break;                
             }
             else    // Fetch next left input.
                 return curLeftInp;
@@ -434,7 +429,7 @@ public class POMergeJoin extends PhysicalOperator {
         // Accumulated tuples with same key on left side.
         // But since we are reading ahead we still haven't checked the read ahead right tuple.
         // Accumulated left tuples may potentially join with that. So, lets check that first.
-
+        
         if((null != prevRightKey) && prevRightKey.equals(prevLeftKey)){
 
             curJoiningRightTup = (Tuple)prevRightInp.result;
@@ -456,17 +451,17 @@ public class POMergeJoin extends PhysicalOperator {
                 slidingToNextRecord = false;
             } else
                 rightInp = getNextRightInp(prevLeftKey);
-
+                
             if(rightInp.returnStatus != POStatus.STATUS_OK)
                 return rightInp;
 
             Object extractedRightKey = extractKeysFromTuple(rightInp, 1);
-
-            if(null == extractedRightKey) // If we see tuple having null keys in stream, we drop them
+            
+            if(null == extractedRightKey) // If we see tuple having null keys in stream, we drop them 
                 continue;       // and fetch next tuple.
-
+            
             Comparable rightKey = (Comparable)extractedRightKey;
-
+            
             if( prevRightKey != null && rightKey.compareTo(prevRightKey) < 0){
                 // Sanity check.
                 int errCode = 1102;
@@ -495,7 +490,7 @@ public class POMergeJoin extends PhysicalOperator {
             else{    // We got ahead on right side. Store currently read right tuple.
                 prevRightKey = rightKey;
                 prevRightInp = rightInp;
-                // Since we didn't find any matching right tuple we throw away the buffered left tuples and add the one read in this function call.
+                // Since we didn't find any matching right tuple we throw away the buffered left tuples and add the one read in this function call. 
                 leftTuples = newLeftTupleArray();
                 leftTuples.add((Tuple)curLeftInp.result);
                 prevLeftInp = curLeftInp;
@@ -513,16 +508,16 @@ public class POMergeJoin extends PhysicalOperator {
             }
         }
     }
-
+    
     private void seekInRightStream(Object firstLeftKey) throws IOException{
         rightLoader = (LoadFunc)PigContext.instantiateFuncFromSpec(rightLoaderFuncSpec);
-
+        
         // check if hadoop distributed cache is used
         if (indexFile != null && rightLoader instanceof DefaultIndexableLoader) {
             DefaultIndexableLoader loader = (DefaultIndexableLoader)rightLoader;
             loader.setIndexFile(indexFile);
         }
-
+        
         // Pass signature of the loader to rightLoader
         // make a copy of the conf to use in calls to rightLoader.
         rightLoader.setUDFContextSignature(signature);
@@ -575,11 +570,11 @@ public class POMergeJoin extends PhysicalOperator {
                         // run the tuple through the pipeline
                         rightPipelineRoot.attachInput(t);
                         return this.getNextRightInp();
-
+                        
                     }
                     default: // We don't deal with ERR/NULL. just pass them down
                         throwProcessingException(false, null);
-
+                        
                 }
             }
         } catch (IOException e) {
@@ -610,8 +605,8 @@ public class POMergeJoin extends PhysicalOperator {
             int errCode = 2167;
             String errMsg = "LocalRearrange used to extract keys from tuple isn't configured correctly";
             throw new ExecException(errMsg,errCode,PigException.BUG);
-        }
-
+        } 
+          
         return ((Tuple) lrOut.result).get(1);
     }
 
@@ -627,7 +622,7 @@ public class POMergeJoin extends PhysicalOperator {
             noInnerPlanOnRightSide = false;
             this.rightPipelineLeaf = rightPipeline.getLeaves().get(0);
             this.rightPipelineRoot = rightPipeline.getRoots().get(0);
-            this.rightPipelineRoot.setInputs(null);
+            this.rightPipelineRoot.setInputs(null);            
         }
         else
             noInnerPlanOnRightSide = true;
@@ -678,18 +673,18 @@ public class POMergeJoin extends PhysicalOperator {
     public boolean supportsMultipleOutputs() {
         return false;
     }
-
+    
     /**
      * @param rightInputFileName the rightInputFileName to set
      */
     public void setRightInputFileName(String rightInputFileName) {
         this.rightInputFileName = rightInputFileName;
     }
-
+    
     public String getSignature() {
         return signature;
     }
-
+    
     public void setSignature(String signature) {
         this.signature = signature;
     }
@@ -701,12 +696,12 @@ public class POMergeJoin extends PhysicalOperator {
     public String getIndexFile() {
         return indexFile;
     }
-
+    
     @Override
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
         return null;
     }
-
+    
     public LOJoin.JOINTYPE getJoinType() {
         return joinType;
     }
