@@ -23,16 +23,48 @@ import org.apache.pig.data.NewDefaultDataBag.LinkedTuples.TupleLink;
 import org.apache.pig.impl.util.BagFormat;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 
+/**
+ * This is a more efficient implementation of {@link DefaultDataBag} and is
+ * intended to replace it in all circumstances. There are some key implementation
+ * differences which make this implementation more efficient, especially for large
+ * bags.
+ */
 public class NewDefaultDataBag implements DataBag {
     private static final long serialVersionUID = 1L;
     private static final BinInterSedes bis = new BinInterSedes();
+    /**
+     * This is the value that defines how many Tuples will be cached in every "link"
+     * of the LinkedTuple data structure.
+     */
     private static final int VALUES_PER_LINK = 1000;
+    /**
+     * This defines the size of the buffer in the BufferedOutputStream that is spilled into.
+     */
     private static final int SPILL_OUT_BUFFER = 4 * 1024 * 1024;
+    /**
+     * This defines the size of the buffer in the BufferedInputStream that is used to read
+     * the spill file.
+     */
     private static final int SPILL_IN_BUFFER = 4 * 1024 * 1024;
+    /**
+     * This defines the number of links in the LinkedTuple data structure that will be deserialized
+     * before allowing a possible spill. The tradeoff here is the cost of synchronization versus
+     * the amount of memory you have. It is most likely safe to have this be a large number since
+     * deserialization is single threaded, so the change of OOM'ing on a single bag's deserialization
+     * (as long as you break at reasonable points) is low.
+     */
     private static final int BREAK_FOR_SPILL_EVERY = 10;
 
+    /**
+     * This is the in memory store for un-spilled Tuples.
+     */
     private LinkedTuples values = new LinkedTuples(VALUES_PER_LINK);
     private long size;
+    /**
+     * This is a data structure which encapsulates information that is involved in spilling.
+     * The benefit of making this a separate class is that we only incur the memory cost of spilling
+     * and instantiating those resources if we spill.
+     */
     private volatile SpillInfo spillInfo;
     private volatile boolean haveStartedIterating = false;
 
@@ -72,8 +104,9 @@ public class NewDefaultDataBag implements DataBag {
 
 
         private long getMemorySize() {
-            // spillFile ptr (8) + spillOutputStrea ptr (8) + stackLocationInSpillFile ptr (8) + havePerformedfinalSpill (8 after padding) + size of stackLocationInSpillFile
-            return 32 + stackLocationInSpillFile.buffer.length * 8; //TODO include any extra overhead from LongArrayList!
+            // spillFile ptr (8) + spillOutputStrea ptr (8) + stackLocationInSpillFile ptr (8) + havePerformedfinalSpill (8 after padding)
+            // buffer ptr (8) + ct (8) + buffer allocation
+            return 48 + stackLocationInSpillFile.buffer.length * 8; //TODO include any extra overhead from LongArrayList!
         }
 
         public SpillInfo() {
