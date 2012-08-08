@@ -11,11 +11,10 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigCounters;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigHadoopLogger;
@@ -24,11 +23,7 @@ import org.apache.pig.data.NewDefaultDataBag.LinkedTuples.TupleLink;
 import org.apache.pig.impl.util.BagFormat;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 
-import com.carrotsearch.hppc.LongArrayList;
-
 public class NewDefaultDataBag implements DataBag {
-    private static final Log log = LogFactory.getLog(NewDefaultDataBag.class);
-
     private static final long serialVersionUID = 1L;
     private static final BinInterSedes bis = new BinInterSedes();
     private static final int VALUES_PER_LINK = 1000;
@@ -48,9 +43,36 @@ public class NewDefaultDataBag implements DataBag {
         //NOTE: this is the ENDING of the location (which happens to be more useful for us)
         private LongArrayList stackLocationInSpillFile = new LongArrayList(); //TODO analyze need for thread safety
 
+        //TODO replace this with hppc's LongArrayList once we have that dependency in Pig
+        private static class LongArrayList {
+            private static final int DEFAULT_STARTING_SIZE = 8;
+
+            private long[] buffer = new long[DEFAULT_STARTING_SIZE];
+            private int ct = 0;
+
+            public void add(long val) {
+                if (ct == buffer.length) {
+                    buffer = Arrays.copyOf(buffer, buffer.length * 2);
+                }
+                buffer[ct++] = val;
+            }
+
+            public long get(int idx) {
+                if (idx >= ct) {
+                    throw new ArrayIndexOutOfBoundsException("Asked for value at position ["+idx+"], but have only inserted up to position ["+ct+"]");
+                }
+                return buffer[idx];
+            }
+
+            public int size() {
+                return ct;
+            }
+        }
+
+
         private long getMemorySize() {
             // spillFile ptr (8) + spillOutputStrea ptr (8) + stackLocationInSpillFile ptr (8) + havePerformedfinalSpill (8 after padding) + size of stackLocationInSpillFile
-            return 32 + stackLocationInSpillFile.buffer.length * 8;
+            return 32 + stackLocationInSpillFile.buffer.length * 8; //TODO include any extra overhead from LongArrayList!
         }
 
         public SpillInfo() {
@@ -123,7 +145,6 @@ public class NewDefaultDataBag implements DataBag {
                 spillFile.delete();
             }
             spillFile = null;
-            stackLocationInSpillFile.clear();
             stackLocationInSpillFile = null;
         }
     }
