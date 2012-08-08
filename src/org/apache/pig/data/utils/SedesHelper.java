@@ -85,7 +85,6 @@ public class SedesHelper {
         return new String(buf, BinInterSedes.UTF8);
     }
 
-    //TODO add demarkations for Tuples of specific sizes (ie 1-6) to save space for them
     public static void writeGenericTuple(DataOutput out, Tuple t) throws IOException {
         int sz = t.size();
         switch (sz) {
