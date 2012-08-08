@@ -59,7 +59,8 @@ public class NewDefaultDataBag implements DataBag {
 
             public long get(int idx) {
                 if (idx >= ct) {
-                    throw new ArrayIndexOutOfBoundsException("Asked for value at position ["+idx+"], but have only inserted up to position ["+ct+"]");
+                    throw new ArrayIndexOutOfBoundsException("Asked for value at position ["
+                            +idx+"], but have only inserted up to position ["+ct+"]");
                 }
                 return buffer[idx];
             }
