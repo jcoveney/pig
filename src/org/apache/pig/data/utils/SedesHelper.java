@@ -78,6 +78,7 @@ public class SedesHelper {
         if (type == BinInterSedes.SMALLCHARARRAY) {
             return in.readUTF();
         }
+        }
 
         int size = in.readInt();
         byte[] buf = new byte[size];
