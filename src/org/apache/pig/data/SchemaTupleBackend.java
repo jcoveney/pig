@@ -126,7 +126,7 @@ public class SchemaTupleBackend {
     private SchemaTupleFactory internalNewSchemaTupleFactory(int id) {
         SchemaTupleFactory stf = schemaTupleFactoriesById.get(id);
         if (stf == null) {
-            LOG.warn("No SchemaTupleFactory present for given identifier: " + id);
+            LOG.debug("No SchemaTupleFactory present for given identifier: " + id);
         }
         return stf;
     }
@@ -141,7 +141,7 @@ public class SchemaTupleBackend {
     private SchemaTupleFactory newSchemaTupleFactory(Triple<SchemaKey, Boolean, GenContext> trip) {
         SchemaTupleFactory stf = schemaTupleFactoriesByTriple.get(trip);
         if (stf == null) {
-            SchemaTupleFactory.LOG.warn("No SchemaTupleFactory present for given SchemaKey/Boolean/Context combination " + trip);
+            LOG.debug("No SchemaTupleFactory present for given SchemaKey/Boolean/Context combination " + trip);
         }
         return stf;
     }

@@ -65,7 +65,7 @@ public class SchemaTupleClassGenerator {
          * however the intent is that when a Schema is known, the
          * LoadFunc can return typed Tuples.
          */
-        LOAD ("pig.schematuple.load", true, GenerateLoad.class),
+        FOREACH ("pig.schematuple.foreach", true, GenerateForeach.class),
         /**
          * This context controls whether or not SchemaTuples will be used in FR joins.
          * Currently, they will be used in the HashMap that FR Joins construct.
@@ -93,7 +93,7 @@ public class SchemaTupleClassGenerator {
 
         @Retention(RetentionPolicy.RUNTIME)
         @Target(ElementType.TYPE)
-        public @interface GenerateLoad {}
+        public @interface GenerateForeach {}
 
         @Retention(RetentionPolicy.RUNTIME)
         @Target(ElementType.TYPE)
@@ -221,7 +221,7 @@ public class SchemaTupleClassGenerator {
      */
     //TODO in the future, we can use ASM to generate the bytecode directly.
     private static void compileCodeString(String className, String generatedCodeString, File codeDir) {
-        JavaCompilerHelper compiler = new JavaCompilerHelper(); 
+        JavaCompilerHelper compiler = new JavaCompilerHelper();
         String tempDir = codeDir.getAbsolutePath();
         compiler.addToClassPath(tempDir);
         LOG.debug("Compiling SchemaTuple code with classpath: " + compiler.getClassPath());

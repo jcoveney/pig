@@ -39,7 +39,7 @@ import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.newplan.logical.Util;
 
 public class LOLoad extends LogicalRelationalOperator {
-    
+
     private LogicalSchema scriptSchema;
     private final FileSpec fs;
     private transient LoadFunc loadFunc;
@@ -54,7 +54,7 @@ public class LOLoad extends LogicalRelationalOperator {
 
     /**
      * used for pattern matching
-     * 
+     *
      * @param schema schema user specified in script, or null if not
      * specified.
      * @param plan logical plan this load is part of.
@@ -97,28 +97,28 @@ public class LOLoad extends LogicalRelationalOperator {
     public String getSchemaFile() {
         return schemaFile;
     }
-    
+
     public LoadFunc getLoadFunc() throws FrontendException {
-        try { 
+        try {
             if (loadFunc == null && fs!=null) {
                 loadFunc = (LoadFunc)PigContext.instantiateFuncFromSpec(fs.getFuncSpec());
                 loadFunc.setUDFContextSignature(signature);
             }
-            
+
             return loadFunc;
         }catch (ClassCastException cce) {
-            throw new FrontendException(this, fs.getFuncSpec() + " should implement the LoadFunc interface.", 2236);    		
+            throw new FrontendException(this, fs.getFuncSpec() + " should implement the LoadFunc interface.", 2236);
         }
     }
-    
+
     public void setScriptSchema(LogicalSchema schema) {
         scriptSchema = schema;
     }
-    
+
     public void setRequiredFields(List<Integer> requiredFields) {
         this.requiredFields = requiredFields;
     }
-    
+
     /**
      * Get the schema for this load.  The schema will be either be what was
      * given by the user in the script or what the load functions getSchema
@@ -130,14 +130,14 @@ public class LOLoad extends LogicalRelationalOperator {
     public LogicalSchema getSchema() throws FrontendException {
         if (schema != null)
             return schema;
-        
+
         LogicalSchema originalSchema = null;
-        
+
         if (scriptSchema != null && determinedSchema != null) {
             originalSchema = LogicalSchema.merge(scriptSchema, determinedSchema, LogicalSchema.MergeMode.LoadForEach);
         } else if (scriptSchema != null)  originalSchema = scriptSchema;
         else if (determinedSchema != null) originalSchema = determinedSchema;
-        
+
         if (isCastInserted()) {
             for (int i=0;i<originalSchema.size();i++) {
                 LogicalSchema.LogicalFieldSchema fs = originalSchema.getField(i);
@@ -151,11 +151,11 @@ public class LOLoad extends LogicalRelationalOperator {
                 }
             }
         }
-        
+
         if (originalSchema!=null) {
             uidOnlySchema = originalSchema.mergeUid(uidOnlySchema);
         }
-        
+
         if (requiredFields!=null) {
             schema = new LogicalSchema();
             for (int i=0;i<originalSchema.size();i++) {
@@ -164,7 +164,7 @@ public class LOLoad extends LogicalRelationalOperator {
             }
         } else
             schema = originalSchema;
-        
+
         return schema;
     }
 
@@ -187,7 +187,7 @@ public class LOLoad extends LogicalRelationalOperator {
 	 * The schema can be retrieved by load functions or UDFs to know the schema
 	 * the user entered in the as clause.<br/>
 	 * The name format is:<br/>
-	 * 
+	 *
 	 * <pre>
 	 * ${UDFSignature}.scriptSchema = ObjectSerializer.serialize(scriptSchema)
 	 * </pre>
@@ -197,7 +197,7 @@ public class LOLoad extends LogicalRelationalOperator {
 	 * That is a = LOAD 'input' as (a:chararray, b:chararray)<br/>
 	 * The schema wil lbe (a:chararray, b:chararray)<br/>
 	 * <p/>
-	 * 
+	 *
 	 * TODO Find better solution to make script schema available to LoadFunc see
 	 * https://issues.apache.org/jira/browse/PIG-1717
 	 */
@@ -220,7 +220,7 @@ public class LOLoad extends LogicalRelationalOperator {
     public FileSpec getFileSpec() {
         return fs;
     }
-    
+
     @Override
     public void accept(PlanVisitor v) throws FrontendException {
         if (!(v instanceof LogicalRelationalNodesVisitor)) {
@@ -229,11 +229,11 @@ public class LOLoad extends LogicalRelationalOperator {
         ((LogicalRelationalNodesVisitor)v).visit(this);
 
     }
-    
+
     public LogicalSchema getDeterminedSchema() {
         return determinedSchema;
     }
-    
+
     @Override
     public boolean isEqual(Operator other) throws FrontendException {
         if (other != null && other instanceof LOLoad) {
@@ -246,40 +246,40 @@ public class LOLoad extends LogicalRelationalOperator {
                     return false;
                 }
             }
-            
+
             return fs.equals(ol.fs);
         } else {
             return false;
         }
     }
-    
+
     public void setCastInserted(boolean flag) {
         castInserted = flag;
     }
-    
+
     public boolean isCastInserted() {
         return castInserted;
     }
-    
+
     public Configuration getConfiguration() {
         return conf;
     }
-    
+
     @Override
     public void resetUid() {
         uidOnlySchema = null;
     }
-    
+
     @Override
     public String toString(){
         String str = super.toString();
         return (str + "RequiredFields:" + requiredFields);
     }
-    
+
     public String getSignature() {
         return signature;
     }
-    
+
     public LogicalSchema getScriptSchema() {
         return scriptSchema;
     }

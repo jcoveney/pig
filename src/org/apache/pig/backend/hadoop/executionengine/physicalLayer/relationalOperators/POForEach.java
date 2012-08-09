@@ -23,6 +23,8 @@ import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -36,8 +38,12 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.data.AccumulativeBag;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
+import org.apache.pig.data.SchemaTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.data.TupleMaker;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -49,9 +55,7 @@ import org.apache.pig.pen.util.LineageTracer;
 @SuppressWarnings("unchecked")
 public class POForEach extends PhysicalOperator {
 
-    /**
-     *
-     */
+    private static final Log LOG = LogFactory.getLog(POForEach.class);
     private static final long serialVersionUID = 1L;
 
     protected List<PhysicalPlan> inputPlans;
@@ -93,6 +97,8 @@ public class POForEach extends PhysicalOperator {
 
     protected Tuple inpTuple;
 
+    private Schema schema;
+
     public POForEach(OperatorKey k) {
         this(k,-1,null,null);
     }
@@ -115,6 +121,12 @@ public class POForEach extends PhysicalOperator {
         this.inputPlans = inp;
         opsToBeReset = new ArrayList<PhysicalOperator>();
         getLeaves();
+    }
+
+    public POForEach(OperatorKey operatorKey, int requestedParallelism,
+            List<PhysicalPlan> innerPlans, List<Boolean> flattenList, Schema schema) {
+        this(operatorKey, requestedParallelism, innerPlans, flattenList);
+        this.schema = schema;
     }
 
     @Override
@@ -301,6 +313,7 @@ public class POForEach extends PhysicalOperator {
     }
 
     private boolean isEarlyTerminated = false;
+    private TupleMaker<? extends Tuple> schemaTupleFactory;
 
     private boolean isEarlyTerminated() {
         return isEarlyTerminated;
@@ -311,6 +324,13 @@ public class POForEach extends PhysicalOperator {
     }
 
     protected Result processPlan() throws ExecException{
+        if (schema != null && schemaTupleFactory == null) {
+            schemaTupleFactory = SchemaTupleFactory.getInstance(schema, false, GenContext.FOREACH); //TODO might need to be appendable
+        }
+        if (schemaTupleFactory == null) {
+            schemaTupleFactory = TupleFactory.getInstance();
+        }
+
         Result res = new Result();
 
         //We check if all the databags have exhausted the tuples. If so we enforce the reading of new data by setting data and its to null
@@ -470,7 +490,8 @@ public class POForEach extends PhysicalOperator {
      * @return the final flattened tuple
      */
     protected Tuple createTuple(Object[] data) throws ExecException {
-        Tuple out =  mTupleFactory.newTuple();
+        Tuple out =  schemaTupleFactory.newTuple();
+        int idx = 0;
         for(int i = 0; i < data.length; ++i) {
             Object in = data[i];
 
@@ -478,10 +499,10 @@ public class POForEach extends PhysicalOperator {
                 Tuple t = (Tuple)in;
                 int size = t.size();
                 for(int j = 0; j < size; ++j) {
-                    out.append(t.get(j));
+                    out.set(idx++, t.get(j));
                 }
             } else {
-                out.append(in);
+                out.set(idx++, in);
             }
         }
         if (inpTuple != null) {

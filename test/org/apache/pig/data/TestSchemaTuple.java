@@ -97,7 +97,7 @@ public class TestSchemaTuple {
 
         udfSchema = Utils.getSchemaFromString("a:chararray,(a:chararray)");
         isAppendable = false;
-        context = GenContext.LOAD;
+        context = GenContext.FOREACH;
         SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, isAppendable, context);
 
         udfSchema = Utils.getSchemaFromString("a:int,(a:int,(a:int,(a:int,(a:int,(a:int,(a:int))))))");
@@ -207,7 +207,7 @@ public class TestSchemaTuple {
 
         udfSchema = Utils.getSchemaFromString("a:chararray,(a:chararray)");
         isAppendable = false;
-        context = GenContext.LOAD;
+        context = GenContext.FOREACH;
         tf = SchemaTupleFactory.getInstance(udfSchema, isAppendable, context);
         putThroughPaces(tf, udfSchema, isAppendable);
 
