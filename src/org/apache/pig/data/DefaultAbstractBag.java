@@ -266,7 +266,20 @@ public abstract class DefaultAbstractBag implements DataBag {
      * @throws IOException (passes it on from underlying calls).
      */
     public void write(DataOutput out) throws IOException {
-        sedes.writeDatum(out, this);
+        if (mSize < BinInterSedes.UNSIGNED_BYTE_MAX) {
+            out.writeByte(BinInterSedes.TINYBAG);
+            out.writeByte((int) mSize);
+        } else if (mSize < BinInterSedes.UNSIGNED_SHORT_MAX) {
+            out.writeByte(BinInterSedes.SMALLBAG);
+            out.writeShort((int) mSize);
+        } else {
+            out.writeByte(BinInterSedes.BAG);
+            out.writeLong(mSize);
+        }
+
+        for (Tuple t : this) {
+            sedes.writeDatum(out, t, DataType.TUPLE);
+        }
     }
 
     /**
@@ -279,17 +292,16 @@ public abstract class DefaultAbstractBag implements DataBag {
     }
 
     public void readFields(DataInput in, byte type) throws IOException {
-        long size;
         // determine size of bag
         switch (type) {
         case BinInterSedes.TINYBAG:
-            size = in.readUnsignedByte();
+            mSize = in.readUnsignedByte();
             break;
         case BinInterSedes.SMALLBAG:
-            size = in.readUnsignedShort();
+            mSize = in.readUnsignedShort();
             break;
         case BinInterSedes.BAG:
-            size = in.readLong();
+            mSize = in.readLong();
             break;
         default:
             int errCode = 2219;
@@ -297,9 +309,8 @@ public abstract class DefaultAbstractBag implements DataBag {
             throw new ExecException(msg, errCode, PigException.BUG);
         }
 
-        for (long i = 0; i < size; i++) {
-            Object o = sedes.readDatum(in);
-            add((Tuple)o);
+        for (long i = 0; i < mSize; i++) {
+            add((Tuple)sedes.readDatum(in));
         }
     }
 
