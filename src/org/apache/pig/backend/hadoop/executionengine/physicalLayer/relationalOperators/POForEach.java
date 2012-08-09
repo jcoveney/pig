@@ -23,8 +23,6 @@ import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -54,13 +52,10 @@ import org.apache.pig.pen.util.LineageTracer;
 //We intentionally skip type checking in backend for performance reasons
 @SuppressWarnings("unchecked")
 public class POForEach extends PhysicalOperator {
-
-    private static final Log LOG = LogFactory.getLog(POForEach.class);
     private static final long serialVersionUID = 1L;
 
     protected List<PhysicalPlan> inputPlans;
     protected List<PhysicalOperator> opsToBeReset;
-    protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
     //Since the plan has a generate, this needs to be maintained
     //as the generate can potentially return multiple tuples for
     //same call.
@@ -313,7 +308,8 @@ public class POForEach extends PhysicalOperator {
     }
 
     private boolean isEarlyTerminated = false;
-    private TupleMaker<? extends Tuple> schemaTupleFactory;
+    private TupleMaker<? extends Tuple> tupleMaker;
+    private boolean knownSize = false;
 
     private boolean isEarlyTerminated() {
         return isEarlyTerminated;
@@ -324,11 +320,14 @@ public class POForEach extends PhysicalOperator {
     }
 
     protected Result processPlan() throws ExecException{
-        if (schema != null && schemaTupleFactory == null) {
-            schemaTupleFactory = SchemaTupleFactory.getInstance(schema, false, GenContext.FOREACH); //TODO might need to be appendable
+        if (schema != null && tupleMaker == null) {
+            tupleMaker = SchemaTupleFactory.getInstance(schema, false, GenContext.FOREACH); //TODO might need to be appendable
+            if (tupleMaker != null) {
+                knownSize = true;
+            }
         }
-        if (schemaTupleFactory == null) {
-            schemaTupleFactory = TupleFactory.getInstance();
+        if (tupleMaker == null) {
+            tupleMaker = TupleFactory.getInstance();
         }
 
         Result res = new Result();
@@ -490,7 +489,8 @@ public class POForEach extends PhysicalOperator {
      * @return the final flattened tuple
      */
     protected Tuple createTuple(Object[] data) throws ExecException {
-        Tuple out =  schemaTupleFactory.newTuple();
+        Tuple out =  tupleMaker.newTuple();
+
         int idx = 0;
         for(int i = 0; i < data.length; ++i) {
             Object in = data[i];
@@ -499,10 +499,18 @@ public class POForEach extends PhysicalOperator {
                 Tuple t = (Tuple)in;
                 int size = t.size();
                 for(int j = 0; j < size; ++j) {
-                    out.set(idx++, t.get(j));
+                    if (knownSize) {
+                        out.set(idx++, t.get(j));
+                    } else {
+                        out.append(t.get(j));
+                    }
                 }
             } else {
-                out.set(idx++, in);
+                if (knownSize) {
+                    out.set(idx++, in);
+                } else {
+                    out.append(in);
+                }
             }
         }
         if (inpTuple != null) {

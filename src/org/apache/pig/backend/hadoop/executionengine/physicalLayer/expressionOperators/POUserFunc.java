@@ -316,7 +316,7 @@ public class POUserFunc extends ExpressionOperator {
                             // so that udf gets called both when isAccumStarted
                             // is first true and then set to false, even
                             //when the input relation is empty.
-                            // so the STATUS_EOP has to be sent from POUserFunc, 
+                            // so the STATUS_EOP has to be sent from POUserFunc,
                             // after the results have been sent.
                             result.result = null;
                             result.returnStatus = POStatus.STATUS_EOP;
@@ -332,7 +332,7 @@ public class POUserFunc extends ExpressionOperator {
                     if (executor != null) {
                         result.result = executor.monitorExec((Tuple) result.result);
                     } else {
-                    result.result = func.exec((Tuple) result.result);
+                        result.result = func.exec((Tuple) result.result);
                     }
                 }
             }
@@ -582,16 +582,16 @@ public class POUserFunc extends ExpressionOperator {
     public void setResultType(byte resultType) {
         this.resultType = resultType;
     }
-    
+
     @Override
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
         return (Tuple) out;
     }
-    
+
     public EvalFunc getFunc() {
         return func;
     }
-    
+
     public void setSignature(String signature) {
         this.signature = signature;
         if (this.func!=null) {

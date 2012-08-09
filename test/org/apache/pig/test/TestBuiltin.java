@@ -32,7 +32,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -100,8 +99,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestBuiltin {
-
-    private String initString = "local";
 
     PigServer pigServer;
 
@@ -276,20 +273,15 @@ public class TestBuiltin {
         expectedMap.put("FloatAvgIntermediate", expectedMap.get("FloatSum"));
 
         // set up input hash
-        try{
-            inputMap.put("Integer", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), intInput));
-            inputMap.put("IntegerAsLong", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), intAsLong));
-            inputMap.put("Long", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), longInput));
-            inputMap.put("Float", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), floatInput));
-            inputMap.put("FloatAsDouble", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), floatAsDouble));
-            inputMap.put("Double", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), doubleInput));
-            inputMap.put("ByteArray", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), ByteArrayInput));
-            inputMap.put("ByteArrayAsDouble", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), baAsDouble));
-            inputMap.put("String", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), stringInput));
-
-        }catch(ExecException e) {
-            e.printStackTrace();
-        }
+        inputMap.put("Integer", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), intInput));
+        inputMap.put("IntegerAsLong", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), intAsLong));
+        inputMap.put("Long", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), longInput));
+        inputMap.put("Float", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), floatInput));
+        inputMap.put("FloatAsDouble", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), floatAsDouble));
+        inputMap.put("Double", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), doubleInput));
+        inputMap.put("ByteArray", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), ByteArrayInput));
+        inputMap.put("ByteArrayAsDouble", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), baAsDouble));
+        inputMap.put("String", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), stringInput));
     }
 
     @AfterClass
@@ -1523,7 +1515,7 @@ public class TestBuiltin {
         t3.set(0, null);
         t3.set(1, "^\\/search\\/iy\\/(.*?)\\/.*");
         t3.set(2, 2);
-        
+
         Tuple t4 = tupleFactory.newTuple(3);
         t4.set(0,"this is a match");
         t4.set(1, "this is a (.+?)");
@@ -1776,7 +1768,7 @@ public class TestBuiltin {
         }
         assertTrue("null in tobag result", s.contains(null));
     }
-        
+
     @Test
     public void testTOBAGSupportsTuplesInInput() throws IOException {
         String[][] expected = {
@@ -2320,11 +2312,11 @@ public class TestBuiltin {
         assertTrue(rt.get(0).equals("456"));
         rt = i.next();
         assertTrue(rt.get(0).equals("789"));
-        
+
         // Check when delim specified
         Tuple t4 = tf.newTuple(2);
         t4.set(0, "123|456|78\"9");
-        t4.set(1, "|");        
+        t4.set(1, "|");
         b = f.exec(t4);
         assertTrue(b.size()==3);
         i = b.iterator();
@@ -2337,7 +2329,7 @@ public class TestBuiltin {
 
         b = f.exec(t2);
         assertTrue(b==null);
-        
+
         b = f.exec(t3);
         assertTrue(b==null);
     }
@@ -2379,7 +2371,7 @@ public class TestBuiltin {
         result = d.exec(t);
         assertEquals(2, result.size());
     }
-    
+
     //see PIG-2331
     @Test
     public void testURIwithCurlyBrace() throws Exception {

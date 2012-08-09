@@ -342,11 +342,11 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     }
 
     protected DataBag unbox(Object v, DataBag t) {
-        return unbox((DataBag) t);
+        return unbox((DataBag) v);
     }
 
     protected Map<String, Object> unbox(Object v, Map<String, Object> t) {
-        return unbox((Map<String, Object>) t);
+        return unbox((Map<String, Object>) v);
     }
 
     protected byte[] unbox(Object v, byte[] t) {

@@ -22,10 +22,48 @@ package org.apache.pig;
  * Container for static configuration strings, defaults, etc.
  */
 public class PigConfiguration {
+    private PigConfiguration() {}
+
+    /////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////       COMMAND LINE KEYS       /////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * Controls whether execution time of Pig UDFs should be tracked.
      * This feature uses counters; use judiciously.
      */
     public static final String TIME_UDFS_PROP = "pig.udf.profile";
+
+    /**
+     * This key must be set to true by the user for code generation to be used.
+     * In the future, it may be turned on by default (at least in certain cases),
+     * but for now it is too experimental.
+     */
+    public static final String SHOULD_USE_SCHEMA_TUPLE = "pig.schematuple";
+
+    public static final String SCHEMA_TUPLE_SHOULD_USE_IN_UDF = "pig.schematuple.udf";
+
+    public static final String SCHEMA_TUPLE_SHOULD_USE_IN_FOREACH = "pig.schematuple.foreach";
+
+    public static final String SCHEMA_TUPLE_SHOULD_USE_IN_FRJOIN = "pig.schematuple.fr_join";
+
+    public static final String SCHEMA_TUPLE_SHOULD_USE_IN_MERGEJOIN = "pig.schematuple.merge_join";
+
+    public static final String SCHEMA_TUPLE_SHOULD_ALLOW_FORCE = "pig.schematuple.force";
+
+    /////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////       JOB CONF KEYS       /////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * This key is used in the job conf to let the various jobs know what code was
+     * generated.
+     */
+    public static final String GENERATED_CLASSES_KEY = "pig.schematuple.classes";
+
+    /////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////         DEFAULTS          /////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////
+
+    public static final String SCHEMA_TUPLE_ON_BY_DEFAULT = "true";
 }

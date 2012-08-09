@@ -18,6 +18,8 @@
 package org.apache.pig.data;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -29,6 +31,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -59,28 +62,27 @@ public class SchemaTupleClassGenerator {
          * This context is used in UDF code. Currently, this is only used for
          * the inputs to UDF's.
          */
-        UDF ("pig.schematuple.udf", true, GenerateUdf.class),
+        UDF (PigConfiguration.SCHEMA_TUPLE_SHOULD_USE_IN_UDF, true, GenerateUdf.class),
         /**
-         * This context is for LoadFuncs. It is currently not used,
-         * however the intent is that when a Schema is known, the
-         * LoadFunc can return typed Tuples.
+         * This context is for POForEach. This will use the expected output of a ForEach
+         * to return a typed Tuple.
          */
-        FOREACH ("pig.schematuple.foreach", true, GenerateForeach.class),
+        FOREACH (PigConfiguration.SCHEMA_TUPLE_SHOULD_USE_IN_FOREACH, true, GenerateForeach.class),
         /**
          * This context controls whether or not SchemaTuples will be used in FR joins.
          * Currently, they will be used in the HashMap that FR Joins construct.
          */
-        FR_JOIN ("pig.schematuple.fr_join", true, GenerateFrJoin.class),
+        FR_JOIN (PigConfiguration.SCHEMA_TUPLE_SHOULD_USE_IN_FRJOIN, true, GenerateFrJoin.class),
         /**
          * This context controls whether or not SchemaTuples will be used in merge joins.
          */
-        MERGE_JOIN ("pig.schematuple.merge_join", true, GenerateMergeJoin.class),
+        MERGE_JOIN (PigConfiguration.SCHEMA_TUPLE_SHOULD_USE_IN_MERGEJOIN, true, GenerateMergeJoin.class),
         /**
          * All registered Schemas will also be registered in one additional context.
          * This context will allow users to "force" the load of a SchemaTupleFactory
          * if one is present in any context.
          */
-        FORCE_LOAD ("pig.schematuple.force", true, GenerateForceLoad.class);
+        FORCE_LOAD (PigConfiguration.SCHEMA_TUPLE_SHOULD_ALLOW_FORCE, true, GenerateForceLoad.class);
 
         /**
          * These annotations are used to mark a given SchemaTuple with
@@ -175,6 +177,17 @@ public class SchemaTupleClassGenerator {
         String codeString = produceCodeString(s, appendable, id, contextAnnotations.toString(), codeDir);
 
         String name = "SchemaTuple_" + id;
+
+        File temp = new File(codeDir, name + ".java");//TODO remove
+        temp.deleteOnExit();//TODO remove
+        try {//TODO remove
+            OutputStream os = new FileOutputStream(temp); //TODO remove
+            os.write(codeString.getBytes()); //TODO remove
+            os.close(); //TODO remove
+        } catch (Exception e) {//TODO remove
+            throw new RuntimeException(e);//TODO remove
+        }//TODO remove
+
 
         LOG.info("Compiling class " + name + " for Schema: " + s + ", and appendability: " + appendable);
 

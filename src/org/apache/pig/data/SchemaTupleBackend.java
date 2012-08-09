@@ -31,6 +31,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.data.utils.StructuresHelper.SchemaKey;
 import org.apache.pig.data.utils.StructuresHelper.Triple;
@@ -59,19 +60,6 @@ public class SchemaTupleBackend {
 
     private boolean isLocal;
     private boolean abort = false;
-
-    /**
-     * This key must be set to true by the user for code generation to be used.
-     * In the future, it may be turned on by default (at least in certain cases),
-     * but for now it is too experimental.
-     */
-    public static final String SHOULD_GENERATE_KEY = "pig.schematuple";
-
-    /**
-     * This key is used in the job conf to let the various jobs know what code was
-     * generated.
-     */
-    public static final String GENERATED_CLASSES_KEY = "pig.schematuple.classes";
 
     /**
      * The only information this class needs is a directory of generated code to resolve
@@ -159,9 +147,9 @@ public class SchemaTupleBackend {
             return;
         }
         // Step one is to see if there are any classes in the distributed cache
-        String shouldGenerate = jConf.get(SchemaTupleBackend.SHOULD_GENERATE_KEY);
+        String shouldGenerate = jConf.get(PigConfiguration.SHOULD_USE_SCHEMA_TUPLE, PigConfiguration.SCHEMA_TUPLE_ON_BY_DEFAULT); //TODO revert this, am setting it to true for testing
         if (shouldGenerate == null || !Boolean.parseBoolean(shouldGenerate)) {
-            LOG.info("Key [" + SchemaTupleBackend.SHOULD_GENERATE_KEY +"] was not set... aborting generation");
+            LOG.info("Key [" + PigConfiguration.SHOULD_USE_SCHEMA_TUPLE +"] was not set... will not generate code.");
             return;
         }
         // Step two is to copy everything from the distributed cache if we are in distributed mode
@@ -183,12 +171,12 @@ public class SchemaTupleBackend {
     }
 
     private void copyAllFromDistributedCache() throws IOException {
-        String toDeserialize = jConf.get(GENERATED_CLASSES_KEY);
+        String toDeserialize = jConf.get(PigConfiguration.GENERATED_CLASSES_KEY);
         if (toDeserialize == null) {
-            LOG.info("No classes in in key [" + GENERATED_CLASSES_KEY + "] to copy from distributed cache.");
+            LOG.info("No classes in in key [" + PigConfiguration.GENERATED_CLASSES_KEY + "] to copy from distributed cache.");
             return;
         }
-        LOG.info("Copying files in key ["+GENERATED_CLASSES_KEY+"] from distributed cache: " + toDeserialize);
+        LOG.info("Copying files in key ["+PigConfiguration.GENERATED_CLASSES_KEY+"] from distributed cache: " + toDeserialize);
         for (String s : toDeserialize.split(",")) {
             LOG.info("Attempting to read file: " + s);
             // The string is the symlink into the distributed cache
@@ -282,13 +270,19 @@ public class SchemaTupleBackend {
         if (stb == null) {
             // It is possible (though ideally should be avoided) for this to be called on the frontend if
             // the Tuple processing path of the POPlan is invoked (perhaps for optimization purposes)
-            LOG.warn("initialize was not called! Even when SchemaTuple feature is not set, it should be called.");
+            LOG.error("initialize was not called! Even when SchemaTuple feature is not set, it should be called.");
             return null;
         }
         return stb.internalNewSchemaTupleFactory(s, isAppendable, context);
     }
 
     protected static SchemaTupleFactory newSchemaTupleFactory(int id) {
+        if (stb == null) {
+            // It is possible (though ideally should be avoided) for this to be called on the frontend if
+            // the Tuple processing path of the POPlan is invoked (perhaps for optimization purposes)
+            LOG.error("initialize was not called! Even when SchemaTuple feature is not set, it should be called.");
+            return null;
+        }
         return stb.internalNewSchemaTupleFactory(id);
     }
 }

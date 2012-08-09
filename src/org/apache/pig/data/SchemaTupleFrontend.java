@@ -31,6 +31,7 @@ import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.data.utils.StructuresHelper.Pair;
 import org.apache.pig.data.utils.StructuresHelper.SchemaKey;
@@ -157,9 +158,9 @@ public class SchemaTupleFrontend {
                 LOG.info("File successfully added to the distributed cache: " + symlink);
             }
             String toSer = serialized.toString();
-            LOG.info("Setting key [" + SchemaTupleBackend.GENERATED_CLASSES_KEY + "] with classes to deserialize [" + toSer + "]");
+            LOG.info("Setting key [" + PigConfiguration.GENERATED_CLASSES_KEY + "] with classes to deserialize [" + toSer + "]");
             // we must set a key in the job conf so individual jobs know to resolve the shipped classes
-            conf.set(SchemaTupleBackend.GENERATED_CLASSES_KEY, toSer);
+            conf.set(PigConfiguration.GENERATED_CLASSES_KEY, toSer);
         }
 
         /**
@@ -169,9 +170,9 @@ public class SchemaTupleFrontend {
          */
         private boolean generateAll(Map<Pair<SchemaKey, Boolean>, Pair<Integer, Set<GenContext>>> schemasToGenerate) {
             boolean filesToShip = false;
-            String shouldString = conf.get(SchemaTupleBackend.SHOULD_GENERATE_KEY);
+            String shouldString = conf.get(PigConfiguration.SHOULD_USE_SCHEMA_TUPLE, PigConfiguration.SCHEMA_TUPLE_ON_BY_DEFAULT);
             if (shouldString == null || !Boolean.parseBoolean(shouldString)) {
-                LOG.info("Key ["+SchemaTupleBackend.SHOULD_GENERATE_KEY+"] is false, aborting generation.");
+                LOG.info("Key ["+PigConfiguration.SHOULD_USE_SCHEMA_TUPLE+"] is false, will not generate code.");
                 return false;
             }
             LOG.info("Generating all registered Schemas.");

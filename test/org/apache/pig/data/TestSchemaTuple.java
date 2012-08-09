@@ -47,6 +47,7 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
@@ -77,7 +78,7 @@ public class TestSchemaTuple {
         SchemaTupleBackend.reset();
 
         props = new Properties();
-        props.setProperty(SchemaTupleBackend.SHOULD_GENERATE_KEY, "true");
+        props.setProperty(PigConfiguration.SHOULD_USE_SCHEMA_TUPLE, "true");
 
         conf = ConfigurationUtil.toConfiguration(props);
         pigContext = new PigContext(ExecType.LOCAL, props);

@@ -17,6 +17,8 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -55,34 +57,24 @@ import org.apache.pig.parser.ParserException;
 import org.apache.pig.parser.QueryParserDriver;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.TestHelper;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class TestLoad extends junit.framework.TestCase {
+public class TestLoad {
 
     PigContext pc;
     PigServer[] servers;
-    
+
     static MiniCluster cluster = MiniCluster.buildCluster();
-    
-    @Override
+
     @Before
     public void setUp() throws Exception {
         FileLocalizer.deleteTempFiles();
-        servers = new PigServer[] { 
+        servers = new PigServer[] {
                     new PigServer(ExecType.MAPREDUCE, cluster.getProperties()),
                     new PigServer(ExecType.LOCAL, new Properties())
-        };       
-    }
-        
-    @Override
-    @After
-    public void tearDown() throws Exception {
+        };
     }
 
     @Test
@@ -98,10 +90,10 @@ public class TestLoad extends junit.framework.TestCase {
         POLoad ld = GenPhyOp.topLoadOp();
         ld.setLFile(inpFSpec);
         ld.setPc(pc);
-        
+
         DataBag inpDB = DefaultBagFactory.getInstance().newDefaultBag();
         BufferedReader br = new BufferedReader(new FileReader("test/org/apache/pig/test/data/InputFiles/passwd"));
-        
+
         for(String line = br.readLine();line!=null;line=br.readLine()){
             String[] flds = line.split(":",-1);
             Tuple t = new DefaultTuple();
@@ -123,7 +115,7 @@ public class TestLoad extends junit.framework.TestCase {
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     @Test
     public void testLoadRemoteRel() throws Exception {
         for (PigServer pig : servers) {
@@ -154,7 +146,7 @@ public class TestLoad extends junit.framework.TestCase {
         pc = servers[0].getPigContext();
         boolean noConversionExpected = true;
         checkLoadPath("hdfs:/tmp/test","hdfs:/tmp/test", noConversionExpected);
-        
+
         // check if a location 'hdfs:<abs path>' can actually be read using PigStorage
         String[] inputFileNames = new String[] {
                 "/tmp/TestLoad-testLoadRemoteAbsSchema-input.txt"};
@@ -208,18 +200,18 @@ public class TestLoad extends junit.framework.TestCase {
         boolean noConversionExpected = true;
         checkLoadPath("hdfs:/tmp/test,hdfs:/tmp/test2,hdfs:/tmp/test3",
                 "hdfs:/tmp/test,hdfs:/tmp/test2,hdfs:/tmp/test3", noConversionExpected );
-        
-        // check if a location 'hdfs:<abs path>,hdfs:<abs path>' can actually be 
+
+        // check if a location 'hdfs:<abs path>,hdfs:<abs path>' can actually be
         // read using PigStorage
         String[] inputFileNames = new String[] {
                 "/tmp/TestLoad-testCommaSeparatedString3-input1.txt",
                 "/tmp/TestLoad-testCommaSeparatedString3-input2.txt"};
-        String inputString = "hdfs:" + inputFileNames[0] + ",hdfs:" + 
+        String inputString = "hdfs:" + inputFileNames[0] + ",hdfs:" +
         inputFileNames[1];
         testLoadingMultipleFiles(inputFileNames, inputString);
-        
+
     }
-    
+
     @Test
     public void testCommaSeparatedString4() throws Exception {
         for (PigServer pig : servers) {
@@ -234,12 +226,12 @@ public class TestLoad extends junit.framework.TestCase {
             pc = pig.getPigContext();
             checkLoadPath("/usr/pig/{a,c},usr/pig/b","/usr/pig/{a,c},/tmp/usr/pig/b");
         }
-       
-        // check if a location '<abs path>,<relative path>' can actually be 
+
+        // check if a location '<abs path>,<relative path>' can actually be
         // read using PigStorage
         String loadLocationString = "/tmp/TestLoad-testCommaSeparatedStringMixed-input{1,2}.txt," +
         "TestLoad-testCommaSeparatedStringMixed-input3.txt"; // current working dir is set to /tmp in checkLoadPath()
-       
+
         String[] inputFileNames = new String[] {
                 "/tmp/TestLoad-testCommaSeparatedStringMixed-input1.txt",
                 "/tmp/TestLoad-testCommaSeparatedStringMixed-input2.txt",
@@ -247,7 +239,7 @@ public class TestLoad extends junit.framework.TestCase {
         pc = servers[0].getPigContext(); // test in map reduce mode
         testLoadingMultipleFiles(inputFileNames, loadLocationString);
     }
-    
+
     @Test
     public void testCommaSeparatedString6() throws Exception {
         for (PigServer pig : servers) {
@@ -255,7 +247,7 @@ public class TestLoad extends junit.framework.TestCase {
             checkLoadPath("usr/pig/{a,c},/usr/pig/b","/tmp/usr/pig/{a,c},/usr/pig/b");
         }
     }
-    
+
     @Test
     public void testNonDfsLocation() throws Exception {
         String nonDfsUrl = "har:///user/foo/f.har";
@@ -266,11 +258,11 @@ public class TestLoad extends junit.framework.TestCase {
         nonDfsUrl = nonDfsUrl.replaceFirst("/$", "");
         Assert.assertEquals(nonDfsUrl, load.getFileSpec().getFileName());
     }
-    
+
     @SuppressWarnings("unchecked")
-    private void testLoadingMultipleFiles(String[] inputFileNames, 
+    private void testLoadingMultipleFiles(String[] inputFileNames,
             String loadLocationString) throws IOException, ParserException {
-        
+
         String[][] inputStrings = new String[][] {
                 new String[] { "hello\tworld"},
                 new String[] { "bye\tnow"},
@@ -280,7 +272,7 @@ public class TestLoad extends junit.framework.TestCase {
                 (Tuple) Util.getPigConstant("('hello', 'world')"),
                 (Tuple) Util.getPigConstant("('bye', 'now')"),
                 (Tuple) Util.getPigConstant("('all', 'good')")});
-        
+
         List<Tuple> expectedBasedOnNumberOfInputs = new ArrayList<Tuple>();
         for(int i = 0; i < inputFileNames.length; i++) {
             Util.createInputFile(pc, inputFileNames[i], inputStrings[i]);
@@ -290,7 +282,7 @@ public class TestLoad extends junit.framework.TestCase {
             servers[0].registerQuery(" a = load '" + loadLocationString + "' as " +
                     "(s1:chararray, s2:chararray);");
             Iterator<Tuple> it = servers[0].openIterator("a");
-            
+
             List<Tuple> actual = new ArrayList<Tuple>();
             while(it.hasNext()) {
                 actual.add(it.next());
@@ -304,33 +296,33 @@ public class TestLoad extends junit.framework.TestCase {
             }
         }
     }
-    
+
     private void checkLoadPath(String orig, String expected) throws Exception {
         checkLoadPath(orig, expected, false);
     }
 
-    private void checkLoadPath(String orig, String expected, 
+    private void checkLoadPath(String orig, String expected,
             boolean noConversionExpected) throws Exception {
-        
+
         boolean[] multiquery = {true, false};
-        
+
         for (boolean b : multiquery) {
             pc.getProperties().setProperty("opt.multiquery", "" + b);
-                    
+
             DataStorage dfs = pc.getDfs();
             dfs.setActiveContainer(dfs.asContainer("/tmp"));
             Map<String, String> fileNameMap = new HashMap<String, String>();
-            
+
             QueryParserDriver builder = new QueryParserDriver(pc, "Test-Load", fileNameMap);
-            
+
             String query = "a = load '"+orig+"';";
             LogicalPlan lp = builder.parse(query);
             Assert.assertTrue(lp.size()>0);
             Operator op = lp.getSources().get(0);
-            
+
             Assert.assertTrue(op instanceof LOLoad);
             LOLoad load = (LOLoad)op;
-    
+
             String p = load.getFileSpec().getFileName();
             System.err.println("DEBUG: p:" + p + " expected:" + expected +", exectype:" + pc.getExecType());
             if(noConversionExpected) {
