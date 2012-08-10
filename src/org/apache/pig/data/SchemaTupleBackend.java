@@ -261,9 +261,16 @@ public class SchemaTupleBackend {
 
     private static SchemaTupleBackend stb;
 
+    private static boolean isInitialized;
+
     public static void initialize(Configuration jConf, ExecType type) throws IOException {
-        stb = new SchemaTupleBackend(jConf, type == ExecType.LOCAL);
-        stb.copyAndResolve();
+        if (isInitialized) {
+            LOG.warn("SchemaTupleFrontend has already been initialized");
+        } else {
+            stb = new SchemaTupleBackend(jConf, type == ExecType.LOCAL);
+            stb.copyAndResolve();
+            isInitialized = true;
+        }
     }
 
     public static SchemaTupleFactory newSchemaTupleFactory(Schema s, boolean isAppendable, GenContext context)  {
