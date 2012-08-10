@@ -110,12 +110,12 @@ public class SchemaTupleFrontend {
             if (pigContext.getExecType() == ExecType.LOCAL) {
                 String codePath = codeDir.getAbsolutePath();
                 LOG.info("Distributed cache not supported or needed in local mode. Setting key ["
-                        + LOCAL_CODE_DIR + "] with code temp directory: " + codePath);
-                if (pigContext.getExecType() == ExecType.LOCAL) {
-                    conf.set(LOCAL_CODE_DIR, codePath);
-                }
+                        + PigConfiguration.LOCAL_CODE_DIR + "] with code temp directory: " + codePath);
+                //conf.set(PigConfiguration.LOCAL_CODE_DIR, codePath);
                 return;
             }
+            String codePath = codeDir.getAbsolutePath(); //TODO is this necessary?
+            conf.set(PigConfiguration.LOCAL_CODE_DIR, codePath); //TODO is this necessary?
             DistributedCache.createSymlink(conf); // we will read using symlinks
             StringBuilder serialized = new StringBuilder();
             boolean first = true;
@@ -248,12 +248,6 @@ public class SchemaTupleFrontend {
             }
         }
     }
-
-    /**
-     * This key is used when a job is run in local mode to pass the location of the generated code
-     * from the frontent to the "backend."
-     */
-    protected static final String LOCAL_CODE_DIR = "pig.schematuple.local.dir";
 
     /**
      * This must be called when the code has been generated and the generated code needs to be shipped

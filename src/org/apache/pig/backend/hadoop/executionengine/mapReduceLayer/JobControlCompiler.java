@@ -49,6 +49,7 @@ import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -369,7 +370,6 @@ public class JobControlCompiler{
             ss.addSettingsToConf(mro, conf);
         }
 
-
         conf.set("mapred.mapper.new-api", "true");
         conf.set("mapred.reducer.new-api", "true");
 
@@ -582,6 +582,9 @@ public class JobControlCompiler{
             setupDistributedCacheForUdfs(mro, pigContext, conf);
 
             SchemaTupleFrontend.copyAllGeneratedToDistributedCache(pigContext, conf);
+            pigContext.getProperties().setProperty(PigConfiguration.GENERATED_CLASSES_KEY, conf.get(PigConfiguration.GENERATED_CLASSES_KEY));
+            pigContext.getProperties().setProperty(PigConfiguration.LOCAL_CODE_DIR, conf.get(PigConfiguration.LOCAL_CODE_DIR));
+            // The issue si that openIterator is getting the wrong conf? Or that the dist cache doesn't work properly in this mode?
 
             POPackage pack = null;
             if(mro.reducePlan.isEmpty()){

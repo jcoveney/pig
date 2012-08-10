@@ -51,6 +51,12 @@ public class PigConfiguration {
 
     public static final String SCHEMA_TUPLE_SHOULD_ALLOW_FORCE = "pig.schematuple.force";
 
+    /**
+     * This key is used when a job is run in local mode to pass the location of the generated code
+     * from the frontent to the "backend."
+     */
+    public static final String LOCAL_CODE_DIR = "pig.schematuple.local.dir";
+
     /////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////       JOB CONF KEYS       /////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////

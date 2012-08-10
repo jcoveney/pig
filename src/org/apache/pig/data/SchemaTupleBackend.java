@@ -69,13 +69,13 @@ public class SchemaTupleBackend {
      */
     private SchemaTupleBackend(Configuration jConf, boolean isLocal) {
         if (isLocal) {
-            String localCodeDir = jConf.get(SchemaTupleFrontend.LOCAL_CODE_DIR);
+            String localCodeDir = jConf.get(PigConfiguration.LOCAL_CODE_DIR);
             if (localCodeDir == null) {
                 LOG.debug("No local code dir set in local mode. Aborting code gen resolution.");
                 abort = true;
                 return;
             }
-            codeDir = new File(jConf.get(SchemaTupleFrontend.LOCAL_CODE_DIR));
+            codeDir = new File(jConf.get(PigConfiguration.LOCAL_CODE_DIR));
         } else {
             codeDir = Files.createTempDir();
             codeDir.deleteOnExit();

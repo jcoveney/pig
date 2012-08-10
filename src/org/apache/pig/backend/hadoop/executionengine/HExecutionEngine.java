@@ -61,54 +61,54 @@ import org.apache.pig.newplan.logical.visitor.StoreAliasSetter;
 import org.apache.pig.pen.POOptimizeDisabler;
 
 public class HExecutionEngine {
-    
+
     public static final String JOB_TRACKER_LOCATION = "mapred.job.tracker";
     private static final String FILE_SYSTEM_LOCATION = "fs.default.name";
     private static final String ALTERNATIVE_FILE_SYSTEM_LOCATION = "fs.defaultFS";
-    
+
     private static final String HADOOP_SITE = "hadoop-site.xml";
     private static final String CORE_SITE = "core-site.xml";
     private static final String YARN_SITE = "yarn-site.xml";
     private final Log log = LogFactory.getLog(getClass());
     public static final String LOCAL = "local";
-    
+
     protected PigContext pigContext;
-    
+
     protected DataStorage ds;
-    
+
     @SuppressWarnings("deprecation")
     protected JobConf jobConf;
 
     // key: the operator key from the logical plan that originated the physical plan
     // val: the operator key for the root of the phyisical plan
     protected Map<OperatorKey, OperatorKey> logicalToPhysicalKeys;
-    
+
     // map from LOGICAL key to into about the execution
     protected Map<OperatorKey, MapRedResult> materializedResults;
-    
+
     protected Map<Operator, PhysicalOperator> newLogToPhyMap;
     private LogicalPlan newPreoptimizedPlan;
-    
+
     public HExecutionEngine(PigContext pigContext) {
         this.pigContext = pigContext;
-        this.logicalToPhysicalKeys = new HashMap<OperatorKey, OperatorKey>();      
+        this.logicalToPhysicalKeys = new HashMap<OperatorKey, OperatorKey>();
         this.materializedResults = new HashMap<OperatorKey, MapRedResult>();
-        
+
         this.ds = null;
-        
+
         // to be set in the init method
         this.jobConf = null;
     }
-    
+
     @SuppressWarnings("deprecation")
     public JobConf getJobConf() {
         return this.jobConf;
     }
-    
+
     public Map<OperatorKey, MapRedResult> getMaterializedResults() {
         return this.materializedResults;
     }
-        
+
     public DataStorage getDataStorage() {
         return this.ds;
     }
@@ -116,51 +116,51 @@ public class HExecutionEngine {
     public void init() throws ExecException {
         init(this.pigContext.getProperties());
     }
-    
+
     @SuppressWarnings("deprecation")
     private void init(Properties properties) throws ExecException {
         //First set the ssh socket factory
         setSSHFactory();
-        
+
         String cluster = null;
         String nameNode = null;
-    
+
         // We need to build a configuration object first in the manner described below
         // and then get back a properties object to inspect the JOB_TRACKER_LOCATION
         // and FILE_SYSTEM_LOCATION. The reason to do this is if we looked only at
         // the existing properties object, we may not get the right settings. So we want
         // to read the configurations in the order specified below and only then look
         // for JOB_TRACKER_LOCATION and FILE_SYSTEM_LOCATION.
-            
+
         // Hadoop by default specifies two resources, loaded in-order from the classpath:
         // 1. hadoop-default.xml : Read-only defaults for hadoop.
         // 2. hadoop-site.xml: Site-specific configuration for a given hadoop installation.
         // Now add the settings from "properties" object to override any existing properties
         // All of the above is accomplished in the method call below
-           
+
         JobConf jc = null;
         if ( this.pigContext.getExecType() == ExecType.MAPREDUCE ) {
-            
+
             // Check existence of hadoop-site.xml or core-site.xml
             Configuration testConf = new Configuration();
             ClassLoader cl = testConf.getClassLoader();
             URL hadoop_site = cl.getResource( HADOOP_SITE );
             URL core_site = cl.getResource( CORE_SITE );
-            
+
             if( hadoop_site == null && core_site == null ) {
                 throw new ExecException("Cannot find hadoop configurations in classpath (neither hadoop-site.xml nor core-site.xml was found in the classpath)." +
-                        " If you plan to use local mode, please put -x local option in command line", 
+                        " If you plan to use local mode, please put -x local option in command line",
                         4010);
             }
 
             jc = new JobConf();
             jc.addResource("pig-cluster-hadoop-site.xml");
             jc.addResource(YARN_SITE);
-            
-            // Trick to invoke static initializer of DistributedFileSystem to add hdfs-default.xml 
+
+            // Trick to invoke static initializer of DistributedFileSystem to add hdfs-default.xml
             // into configuration
             new DistributedFileSystem();
-            
+
             //the method below alters the properties object by overriding the
             //hadoop properties with the values from properties and recomputing
             //the properties
@@ -172,13 +172,13 @@ public class HExecutionEngine {
             jc.addResource("mapred-default.xml");
             jc.addResource("yarn-default.xml");
             recomputeProperties(jc, properties);
-            
+
             properties.setProperty("mapreduce.framework.name", "local");
             properties.setProperty(JOB_TRACKER_LOCATION, LOCAL );
             properties.setProperty(FILE_SYSTEM_LOCATION, "file:///");
             properties.setProperty(ALTERNATIVE_FILE_SYSTEM_LOCATION, "file:///");
         }
-        
+
         cluster = properties.getProperty(JOB_TRACKER_LOCATION);
         nameNode = properties.getProperty(FILE_SYSTEM_LOCATION);
         if (nameNode==null)
@@ -198,11 +198,11 @@ public class HExecutionEngine {
             }
             properties.setProperty(FILE_SYSTEM_LOCATION, nameNode);
         }
-     
+
         log.info("Connecting to hadoop file system at: "  + (nameNode==null? LOCAL: nameNode) )  ;
         // constructor sets DEFAULT_REPLICATION_FACTOR_KEY
         ds = new HDataStorage(properties);
-                
+
         if(cluster != null && !cluster.equalsIgnoreCase(LOCAL)){
             log.info("Connecting to map-reduce job tracker at: " + jc.get(JOB_TRACKER_LOCATION));
         }
@@ -211,7 +211,7 @@ public class HExecutionEngine {
         jobConf = jc;
     }
 
-    public void updateConfiguration(Properties newConfiguration) 
+    public void updateConfiguration(Properties newConfiguration)
             throws ExecException {
         init(newConfiguration);
     }
@@ -226,22 +226,22 @@ public class HExecutionEngine {
         }
 
         newPreoptimizedPlan = new LogicalPlan( plan );
-        
+
         if (pigContext.inIllustrator) {
             // disable all PO-specific optimizations
             POOptimizeDisabler pod = new POOptimizeDisabler( plan );
             pod.visit();
         }
-        
+
         DanglingNestedNodeRemover DanglingNestedNodeRemover = new DanglingNestedNodeRemover( plan );
         DanglingNestedNodeRemover.visit();
-        
+
         UidResetter uidResetter = new UidResetter( plan );
         uidResetter.visit();
-        
+
         SchemaResetter schemaResetter = new SchemaResetter( plan, true /*skip duplicate uid check*/ );
         schemaResetter.visit();
-        
+
         HashSet<String> optimizerRules = null;
         try {
             optimizerRules = (HashSet<String>) ObjectSerializer
@@ -252,7 +252,7 @@ public class HExecutionEngine {
             String msg = "Unable to deserialize optimizer rules.";
             throw new FrontendException(msg, errCode, PigException.BUG, ioe);
         }
-        
+
         if (pigContext.inIllustrator) {
             // disable MergeForEach in illustrator
             if (optimizerRules == null)
@@ -271,36 +271,36 @@ public class HExecutionEngine {
 
         StoreAliasSetter storeAliasSetter = new StoreAliasSetter( plan );
         storeAliasSetter.visit();
-        
+
         // run optimizer
         LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer( plan, 100, optimizerRules );
         optimizer.optimize();
-        
+
         // compute whether output data is sorted or not
         SortInfoSetter sortInfoSetter = new SortInfoSetter( plan );
         sortInfoSetter.visit();
-        
-        if (pigContext.inExplain==false) {
+
+        if (!pigContext.inExplain) {
             // Validate input/output file. Currently no validation framework in
             // new logical plan, put this validator here first.
             // We might decide to move it out to a validator framework in future
             InputOutputFileValidator validator = new InputOutputFileValidator( plan, pigContext );
             validator.validate();
         }
-        
+
         // translate new logical plan to physical plan
         LogToPhyTranslationVisitor translator = new LogToPhyTranslationVisitor( plan );
-        
+
         translator.setPigContext(pigContext);
         translator.visit();
         newLogToPhyMap = translator.getLogToPhyMap();
         return translator.getPhysicalPlan();
     }
-    
+
     public Map<Operator, PhysicalOperator> getLogToPhyMap() {
         return newLogToPhyMap;
     }
-    
+
     public Map<LOForEach, Map<LogicalRelationalOperator, PhysicalOperator>> getForEachInnerLogToPhyMap(LogicalPlan plan) {
         Map<LOForEach, Map<LogicalRelationalOperator, PhysicalOperator>> result =
             new HashMap<LOForEach, Map<LogicalRelationalOperator, PhysicalOperator>>();
@@ -320,11 +320,11 @@ public class HExecutionEngine {
         }
         return result;
     }
-    
+
     public LogicalPlan getNewPlan() {
         return newPreoptimizedPlan;
     }
-      
+
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private void setSSHFactory(){
         Properties properties = this.pigContext.getProperties();
@@ -334,7 +334,7 @@ public class HExecutionEngine {
             Class clazz = Class.forName("org.apache.pig.shock.SSHSocketImplFactory");
             SocketImplFactory f = (SocketImplFactory)clazz.getMethod("getFactory", new Class[0]).invoke(0, new Object[0]);
             Socket.setSocketImplFactory(f);
-        } 
+        }
         catch (SocketException e) {}
         catch (Exception e){
             throw new RuntimeException(e);
@@ -368,8 +368,8 @@ public class HExecutionEngine {
             while (iter.hasNext()) {
                 Map.Entry<String, String> entry = iter.next();
                 properties.put(entry.getKey(), entry.getValue());
-            } 
+            }
         }
-    } 
-    
+    }
+
 }

@@ -40,7 +40,7 @@ import org.apache.pig.tools.pigstats.PigStats;
 public class HJob implements ExecJob {
 
     private final Log log = LogFactory.getLog(getClass());
-    
+
     protected JOB_STATUS status;
     protected PigContext pigContext;
     protected FileSpec outFileSpec;
@@ -48,7 +48,7 @@ public class HJob implements ExecJob {
     protected String alias;
     protected POStore poStore;
     private PigStats stats;
-    
+
     public HJob(JOB_STATUS status,
                 PigContext pigContext,
                 POStore store,
@@ -59,7 +59,7 @@ public class HJob implements ExecJob {
         this.outFileSpec = poStore.getSFile();
         this.alias = alias;
     }
-    
+
     public HJob(JOB_STATUS status,
             PigContext pigContext,
             POStore store,
@@ -72,33 +72,33 @@ public class HJob implements ExecJob {
         this.alias = alias;
         this.stats = stats;
     }
-    
+
     public JOB_STATUS getStatus() {
         return status;
     }
-    
+
     public boolean hasCompleted() throws ExecException {
         return true;
     }
-    
+
     public Iterator<Tuple> getResults() throws ExecException {
         final LoadFunc p;
-        
+
         try{
-             LoadFunc originalLoadFunc = 
+             LoadFunc originalLoadFunc =
                  (LoadFunc)PigContext.instantiateFuncFromSpec(
                          outFileSpec.getFuncSpec());
-             
-             p = (LoadFunc) new ReadToEndLoader(originalLoadFunc, 
+
+             p = (LoadFunc) new ReadToEndLoader(originalLoadFunc,
                      ConfigurationUtil.toConfiguration(
-                     pigContext.getProperties()), outFileSpec.getFileName(), 0);
+                     pigContext.getProperties()), outFileSpec.getFileName(), 0, pigContext);
 
         }catch (Exception e){
             int errCode = 2088;
             String msg = "Unable to get results for: " + outFileSpec;
             throw new ExecException(msg, errCode, PigException.BUG, e);
         }
-        
+
         return new Iterator<Tuple>() {
             Tuple   t;
             boolean atEnd;
@@ -155,19 +155,19 @@ public class HJob implements ExecJob {
     public void completionNotification(Object cookie) {
         throw new UnsupportedOperationException();
     }
-    
+
     public void kill() throws ExecException {
         throw new UnsupportedOperationException();
     }
-    
+
     public void getLogs(OutputStream log) throws ExecException {
         throw new UnsupportedOperationException();
     }
-    
+
     public void getSTDOut(OutputStream out) throws ExecException {
         throw new UnsupportedOperationException();
     }
-    
+
     public void getSTDError(OutputStream error) throws ExecException {
         throw new UnsupportedOperationException();
     }

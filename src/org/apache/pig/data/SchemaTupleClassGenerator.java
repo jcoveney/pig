@@ -18,8 +18,6 @@
 package org.apache.pig.data;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -177,17 +175,6 @@ public class SchemaTupleClassGenerator {
         String codeString = produceCodeString(s, appendable, id, contextAnnotations.toString(), codeDir);
 
         String name = "SchemaTuple_" + id;
-
-        File temp = new File(codeDir, name + ".java");//TODO remove
-        temp.deleteOnExit();//TODO remove
-        try {//TODO remove
-            OutputStream os = new FileOutputStream(temp); //TODO remove
-            os.write(codeString.getBytes()); //TODO remove
-            os.close(); //TODO remove
-        } catch (Exception e) {//TODO remove
-            throw new RuntimeException(e);//TODO remove
-        }//TODO remove
-
 
         LOG.info("Compiling class " + name + " for Schema: " + s + ", and appendability: " + appendable);
 
