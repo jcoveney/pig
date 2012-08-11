@@ -582,8 +582,14 @@ public class JobControlCompiler{
             setupDistributedCacheForUdfs(mro, pigContext, conf);
 
             SchemaTupleFrontend.copyAllGeneratedToDistributedCache(pigContext, conf);
-            pigContext.getProperties().setProperty(PigConfiguration.GENERATED_CLASSES_KEY, conf.get(PigConfiguration.GENERATED_CLASSES_KEY));
-            pigContext.getProperties().setProperty(PigConfiguration.LOCAL_CODE_DIR, conf.get(PigConfiguration.LOCAL_CODE_DIR));
+            String key = conf.get(PigConfiguration.GENERATED_CLASSES_KEY);
+            if (key != null) {
+                pigContext.getProperties().setProperty(PigConfiguration.GENERATED_CLASSES_KEY, key);
+            }
+            key = conf.get(PigConfiguration.LOCAL_CODE_DIR);
+            if (key != null) {
+                pigContext.getProperties().setProperty(PigConfiguration.LOCAL_CODE_DIR, key);
+            }
             // The issue si that openIterator is getting the wrong conf? Or that the dist cache doesn't work properly in this mode?
 
             POPackage pack = null;

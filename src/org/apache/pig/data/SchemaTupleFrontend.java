@@ -111,7 +111,7 @@ public class SchemaTupleFrontend {
                 String codePath = codeDir.getAbsolutePath();
                 LOG.info("Distributed cache not supported or needed in local mode. Setting key ["
                         + PigConfiguration.LOCAL_CODE_DIR + "] with code temp directory: " + codePath);
-                //conf.set(PigConfiguration.LOCAL_CODE_DIR, codePath);
+                conf.set(PigConfiguration.LOCAL_CODE_DIR, codePath);
                 return;
             }
             String codePath = codeDir.getAbsolutePath(); //TODO is this necessary?
