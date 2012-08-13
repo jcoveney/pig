@@ -270,6 +270,7 @@ public class SchemaTupleBackend {
             stb = new SchemaTupleBackend(jConf, type == ExecType.LOCAL);
             stb.copyAndResolve();
             isInitialized = true;
+            SchemaTupleFrontend.reset();
         }
     }
 

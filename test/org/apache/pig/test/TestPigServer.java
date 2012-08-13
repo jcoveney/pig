@@ -20,6 +20,7 @@ package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -52,7 +53,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
-import org.apache.pig.data.SchemaTupleFrontend;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -72,17 +72,12 @@ public class TestPigServer {
 
     @Before
     public void setUp() throws Exception {
-        SchemaTupleFrontend.reset(); //TODO is this necessary?
-
         FileLocalizer.setInitialized(false);
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         stdOutRedirectedFile = new File("stdout.redirected");
         // Create file if it does not exist
-        try {
-            if(!stdOutRedirectedFile.createNewFile())
-                fail("Unable to create input files");
-        } catch (IOException e) {
-            fail("UassertTruee to create input files:" + e.getMessage());
+        if(!stdOutRedirectedFile.createNewFile()) {
+            fail("Unable to create input files");
         }
     }
 
@@ -102,22 +97,20 @@ public class TestPigServer {
     // make sure that name is included or not (depending on flag "included")
     // in the given list of stings
     private static void verifyStringContained(List<URL> list, String name, boolean included) {
-        Iterator<URL> iter = list.iterator();
         boolean nameIsSubstring = false;
         int count = 0;
 
-        while (iter.hasNext()) {
-            if (iter.next().toString().contains(name)) {
+        for (URL url : list) {
+            if (url.toString().contains(name)) {
                 nameIsSubstring = true;
-                ++count;
+                count++;
             }
         }
 
         if (included) {
             assertTrue(nameIsSubstring);
-            assertTrue(count == 1);
-        }
-        else {
+            assertEquals(1, count);
+        } else {
             assertFalse(nameIsSubstring);
         }
     }
@@ -277,7 +270,7 @@ public class TestPigServer {
         int status;
         status = Util.executeJavaCommand("javac " + dir + FILE_SEPARATOR + subDir +
                                FILE_SEPARATOR + className + ".java");
-        assertTrue(status==0);
+        assertEquals(0, status);
 
         // remove src file
         (new File(dir + FILE_SEPARATOR + subDir +
@@ -286,7 +279,7 @@ public class TestPigServer {
         // generate jar file
         status = Util.executeJavaCommand("jar -cf " + dir + FILE_SEPARATOR + jarName + " " +
                               "-C " + dir + " " + subDir);
-        assertTrue(status==0);
+        assertEquals(0, status);
 
         // remove class file and sub_dir
         (new File(dir + FILE_SEPARATOR + subDir +
@@ -422,7 +415,7 @@ public class TestPigServer {
         pig.registerQuery("b = row_count(a);");
         Iterator<Tuple> iter = pig.openIterator("b");
 
-        assertTrue(((Long)iter.next().get(0))==2);
+        assertEquals(2L, ((Long)iter.next().get(0)).longValue());
     }
 
     @Test
@@ -446,8 +439,12 @@ public class TestPigServer {
         pig.registerQuery("b = foreach a generate pig.helloworld($0);");
         Iterator<Tuple> iter = pig.openIterator("b");
 
-        assertEquals("Hello, World", iter.next().get(0));
-        assertEquals("Hello, World", iter.next().get(0));
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        assertEquals("Hello, World", t.get(0));
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        assertEquals("Hello, World", t.get(0));
         assertFalse(iter.hasNext());
     }
 
@@ -487,7 +484,7 @@ public class TestPigServer {
         InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
         BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
         while ((s = reader.readLine()) != null) {
-            assertTrue(s.equals("b: {field1: int,field2: float,field3: chararray}") == true);
+            assertEquals("b: {field1: int,field2: float,field3: chararray}", s);
         }
         fileWithStdOutContents.close();
     }
@@ -529,7 +526,7 @@ public class TestPigServer {
         InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
         BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
         while ((s = reader.readLine()) != null) {
-            assertTrue(s.equals("b: {field1: int,field2: float,field3: chararray}") == true);
+            assertEquals("b: {field1: int,field2: float,field3: chararray}", s);
         }
         fileWithStdOutContents.close();
     }
@@ -550,7 +547,7 @@ public class TestPigServer {
         InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
         BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
         while ((s = reader.readLine()) != null) {
-            assertTrue(s.equals("b: {field1: int,field2: float,field3: chararray}") == true);
+            assertEquals("b: {field1: int,field2: float,field3: chararray}", s);
         }
         fileWithStdOutContents.close();
     }
@@ -571,7 +568,7 @@ public class TestPigServer {
         InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
         BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
         while ((s = reader.readLine()) != null) {
-            assertTrue(s.equals("b: {int}") == true);
+            assertEquals("b: {int}", s);
         }
         fileWithStdOutContents.close();
     }
@@ -605,7 +602,7 @@ public class TestPigServer {
         InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
         BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
         while ((s = reader.readLine()) != null) {
-            assertTrue(s.equals("Schema for b unknown."));
+            assertEquals("Schema for b unknown.", s);
         }
         fileWithStdOutContents.close();
     }
@@ -627,7 +624,7 @@ public class TestPigServer {
         InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
         BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
         while ((s = reader.readLine()) != null) {
-            assertTrue(s.equals("c: {group: int,a: {(field1: int,field2: float,field3: chararray)},b: {(field4: bytearray,field5: double,field6: chararray)}}") == true);
+            assertEquals("c: {group: int,a: {(field1: int,field2: float,field3: chararray)},b: {(field4: bytearray,field5: double,field6: chararray)}}", s);
         }
         fileWithStdOutContents.close();
     }
@@ -649,7 +646,7 @@ public class TestPigServer {
         InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
         BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
         while ((s = reader.readLine()) != null) {
-            assertTrue(s.equals("c: {a::field1: int,a::field2: float,a::field3: chararray,b::field4: bytearray,b::field5: double,b::field6: chararray}") == true);
+            assertEquals("c: {a::field1: int,a::field2: float,a::field3: chararray,b::field4: bytearray,b::field5: double,b::field6: chararray}", s);
         }
         fileWithStdOutContents.close();
     }
@@ -671,7 +668,7 @@ public class TestPigServer {
         InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
         BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
         while ((s = reader.readLine()) != null) {
-            assertEquals("c: {a::field1: int,a::field2: float,a::field3: chararray,b::field4: bytearray,b::field5: double,b::field6: chararray}", s );
+            assertEquals("c: {a::field1: int,a::field2: float,a::field3: chararray,b::field4: bytearray,b::field5: double,b::field6: chararray}", s);
         }
         fileWithStdOutContents.close();
     }
@@ -693,7 +690,7 @@ public class TestPigServer {
         InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
         BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
         while ((s = reader.readLine()) != null) {
-            assertTrue(s.equals("c: {field1: int,field2: double,field3: chararray}") == true);
+            assertEquals("c: {field1: int,field2: double,field3: chararray}", s);
         }
         fileWithStdOutContents.close();
     }
@@ -821,11 +818,13 @@ public class TestPigServer {
     @Test
     public void testPigProperties() throws Throwable {
         File propertyFile = new File("pig.properties");
+        propertyFile.deleteOnExit();
         File cliPropertyFile = new File("commandLine_pig.properties");
+        cliPropertyFile.deleteOnExit();
 
         Properties properties = PropertiesUtil.loadDefaultProperties();
-        assertTrue(properties.getProperty("pig.spill.gc.activation.size").equals("40000000"));
-        assertTrue(properties.getProperty("test123")==null);
+        assertEquals("40000000", properties.getProperty("pig.spill.gc.activation.size"));
+        assertNull(properties.getProperty("test123"));
 
         PrintWriter out = new PrintWriter(new FileWriter(propertyFile));
         out.println("test123=properties");
@@ -843,8 +842,6 @@ public class TestPigServer {
                 "commandLine_pig.properties");
         assertEquals("cli_properties", properties.getProperty("test123"));
 
-        propertyFile.delete();
-        cliPropertyFile.delete();
     }
 
     @Test
@@ -878,13 +875,12 @@ public class TestPigServer {
         pig.registerQuery("A = load 'x' as (u, v);") ;
         try {
             pig.registerQuery("B = foreach A generate $2;") ;
+            fail("Query is supposed to fail.");
         } catch(FrontendException ex) {
             String msg = "Out of bound access. " +
             "Trying to access non-existent column: 2";
             Util.checkMessageInException(ex, msg);
-            return;
         }
-        fail( "Query is supposed to fail." );
     }
 
     @Test
@@ -918,12 +914,9 @@ public class TestPigServer {
 		out.close();
 
 		properties = PropertiesUtil.loadDefaultProperties();
-		assertTrue(properties.getProperty("aggregate.warning")
-				.equals("false"));
-		assertTrue(properties.getProperty("opt.multiquery")
-				.equals("false"));
-		assertTrue(properties.getProperty("stop.on.failure")
-				.equals("true"));
+		assertEquals("false", properties.getProperty("aggregate.warning"));
+		assertEquals("false", properties.getProperty("opt.multiquery"));
+		assertEquals("true", properties.getProperty("stop.on.failure"));
 
 		propertyFile.delete();
 	}

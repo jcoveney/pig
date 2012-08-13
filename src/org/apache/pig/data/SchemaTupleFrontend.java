@@ -89,6 +89,10 @@ public class SchemaTupleFrontend {
         private PigContext pigContext;
         private Configuration conf;
 
+        public PigContext getPigContext() {
+            return pigContext;
+        }
+
         public SchemaTupleFrontendGenHelper(PigContext pigContext, Configuration conf) {
             codeDir = Files.createTempDir();
             codeDir.deleteOnExit();
