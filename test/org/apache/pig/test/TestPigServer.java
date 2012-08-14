@@ -43,6 +43,8 @@ import java.util.Properties;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.pig.builtin.mock.Storage;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.DataType;
@@ -380,69 +382,6 @@ public class TestPigServer {
         assertTrue(fs.delete(new Path(jarLocation), true));
     }
 
-    @Test
-    public void testRegisterRemoteMacro() throws Throwable {
-        String macroName = "util.pig";
-        File macroFile = File.createTempFile("tmp", "");
-        PrintWriter pw = new PrintWriter(new FileWriter(macroFile));
-        pw.println("DEFINE row_count(X) RETURNS Z { Y = group $X all; $Z = foreach Y generate COUNT($X); };");
-        pw.close();
-
-        Path macro = new Path(macroName);
-
-        FileSystem fs = cluster.getFileSystem();
-        fs.copyFromLocalFile(new Path(macroFile.getAbsolutePath()), macro);
-
-        // find the absolute path for the directory so that it does not
-        // depend on configuration
-        String absPath = fs.getFileStatus(macro).getPath().toString();
-
-        Util.createInputFile(cluster, "testRegisterRemoteMacro_input", new String[]{"1", "2"});
-
-        pig.registerQuery("import '" + absPath + "';");
-        pig.registerQuery("a = load 'testRegisterRemoteMacro_input';");
-        pig.registerQuery("b = row_count(a);");
-        Iterator<Tuple> iter = pig.openIterator("b");
-
-        assertEquals(2L, ((Long)iter.next().get(0)).longValue());
-    }
-
-    @Test
-    public void testRegisterRemoteScript() throws Throwable {
-        String scriptName = "script.py";
-        File scriptFile = File.createTempFile("tmp", "");
-        scriptFile.deleteOnExit();
-        PrintWriter pw = new PrintWriter(new FileWriter(scriptFile));
-        pw.println("@outputSchema(\"word:chararray\")\ndef helloworld():\n    return 'Hello, World'");
-        pw.close();
-
-        Path script = new Path(scriptName);
-
-        FileSystem fs = cluster.getFileSystem();
-        fs.copyFromLocalFile(new Path(scriptFile.getAbsolutePath()), script);
-
-        // find the absolute path for the directory so that it does not
-        // depend on configuration
-        String absPath = fs.getFileStatus(script).getPath().toString();
-
-        Util.createInputFile(cluster, "testRegisterRemoteScript_input", new String[]{"1", "2"});
-        pig.registerCode(absPath, "jython", "pig");
-        pig.registerQuery("a = load 'testRegisterRemoteScript_input';");
-        pig.registerQuery("b = foreach a generate pig.helloworld($0);");
-        Iterator<Tuple> iter = pig.openIterator("b");
-
-        assertTrue(iter.hasNext());
-        Tuple t = iter.next();
-        assertEquals("Hello, World", t.get(0));
-        assertTrue(iter.hasNext());
-        t = iter.next();
-        assertEquals("Hello, World", t.get(0));
-        assertFalse(iter.hasNext());
-
-        scriptFile.delete();
-    }
-
-    @Test
     public void testDescribeLoad() throws Throwable {
         pig.registerQuery("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;
         Schema dumpedSchema = pig.dumpSchema("a") ;
