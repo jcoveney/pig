@@ -17,6 +17,17 @@
  */
 package org.apache.pig.test;
 
+import static org.apache.pig.builtin.mock.Storage.resetData;
+import static org.apache.pig.builtin.mock.Storage.tuple;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.PrintWriter;
+import java.util.Iterator;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -25,17 +36,8 @@ import org.apache.pig.PigServer;
 import org.apache.pig.builtin.mock.Storage;
 import org.apache.pig.data.Tuple;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.File;
-import java.io.FileWriter;
-import java.io.PrintWriter;
-import java.util.Iterator;
-
-import static org.apache.pig.builtin.mock.Storage.resetData;
-import static org.apache.pig.builtin.mock.Storage.tuple;
 
 public class TestPigServerWithMacros {
     private PigServer pig = null;
@@ -76,7 +78,7 @@ public class TestPigServerWithMacros {
         pig.registerQuery("b = row_count(a);");
         Iterator<Tuple> iter = pig.openIterator("b");
 
-        Assert.assertEquals(2L, iter.next().get(0));
+        assertEquals(2L, ((Long)iter.next().get(0)).longValue());
     }
 
     @Test
@@ -89,7 +91,7 @@ public class TestPigServerWithMacros {
         pig.registerQuery("b = row_count(a);");
         Iterator<Tuple> iter = pig.openIterator("b");
 
-        Assert.assertEquals(2L, iter.next().get(0));
+        assertEquals(2L, ((Long)iter.next().get(0)).longValue());
     }
 
     @Test
@@ -116,8 +118,16 @@ public class TestPigServerWithMacros {
         pig.registerQuery("b = foreach a generate pig.helloworld($0);");
         Iterator<Tuple> iter = pig.openIterator("b");
 
-        Assert.assertTrue(iter.next().get(0).equals("Hello, World"));
-        Assert.assertTrue(iter.next().get(0).equals("Hello, World"));
-        Assert.assertFalse(iter.hasNext());
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        assertTrue(t.size() > 0);
+        assertEquals("Hello, World", t.get(0));
+
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        assertTrue(t.size() > 0);
+        assertEquals("Hello, World", t.get(0));
+
+        assertFalse(iter.hasNext());
     }
 }

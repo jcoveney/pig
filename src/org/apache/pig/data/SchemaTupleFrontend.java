@@ -282,8 +282,18 @@ public class SchemaTupleFrontend {
         stfgh.internalCopyAllGeneratedToDistributedCache();
 
         Properties prop = pigContext.getProperties();
-        prop.setProperty(GENERATED_CLASSES_KEY, conf.get(GENERATED_CLASSES_KEY));
-        prop.setProperty(LOCAL_CODE_DIR, conf.get(LOCAL_CODE_DIR));
+        String value = conf.get(GENERATED_CLASSES_KEY);
+        if (value != null) {
+            prop.setProperty(GENERATED_CLASSES_KEY, value);
+        } else {
+            prop.remove(GENERATED_CLASSES_KEY);
+        }
+        value = conf.get(LOCAL_CODE_DIR);
+        if (value != null) {
+            prop.setProperty(LOCAL_CODE_DIR, value);
+        } else {
+            prop.remove(LOCAL_CODE_DIR);
+        }
     }
 
     private static PigContext pigContextToReset = null;
