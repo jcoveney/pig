@@ -30,7 +30,6 @@ import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
-import org.apache.pig.ExecType;
 import org.apache.pig.Expression;
 import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
@@ -159,7 +158,7 @@ public class ReadToEndLoader extends LoadFunc implements LoadMetadata {
     @SuppressWarnings("unchecked")
     private void init() throws IOException {
         if (conf != null && pigContext != null) {
-            SchemaTupleBackend.initialize(conf, ExecType.LOCAL);
+            SchemaTupleBackend.initialize(conf, pigContext, true);
         }
 
         // make a copy so that if the underlying InputFormat writes to the

@@ -35,6 +35,7 @@ import org.apache.pig.PigConfiguration;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.data.utils.StructuresHelper.SchemaKey;
 import org.apache.pig.data.utils.StructuresHelper.Triple;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 import com.google.common.collect.Maps;
@@ -263,14 +264,19 @@ public class SchemaTupleBackend {
 
     private static boolean isInitialized;
 
-    public static void initialize(Configuration jConf, ExecType type) throws IOException {
+    public static void initialize(Configuration jConf, PigContext pigContext) throws IOException {
+        initialize(jConf, pigContext, pigContext.getExecType() == ExecType.LOCAL);
+    }
+
+    public static void initialize(Configuration jConf, PigContext pigContext, boolean isLocal) throws IOException {
         if (isInitialized) {
             LOG.warn("SchemaTupleFrontend has already been initialized");
         } else {
-            stb = new SchemaTupleBackend(jConf, type == ExecType.LOCAL);
+            SchemaTupleFrontend.lazyReset(pigContext);
+            SchemaTupleFrontend.reset();
+            stb = new SchemaTupleBackend(jConf, isLocal);
             stb.copyAndResolve();
             isInitialized = true;
-            SchemaTupleFrontend.reset();
         }
     }
 

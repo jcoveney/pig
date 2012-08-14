@@ -158,6 +158,10 @@ public class SchemaTupleClassGenerator {
      */
     private static int nextGlobalClassIdentifier = 0;
 
+    protected static void resetGlobalClassIdentifier() {
+        nextGlobalClassIdentifier = 0;
+    }
+
     /**
      * This class actually generates the code for a given Schema.
      * @param   schema

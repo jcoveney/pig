@@ -74,8 +74,8 @@ public class TestSchemaTuple {
 
     @Before
     public void perTestInitialize() {
-        SchemaTupleFrontend.reset();
-        SchemaTupleBackend.reset();
+        //SchemaTupleFrontend.reset();
+        //SchemaTupleBackend.reset();
 
         props = new Properties();
         props.setProperty(PigConfiguration.SHOULD_USE_SCHEMA_TUPLE, "true");
@@ -183,7 +183,7 @@ public class TestSchemaTuple {
         SchemaTupleFrontend.copyAllGeneratedToDistributedCache(pigContext, conf);
 
         //backend
-        SchemaTupleBackend.initialize(conf, ExecType.LOCAL);
+        SchemaTupleBackend.initialize(conf, pigContext);
 
         udfSchema = Utils.getSchemaFromString("a:int");
         isAppendable = false;

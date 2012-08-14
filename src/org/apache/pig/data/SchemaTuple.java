@@ -186,12 +186,12 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     }
 
     protected static DataBag read(DataInput in, DataBag v) throws IOException {
-        return (DataBag) bis.readDatum(in, DataType.BAG);
+        return (DataBag) bis.readDatum(in);
     }
 
     @SuppressWarnings("unchecked")
     protected static Map<String, Object> read(DataInput in, Map<String, Object> v) throws IOException {
-        return (Map<String, Object>) bis.readDatum(in, DataType.MAP);
+        return (Map<String, Object>) bis.readDatum(in);
     }
 
     protected static int read(DataInput in, int v) throws IOException {

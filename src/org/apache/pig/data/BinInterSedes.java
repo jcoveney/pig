@@ -152,7 +152,7 @@ public class BinInterSedes implements InterSedes {
         case (SCHEMA_TUPLE_SHORT_INDEX): id = in.readUnsignedShort(); break;
         case (SCHEMA_TUPLE): id = in.readInt(); break;
         default: throw new RuntimeException("Invalid type given to readSchemaTuple: " + type);
-    }
+        }
 
         Tuple st = SchemaTupleFactory.getInstance(id).newTuple();
         st.readFields(in);
@@ -161,7 +161,6 @@ public class BinInterSedes implements InterSedes {
     }
 
     public int getTupleSize(DataInput in, byte type) throws IOException {
-
         int sz;
         switch (type) {
         case TUPLE_0:
@@ -298,7 +297,7 @@ public class BinInterSedes implements InterSedes {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see org.apache.pig.data.InterSedes#readDatum(java.io.DataInput)
      */
     @Override
@@ -317,7 +316,7 @@ public class BinInterSedes implements InterSedes {
     /**
      * Expects binInterSedes data types (NOT DataType types!)
      * <p>
-     * 
+     *
      * @see org.apache.pig.data.InterSedes#readDatum(java.io.DataInput, byte)
      */
     @Override
@@ -417,7 +416,7 @@ public class BinInterSedes implements InterSedes {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see org.apache.pig.data.InterSedes#writeDatum(java.io.DataOutput, java.lang.Object)
      */
     @Override
@@ -603,7 +602,7 @@ public class BinInterSedes implements InterSedes {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see org.apache.pig.data.InterSedes#addColsToTuple(java.io.DataInput, org.apache.pig.data.Tuple)
      */
     @Override
@@ -614,7 +613,7 @@ public class BinInterSedes implements InterSedes {
             t.append(readDatum(in));
         }
     }
-    
+
     public static class BinInterSedesTupleRawComparator extends WritableComparator implements TupleRawComparator {
 
         private final Log mLog = LogFactory.getLog(getClass());
@@ -689,7 +688,7 @@ public class BinInterSedes implements InterSedes {
 
         /**
          * Compare two BinSedesTuples as raw bytes. We deal with sort ordering in this method.
-         * 
+         *
          * @throws IOException
          */
         private int compareBinSedesTuple(ByteBuffer bb1, ByteBuffer bb2) throws IOException {
@@ -1170,7 +1169,7 @@ public class BinInterSedes implements InterSedes {
                 throw new RuntimeException("Unexpected data type " + type + " found in stream.");
             }
         }
-        
+
         /**
          * @param bb ByteBuffer having serialized object, including the type information
          * @param type serialized type information

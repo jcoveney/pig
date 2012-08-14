@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
@@ -227,6 +228,14 @@ public class SchemaTupleFrontend {
      */
     public static int registerToGenerateIfPossible(Schema udfSchema, boolean isAppendable, GenContext context) {
         if (stf == null) {
+            if (pigContextToReset != null) {
+                Properties prop = pigContextToReset.getProperties();
+                prop.remove(PigConfiguration.GENERATED_CLASSES_KEY);
+                prop.remove(PigConfiguration.LOCAL_CODE_DIR);
+                pigContextToReset = null;
+            }
+            SchemaTupleBackend.reset();
+            SchemaTupleClassGenerator.resetGlobalClassIdentifier();
             stf = new SchemaTupleFrontend();
         }
 
@@ -267,5 +276,11 @@ public class SchemaTupleFrontend {
         SchemaTupleFrontendGenHelper stfgh = new SchemaTupleFrontendGenHelper(pigContext, conf);
         stfgh.generateAll(stf.getSchemasToGenerate());
         stfgh.internalCopyAllGeneratedToDistributedCache();
+    }
+
+    private static PigContext pigContextToReset = null;
+
+    public static void lazyReset(PigContext pigContext) {
+        pigContextToReset = pigContext;
     }
 }
