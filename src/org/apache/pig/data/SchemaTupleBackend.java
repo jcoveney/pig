@@ -262,21 +262,18 @@ public class SchemaTupleBackend {
 
     private static SchemaTupleBackend stb;
 
-    private static boolean isInitialized;
-
     public static void initialize(Configuration jConf, PigContext pigContext) throws IOException {
         initialize(jConf, pigContext, pigContext.getExecType() == ExecType.LOCAL);
     }
 
     public static void initialize(Configuration jConf, PigContext pigContext, boolean isLocal) throws IOException {
-        if (isInitialized) {
-            LOG.warn("SchemaTupleFrontend has already been initialized");
+        if (stb != null) {
+            LOG.warn("SchemaTupleBackend has already been initialized");
         } else {
             SchemaTupleFrontend.lazyReset(pigContext);
             SchemaTupleFrontend.reset();
             stb = new SchemaTupleBackend(jConf, isLocal);
             stb.copyAndResolve();
-            isInitialized = true;
         }
     }
 
