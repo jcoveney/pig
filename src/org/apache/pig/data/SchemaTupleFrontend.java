@@ -17,6 +17,11 @@
  */
 package org.apache.pig.data;
 
+import static org.apache.pig.PigConfiguration.GENERATED_CLASSES_KEY;
+import static org.apache.pig.PigConfiguration.LOCAL_CODE_DIR;
+import static org.apache.pig.PigConfiguration.SCHEMA_TUPLE_ON_BY_DEFAULT;
+import static org.apache.pig.PigConfiguration.SHOULD_USE_SCHEMA_TUPLE;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -32,7 +37,6 @@ import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
-import org.apache.pig.PigConfiguration;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.data.utils.StructuresHelper.Pair;
 import org.apache.pig.data.utils.StructuresHelper.SchemaKey;
@@ -115,12 +119,12 @@ public class SchemaTupleFrontend {
             if (pigContext.getExecType() == ExecType.LOCAL) {
                 String codePath = codeDir.getAbsolutePath();
                 LOG.info("Distributed cache not supported or needed in local mode. Setting key ["
-                        + PigConfiguration.LOCAL_CODE_DIR + "] with code temp directory: " + codePath);
-                conf.set(PigConfiguration.LOCAL_CODE_DIR, codePath);
+                        + LOCAL_CODE_DIR + "] with code temp directory: " + codePath);
+                conf.set(LOCAL_CODE_DIR, codePath);
                 return;
             }
             String codePath = codeDir.getAbsolutePath(); //TODO is this necessary?
-            conf.set(PigConfiguration.LOCAL_CODE_DIR, codePath); //TODO is this necessary?
+            conf.set(LOCAL_CODE_DIR, codePath); //TODO is this necessary?
             DistributedCache.createSymlink(conf); // we will read using symlinks
             StringBuilder serialized = new StringBuilder();
             boolean first = true;
@@ -163,9 +167,9 @@ public class SchemaTupleFrontend {
                 LOG.info("File successfully added to the distributed cache: " + symlink);
             }
             String toSer = serialized.toString();
-            LOG.info("Setting key [" + PigConfiguration.GENERATED_CLASSES_KEY + "] with classes to deserialize [" + toSer + "]");
+            LOG.info("Setting key [" + GENERATED_CLASSES_KEY + "] with classes to deserialize [" + toSer + "]");
             // we must set a key in the job conf so individual jobs know to resolve the shipped classes
-            conf.set(PigConfiguration.GENERATED_CLASSES_KEY, toSer);
+            conf.set(GENERATED_CLASSES_KEY, toSer);
         }
 
         /**
@@ -175,9 +179,9 @@ public class SchemaTupleFrontend {
          */
         private boolean generateAll(Map<Pair<SchemaKey, Boolean>, Pair<Integer, Set<GenContext>>> schemasToGenerate) {
             boolean filesToShip = false;
-            String shouldString = conf.get(PigConfiguration.SHOULD_USE_SCHEMA_TUPLE, PigConfiguration.SCHEMA_TUPLE_ON_BY_DEFAULT);
+            String shouldString = conf.get(SHOULD_USE_SCHEMA_TUPLE, SCHEMA_TUPLE_ON_BY_DEFAULT);
             if (shouldString == null || !Boolean.parseBoolean(shouldString)) {
-                LOG.info("Key ["+PigConfiguration.SHOULD_USE_SCHEMA_TUPLE+"] is false, will not generate code.");
+                LOG.info("Key ["+SHOULD_USE_SCHEMA_TUPLE+"] is false, will not generate code.");
                 return false;
             }
             LOG.info("Generating all registered Schemas.");
@@ -230,8 +234,8 @@ public class SchemaTupleFrontend {
         if (stf == null) {
             if (pigContextToReset != null) {
                 Properties prop = pigContextToReset.getProperties();
-                prop.remove(PigConfiguration.GENERATED_CLASSES_KEY);
-                prop.remove(PigConfiguration.LOCAL_CODE_DIR);
+                prop.remove(GENERATED_CLASSES_KEY);
+                prop.remove(LOCAL_CODE_DIR);
                 pigContextToReset = null;
             }
             SchemaTupleBackend.reset();
@@ -276,6 +280,10 @@ public class SchemaTupleFrontend {
         SchemaTupleFrontendGenHelper stfgh = new SchemaTupleFrontendGenHelper(pigContext, conf);
         stfgh.generateAll(stf.getSchemasToGenerate());
         stfgh.internalCopyAllGeneratedToDistributedCache();
+
+        Properties prop = pigContext.getProperties();
+        prop.setProperty(GENERATED_CLASSES_KEY, conf.get(GENERATED_CLASSES_KEY));
+        prop.setProperty(LOCAL_CODE_DIR, conf.get(LOCAL_CODE_DIR));
     }
 
     private static PigContext pigContextToReset = null;
