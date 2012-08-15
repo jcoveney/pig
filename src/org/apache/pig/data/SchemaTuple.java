@@ -24,16 +24,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.utils.MethodHelper;
 import org.apache.pig.data.utils.MethodHelper.NotImplemented;
 import org.apache.pig.data.utils.SedesHelper;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.util.Utils;
+import org.apache.pig.impl.util.ObjectSerializer;
 import org.mortbay.log.Log;
 
 import com.google.common.collect.Lists;
@@ -787,10 +785,9 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
                 Log.warn("No Schema present in SchemaTuple generated class");
                 return new Schema();
             }
-            s = new String(Base64.decodeBase64(s));
-            return Utils.getSchemaFromString(s);
-        } catch (FrontendException e) {
-            throw new RuntimeException("Unable to make Schema for String: " + s);
+            return (Schema) ObjectSerializer.deserialize(s);
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to deserialize serialized Schema: " + s, e);
         }
     }
 

@@ -18,6 +18,7 @@
 package org.apache.pig.data;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -25,7 +26,6 @@ import java.lang.annotation.Target;
 import java.util.List;
 import java.util.Queue;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -34,6 +34,7 @@ import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.JavaCompilerHelper;
+import org.apache.pig.impl.util.ObjectSerializer;
 
 import com.google.common.collect.Lists;
 
@@ -323,9 +324,12 @@ public class SchemaTupleClassGenerator {
         private File codeDir;
 
         public void prepare() {
-            String s = schema.toString();
-            s = s.substring(1, s.length() - 1);
-            s = Base64.encodeBase64URLSafeString(s.getBytes());
+            String s;
+            try {
+                s = ObjectSerializer.serialize(schema);
+            } catch (IOException e) {
+                throw new RuntimeException("Unable to serialize schema: " + schema, e);
+            }
             add("private static Schema schema = staticSchemaGen(\"" + s + "\");");
         }
 
