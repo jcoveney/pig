@@ -673,8 +673,8 @@ public class TestPigServer {
     	PigServer pigServer = new PigServer(ExecType.MAPREDUCE);
     	Properties properties = pigServer.getPigContext().getProperties();
 
-    	assertEquals("999", properties.getProperty("pig.exec.reducers.max"));
-    	assertEquals("true", properties.getProperty("aggregate.warning"));
+        assertEquals("999", properties.getProperty("pig.exec.reducers.max"));
+        assertEquals("true", properties.getProperty("aggregate.warning"));
         assertEquals("true", properties.getProperty("opt.multiquery"));
         assertEquals("false", properties.getProperty("stop.on.failure"));
 

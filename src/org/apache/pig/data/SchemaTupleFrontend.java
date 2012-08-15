@@ -51,7 +51,6 @@ import com.google.common.io.Files;
 /**
  * This class is to be used at job creation time. It provides the API that lets code
  * register Schemas with pig to be generated. It is necessary to register these Schemas
- * so that the generated code can be made on the client side, and shipped to the mappers
  * and reducers.
  */
 public class SchemaTupleFrontend {
@@ -93,10 +92,6 @@ public class SchemaTupleFrontend {
         private File codeDir;
         private PigContext pigContext;
         private Configuration conf;
-
-        public PigContext getPigContext() {
-            return pigContext;
-        }
 
         public SchemaTupleFrontendGenHelper(PigContext pigContext, Configuration conf) {
             codeDir = Files.createTempDir();
@@ -298,7 +293,14 @@ public class SchemaTupleFrontend {
 
     private static PigContext pigContextToReset = null;
 
-    public static void lazyReset(PigContext pigContext) {
+    /**
+     * This is a method which caches a PigContext object that has had
+     * relevant key values set by SchemaTupleBackend. This is necessary
+     * because in some cases, multiple cycles of jobs might run in the JVM,
+     * but the PigContext object may be shared, so we want to make sure to
+     * undo any changes we have made to it.
+     */
+    protected static void lazyReset(PigContext pigContext) {
         pigContextToReset = pigContext;
     }
 }

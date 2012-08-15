@@ -321,7 +321,10 @@ public class POForEach extends PhysicalOperator {
 
     protected Result processPlan() throws ExecException{
         if (schema != null && tupleMaker == null) {
-            tupleMaker = SchemaTupleFactory.getInstance(schema, false, GenContext.FOREACH); //TODO might need to be appendable
+            // Note here that if SchemaTuple is currently turned on, then any UDF's in the chain
+            // must follow good practices. Namely, they should not append to the Tuple that comes
+            // out of an iterator (a practice which is fairly common, but is not recommended).
+            tupleMaker = SchemaTupleFactory.getInstance(schema, false, GenContext.FOREACH);
             if (tupleMaker != null) {
                 knownSize = true;
             }

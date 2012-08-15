@@ -53,7 +53,7 @@ public class PigConfiguration {
 
     /**
      * This key is used when a job is run in local mode to pass the location of the generated code
-     * from the frontent to the "backend."
+     * from the front-end to the "back-end" (which, in this case, is in the same JVM).
      */
     public static final String LOCAL_CODE_DIR = "pig.schematuple.local.dir";
 
@@ -71,5 +71,6 @@ public class PigConfiguration {
     /////////////////////////////         DEFAULTS          /////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////
 
-    public static final String SCHEMA_TUPLE_ON_BY_DEFAULT = "true";
+    // This makes it easy to turn SchemaTuple on globally.
+    public static final String SCHEMA_TUPLE_ON_BY_DEFAULT = "false";
 }

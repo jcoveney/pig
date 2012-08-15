@@ -49,7 +49,6 @@ import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
-import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -578,19 +577,10 @@ public class JobControlCompiler{
             setupDistributedCacheForJoin(mro, pigContext, conf);
 
             // Search to see if we have any UDFs that need to pack things into the
-            // distrubted cache.
+            // distributed cache.
             setupDistributedCacheForUdfs(mro, pigContext, conf);
 
             SchemaTupleFrontend.copyAllGeneratedToDistributedCache(pigContext, conf);
-            String key = conf.get(PigConfiguration.GENERATED_CLASSES_KEY);
-            if (key != null) {
-                pigContext.getProperties().setProperty(PigConfiguration.GENERATED_CLASSES_KEY, key);
-            }
-            key = conf.get(PigConfiguration.LOCAL_CODE_DIR);
-            if (key != null) {
-                pigContext.getProperties().setProperty(PigConfiguration.LOCAL_CODE_DIR, key);
-            }
-            // The issue si that openIterator is getting the wrong conf? Or that the dist cache doesn't work properly in this mode?
 
             POPackage pack = null;
             if(mro.reducePlan.isEmpty()){

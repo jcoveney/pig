@@ -74,9 +74,6 @@ public class TestSchemaTuple {
 
     @Before
     public void perTestInitialize() {
-        //SchemaTupleFrontend.reset();
-        //SchemaTupleBackend.reset();
-
         props = new Properties();
         props.setProperty(PigConfiguration.SHOULD_USE_SCHEMA_TUPLE, "true");
 
@@ -177,6 +174,10 @@ public class TestSchemaTuple {
 
         isAppendable = false;
         udfSchema = Utils.getSchemaFromString("int, m:map[(int,int,int)]");
+        SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, isAppendable, context);
+
+        isAppendable = false;
+        udfSchema = new Schema();
         SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, isAppendable, context);
 
         // this compiles and "ships"
@@ -301,6 +302,11 @@ public class TestSchemaTuple {
         udfSchema = Utils.getSchemaFromString("int, m:map[(int,int,int)]");
         tf = SchemaTupleFactory.getInstance(udfSchema, isAppendable, context);
         putThroughPaces(tf, udfSchema, isAppendable);
+
+        isAppendable = false;
+        udfSchema = new Schema();
+        tf = SchemaTupleFactory.getInstance(udfSchema, isAppendable, context);
+        assertNull(tf);
     }
 
     private void putThroughPaces(SchemaTupleFactory tf, Schema udfSchema, boolean isAppendable) throws Exception {
