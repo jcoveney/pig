@@ -45,7 +45,6 @@
 **/TestPhyOp.java
 **/TestPigScriptParser.java
 **/TestPigServer.java
-**/TestPigServerWithMacros.java
 **/TestPoissonSampleLoader.java
 **/TestRegexp.java
 **/TestSchema.java

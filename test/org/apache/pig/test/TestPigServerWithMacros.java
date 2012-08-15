@@ -42,9 +42,13 @@ import org.junit.Test;
 public class TestPigServerWithMacros {
     private PigServer pig = null;
 
+    // We pull in this MiniCluster just to get the properties. The test was not functioning properly
+    // otherwise.
+    private static MiniCluster cluster = MiniCluster.buildCluster();
+
     @Before
     public void setUp() throws Exception{
-        pig = new PigServer(ExecType.LOCAL);
+        pig = new PigServer(ExecType.LOCAL, cluster.getProperties());
     }
 
     @After
@@ -69,7 +73,6 @@ public class TestPigServerWithMacros {
         // depend on configuration
         String absPath = fs.getFileStatus(new Path(macroName)).getPath().toString();
 
-        pig = new PigServer(ExecType.LOCAL);
         Storage.Data data = resetData(pig);
         data.set("some_path", "(l:chararray)", tuple("first row"), tuple("second row"));
 
