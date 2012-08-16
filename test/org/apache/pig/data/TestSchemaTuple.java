@@ -180,6 +180,10 @@ public class TestSchemaTuple {
         udfSchema = new Schema();
         SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, isAppendable, context);
 
+        isAppendable = false;
+        udfSchema = new Schema(new FieldSchema(null, DataType.BAG));
+        SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, isAppendable, context);
+
         // this compiles and "ships"
         SchemaTupleFrontend.copyAllGeneratedToDistributedCache(pigContext, conf);
 
@@ -307,6 +311,11 @@ public class TestSchemaTuple {
         udfSchema = new Schema();
         tf = SchemaTupleFactory.getInstance(udfSchema, isAppendable, context);
         assertNull(tf);
+
+        isAppendable = false;
+        udfSchema = new Schema(new FieldSchema(null, DataType.BAG));
+        tf = SchemaTupleFactory.getInstance(udfSchema, isAppendable, context);
+        putThroughPaces(tf, udfSchema, isAppendable);
     }
 
     private void putThroughPaces(SchemaTupleFactory tf, Schema udfSchema, boolean isAppendable) throws Exception {
