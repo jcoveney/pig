@@ -19,7 +19,8 @@
 package org.apache.pig;
 
 /**
- * Container for static configuration strings, defaults, etc.
+ * Container for static configuration strings, defaults, etc. This is intended just for keys that can
+ * be set by users, not for keys that are generally used within pig.
  */
 public class PigConfiguration {
     private PigConfiguration() {}
@@ -50,27 +51,4 @@ public class PigConfiguration {
     public static final String SCHEMA_TUPLE_SHOULD_USE_IN_MERGEJOIN = "pig.schematuple.merge_join";
 
     public static final String SCHEMA_TUPLE_SHOULD_ALLOW_FORCE = "pig.schematuple.force";
-
-    /**
-     * This key is used when a job is run in local mode to pass the location of the generated code
-     * from the front-end to the "back-end" (which, in this case, is in the same JVM).
-     */
-    public static final String LOCAL_CODE_DIR = "pig.schematuple.local.dir";
-
-    /////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////       JOB CONF KEYS       /////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////
-
-    /**
-     * This key is used in the job conf to let the various jobs know what code was
-     * generated.
-     */
-    public static final String GENERATED_CLASSES_KEY = "pig.schematuple.classes";
-
-    /////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////         DEFAULTS          /////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////
-
-    // This makes it easy to turn SchemaTuple on globally.
-    public static final String SCHEMA_TUPLE_ON_BY_DEFAULT = "false";
 }

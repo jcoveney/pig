@@ -17,10 +17,8 @@
  */
 package org.apache.pig.data;
 
-import static org.apache.pig.PigConfiguration.GENERATED_CLASSES_KEY;
-import static org.apache.pig.PigConfiguration.LOCAL_CODE_DIR;
-import static org.apache.pig.PigConfiguration.SCHEMA_TUPLE_ON_BY_DEFAULT;
 import static org.apache.pig.PigConfiguration.SHOULD_USE_SCHEMA_TUPLE;
+import static org.apache.pig.PigConstants.SCHEMA_TUPLE_ON_BY_DEFAULT;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -36,6 +34,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConstants;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.data.utils.StructuresHelper.SchemaKey;
 import org.apache.pig.data.utils.StructuresHelper.Triple;
@@ -74,13 +73,13 @@ public class SchemaTupleBackend {
      */
     private SchemaTupleBackend(Configuration jConf, boolean isLocal) {
         if (isLocal) {
-            String localCodeDir = jConf.get(LOCAL_CODE_DIR);
+            String localCodeDir = jConf.get(PigConstants.LOCAL_CODE_DIR);
             if (localCodeDir == null) {
                 LOG.debug("No local code dir set in local mode. Aborting code gen resolution.");
                 abort = true;
                 return;
             }
-            codeDir = new File(jConf.get(LOCAL_CODE_DIR));
+            codeDir = new File(jConf.get(PigConstants.LOCAL_CODE_DIR));
         } else {
             codeDir = Files.createTempDir();
             codeDir.deleteOnExit();
@@ -152,8 +151,7 @@ public class SchemaTupleBackend {
             return;
         }
         // Step one is to see if there are any classes in the distributed cache
-        String shouldGenerate = jConf.get(SHOULD_USE_SCHEMA_TUPLE, SCHEMA_TUPLE_ON_BY_DEFAULT); //TODO revert this, am setting it to true for testing
-        if (shouldGenerate == null || !Boolean.parseBoolean(shouldGenerate)) {
+        if (jConf.getBoolean(SHOULD_USE_SCHEMA_TUPLE, SCHEMA_TUPLE_ON_BY_DEFAULT)) {
             LOG.info("Key [" + SHOULD_USE_SCHEMA_TUPLE +"] was not set... will not generate code.");
             return;
         }
@@ -176,12 +174,12 @@ public class SchemaTupleBackend {
     }
 
     private void copyAllFromDistributedCache() throws IOException {
-        String toDeserialize = jConf.get(GENERATED_CLASSES_KEY);
+        String toDeserialize = jConf.get(PigConstants.GENERATED_CLASSES_KEY);
         if (toDeserialize == null) {
-            LOG.info("No classes in in key [" + GENERATED_CLASSES_KEY + "] to copy from distributed cache.");
+            LOG.info("No classes in in key [" + PigConstants.GENERATED_CLASSES_KEY + "] to copy from distributed cache.");
             return;
         }
-        LOG.info("Copying files in key ["+GENERATED_CLASSES_KEY+"] from distributed cache: " + toDeserialize);
+        LOG.info("Copying files in key ["+PigConstants.GENERATED_CLASSES_KEY+"] from distributed cache: " + toDeserialize);
         for (String s : toDeserialize.split(",")) {
             LOG.info("Attempting to read file: " + s);
             // The string is the symlink into the distributed cache
