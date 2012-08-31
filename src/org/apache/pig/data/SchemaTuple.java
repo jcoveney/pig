@@ -24,6 +24,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+
+import org.apache.commons.codec.binary.Base64;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
@@ -49,6 +53,7 @@ import com.google.common.collect.Lists;
 public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTuple implements TypeAwareTuple {
 
     private static final long serialVersionUID = 1L;
+    private static final int ONE_MINUTE = 60000;
     private static final BinInterSedes bis = new BinInterSedes();
 
     @NotImplemented
@@ -171,6 +176,11 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         out.writeDouble(v);
     }
 
+    protected static void write(DataOutput out, DateTime v) throws IOException {
+        out.writeLong(v.getMillis());
+        out.writeShort(v.getZone().getOffset(v) / ONE_MINUTE);
+    }
+
     protected static void write(DataOutput out, byte[] v) throws IOException {
         SedesHelper.writeBytes(out, v);
     }
@@ -206,6 +216,10 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
 
     protected static double read(DataInput in, double v) throws IOException {
         return in.readDouble();
+    }
+
+    protected static DateTime read(DataInput in, DateTime v) throws IOException {
+        return new DateTime(in.readLong(), DateTimeZone.forOffsetMillis(in.readShort() * ONE_MINUTE));
     }
 
     protected static String read(DataInput in, String v) throws IOException {
@@ -371,6 +385,10 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return unbox((Boolean)v);
     }
 
+    protected DateTime unbox(Object v, DateTime t) {
+        return (DateTime)v;
+    }
+
     protected String unbox(Object v, String t) {
         return (String)v;
     }
@@ -412,6 +430,10 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
 
     protected boolean unbox(Boolean v) {
         return v.booleanValue();
+    }
+
+    protected DateTime unbox(DateTime v) {
+        return v;
     }
 
     protected DataBag box(DataBag v) {
@@ -457,6 +479,10 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return new Boolean(v);
     }
 
+    protected DateTime box(DateTime v) {
+        return v;
+    }
+
     protected int hashCodePiece(int hash, int v, boolean isNull) {
         return isNull ? hash : 31 * hash + v;
     }
@@ -476,6 +502,10 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
 
     protected int hashCodePiece(int hash, boolean v, boolean isNull) {
         return isNull ? hash : 31 * hash + (v ? 1231 : 1237);
+    }
+
+    protected int hashCodePiece(int hash, DateTime v, boolean isNull) {
+        return isNull ? hash : 31 * hash + v.hashCode();
     }
 
     protected int hashCodePiece(int hash, byte[] v, boolean isNull) {
@@ -577,6 +607,13 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     protected abstract void generatedCodeSetBoolean(int fieldNum, boolean val) throws ExecException;
 
     @Override
+    public void setDateTime(int fieldNum, DateTime val) throws ExecException {
+         generatedCodeSetDateTime(fieldNum, val);
+    }
+
+    protected abstract void generatedCodeSetDateTime(int fieldNum, DateTime val) throws ExecException;
+
+    @Override
     public void setString(int fieldNum, String val) throws ExecException {
          generatedCodeSetString(fieldNum, val);
     }
@@ -639,6 +676,11 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
 
     protected boolean returnUnlessNull(boolean isNull, boolean val) throws FieldIsNullException {
         errorIfNull(isNull, "boolean");
+        return val;
+    }
+
+    protected DateTime returnUnlessNull(boolean isNull, DateTime val) throws FieldIsNullException {
+        errorIfNull(isNull, "DateTime");
         return val;
     }
 
@@ -720,6 +762,17 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
 
     public boolean unboxBoolean(Object val) {
         return ((Boolean)val).booleanValue();
+    }
+
+    @Override
+    public DateTime getDateTime(int fieldNum) throws ExecException {
+        return generatedCodeGetDateTime(fieldNum);
+    }
+
+    protected abstract DateTime generatedCodeGetDateTime(int fieldNum) throws ExecException;
+
+    public DateTime unboxDateTime(Object val) {
+        return (DateTime)val;
     }
 
     @Override
@@ -1020,6 +1073,33 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
             themNull = t.isNull(pos);
         } catch (ExecException e) {
             throw new RuntimeException("Unable to retrieve byte[] field " + pos + " in given Tuple: " + t, e);
+        }
+        return compare(isNull, val, themNull, themVal);
+    }
+
+    protected int compare(boolean usNull, DateTime usVal, boolean themNull, DateTime themVal) {
+        if (usNull && themNull) {
+            return 0;
+        } else if (themNull) {
+            return 1;
+        } else if (usNull) {
+            return -1;
+        }
+        return compare(usVal, themVal);
+    }
+
+    protected int compare(DateTime val, DateTime themVal) {
+        return val.compareTo(themVal);
+    }
+
+    protected int compareWithElementAtPos(boolean isNull, DateTime val, SchemaTuple<?> t, int pos) {
+        DateTime themVal;
+        boolean themNull;
+        try {
+            themVal = t.getDateTime(pos);
+            themNull = t.isNull(pos);
+        } catch (ExecException e) {
+            throw new RuntimeException("Unable to retrieve String field " + pos + " in given Tuple: " + t, e);
         }
         return compare(isNull, val, themNull, themVal);
     }

@@ -56,12 +56,8 @@ import junit.framework.TestCase;
 @RunWith(JUnit4.class)
 public class TestInputOutputFileValidator extends TestCase {
     
-    
-    private static MiniCluster cluster = MiniCluster.buildCluster();
-    @AfterClass
-    public static void oneTimeTearDown() throws Exception {
-        cluster.shutDown();
-    }
+	 
+     
     
     @Test
     public void testLocalModeInputPositive() throws Throwable {
@@ -96,39 +92,9 @@ public class TestInputOutputFileValidator extends TestCase {
         }
         
     }
-        
-    @Test
-    public void testMapReduceModeInputPositive() throws Throwable {
-        PigContext ctx = new PigContext(ExecType.MAPREDUCE, cluster.getProperties()) ;       
-        ctx.connect() ;
-        
-        String inputfile = createHadoopTempFile(ctx) ;
-        String outputfile = createHadoopNonExistenceTempFile(ctx) ;
+       
 
-        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;                     
-        
-        InputOutputFileValidator executor = new InputOutputFileValidator(plan, ctx) ;
-        executor.validate() ;
-    }
     
-    @Test
-    public void testMapReduceModeInputNegative2() throws Throwable {
-        PigContext ctx = new PigContext(ExecType.MAPREDUCE, cluster.getProperties()) ;       
-        ctx.connect() ;
-        
-        String inputfile = createHadoopTempFile(ctx) ;
-        String outputfile = createHadoopTempFile(ctx) ;
-
-        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;                     
-        
-        InputOutputFileValidator executor = new InputOutputFileValidator(plan, ctx) ;
-        try {
-            executor.validate() ;
-            fail("Excepted to fail.");
-        } catch(Exception e) {
-            //good
-        }
-    }
     
     /**
      * Testcase to ensure Input output validation allows store to a location
@@ -140,17 +106,12 @@ public class TestInputOutputFileValidator extends TestCase {
         String input = "input.txt";
         String output= "output.txt";
         String data[] = new String[] {"hello\tworld"};
-        ExecType[] modes = new ExecType[] {ExecType.MAPREDUCE, ExecType.LOCAL};
-        PigServer pig = null;
-        for (ExecType execType : modes) {
-            try {
-                if(execType == ExecType.MAPREDUCE) {
-                    pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-                } else {
-                    Properties props = new Properties();
-                    props.put(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
-                    pig = new PigServer(ExecType.LOCAL, props);
-                }
+         PigServer pig = null;
+             try {
+                 Properties props = new Properties();
+                 props.put(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
+                 pig = new PigServer(ExecType.LOCAL, props);
+           
                 // reinitialize FileLocalizer for each mode
                 // this is need for the tmp file creation as part of
                 // PigServer.openIterator
@@ -169,8 +130,7 @@ public class TestInputOutputFileValidator extends TestCase {
             } finally {
                 Util.deleteFile(pig.getPigContext(), input);
                 Util.deleteFile(pig.getPigContext(), output);
-            }
-        }
+            } 
     }
     
     /**
@@ -184,18 +144,13 @@ public class TestInputOutputFileValidator extends TestCase {
         String input = "input.txt";
         String output= "output.txt";
         String data[] = new String[] {"hello\tworld"};
-        ExecType[] modes = new ExecType[] {ExecType.MAPREDUCE, ExecType.LOCAL};
         PigServer pig = null;
-        for (ExecType execType : modes) {
-            try {
+             try {
                 boolean exceptionCaught = false;
-                if(execType == ExecType.MAPREDUCE) {
-                    pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-                } else {
-                    Properties props = new Properties();
-                    props.put(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
-                    pig = new PigServer(ExecType.LOCAL, props);
-                }
+                Properties props = new Properties();
+                props.put(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
+                pig = new PigServer(ExecType.LOCAL, props);
+               
                 Util.deleteFile(pig.getPigContext(), input);
                 Util.deleteFile(pig.getPigContext(), output);
                 Util.createInputFile(pig.getPigContext(), input, data);
@@ -215,27 +170,10 @@ public class TestInputOutputFileValidator extends TestCase {
                 Util.deleteFile(pig.getPigContext(), input);
                 Util.deleteFile(pig.getPigContext(), output);
             }
-        }
+        
     }
 
-    @Test
-    public void testValidationNeg() throws Throwable{
-
-        PigServer pig = new PigServer(ExecType.MAPREDUCE,cluster.getProperties());
-        try{
-            pig.setBatchOn();
-        	pig.registerQuery("A = load 'inputfile' using PigStorage () as (a:int);");
-            pig.registerQuery("store A into 'outfile' using "+DummyStorer.class.getName()+";");
-            pig.executeBatch();
-            assert false;
-        }catch(Exception fe){
-        	assertTrue(fe instanceof FrontendException);
-        	PigException pe = LogUtils.getPigException(fe);
-        	assertTrue(pe instanceof FrontendException);
-        	assertEquals(1115, pe.getErrorCode());
-        	assertTrue(pe.getMessage().contains("Exception from DummyStorer."));
-        }
-    }
+    
  
         
     private LogicalPlan genNewLoadStorePlan(String inputFile,

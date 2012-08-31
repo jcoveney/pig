@@ -24,6 +24,26 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2895: jodatime jar missing in pig-withouthadoop.jar  (thejas)
+
+PIG-2888: Improve performance of POPartialAgg (dvryaboy)
+
+PIG-2708: split MiniCluster based tests out of org.apache.pig.test.TestInputOutputFileValidator (analog.sony via daijy)
+
+PIG-2890: Revert PIG-2578 (dvryaboy)
+
+PIG-2850: Pig should support loading macro files as resources stored in JAR files (matterhayes via dvryaboy)
+
+PIG-1314: Add DateTime Support to Pig (zjshen via thejas)
+
+PIG-2785: NoClassDefFoundError after upgrading to pig 0.10.0 from 0.9.0 (matterhayes via sms)
+
+PIG-2556: CSVExcelStorage load: quoted field with newline as first character sees newline as record end (tivv via dvryaboy)
+
+PIG-2875: Add recursive record support to AvroStorage (cheolsoo via sms)
+
+PIG-2662: skew join does not honor its config parameters (rajesh.balamohan via thejas)
+
 PIG-2871: Refactor signature for PigReducerEstimator (billgraham)
 
 PIG-2851: Add flag to ant to run tests with a debugger port (billgraham)
@@ -233,6 +253,12 @@ PIG-2337: Provide UDF with input schema (xutingz via daijy)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-2896:  Pig does not fail anymore if two macros are declared with the same name (julien)
+
+PIG-2848: TestBuiltInBagToTupleOrString fails now that mock.Storage enforces not overwriting output (julien)
+
+PIG-2884: JobControlCompiler mis-logs after reducer estimation (billgraham)
 
 PIG-2876: Bump up Xerces version (jcoveney)
 
@@ -500,6 +526,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
+
+PIG-2821: HBaseStorage should work with secure hbase (rohini via daijy)
 
 PIG-2859: Fix few e2e test failures (rohini via daijy)
 
