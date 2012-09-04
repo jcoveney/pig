@@ -54,7 +54,6 @@ public class PigConfiguration {
     public static final String TIME_UDFS_PROP = "pig.udf.profile";
 
     /**
-<<<<<<< HEAD
      * This key must be set to true by the user for code generation to be used.
      * In the future, it may be turned on by default (at least in certain cases),
      * but for now it is too experimental.
@@ -70,9 +69,9 @@ public class PigConfiguration {
     public static final String SCHEMA_TUPLE_SHOULD_USE_IN_MERGEJOIN = "pig.schematuple.merge_join";
 
     public static final String SCHEMA_TUPLE_SHOULD_ALLOW_FORCE = "pig.schematuple.force";
-=======
+
+    /*
      * Turns off use of combiners in MapReduce jobs produced by Pig.
      */
     public static final String PROP_NO_COMBINER = "pig.exec.nocombiner";
->>>>>>> d3500faac3e35d21c8ed06f04da2d7230c855e7d
 }
