@@ -22,10 +22,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PushbackInputStream;
 import java.util.Arrays;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
-import java.util.Stack;
-import java.util.EmptyStackException;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -157,7 +157,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
         }
         else {
             // No inner schema, treat everything inside tuple as bytearray
-            Stack<Character> level = new Stack<Character>();  // keep track of nested tuple/bag/map. We do not interpret, save them as bytearray
+            Deque<Character> level = new LinkedList<Character>();  // keep track of nested tuple/bag/map. We do not interpret, save them as bytearray
             mOut = new ByteArrayOutputStream(BUFFER_SIZE);
             while (true) {
                 buf=in.read();
@@ -219,7 +219,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
             
             // Read value
             mOut.reset();
-            Stack<Character> level = new Stack<Character>(); // keep track of nested tuple/bag/map. We do not interpret, save them as bytearray
+            Deque<Character> level = new LinkedList<Character>(); // keep track of nested tuple/bag/map. We do not interpret, save them as bytearray
             while (true) {
                 buf=in.read();
                 if (buf==-1) {
@@ -232,12 +232,11 @@ public class Utf8StorageConverter implements LoadStoreCaster {
                     break;
                 else if (buf==']' ||buf=='}'||buf==')')
                 {
-                    try {
-                        if (level.peek()==findStartChar((char)buf))
-                            level.pop();
-                    } catch (EmptyStackException e) {
-                        throw new IOException("Malformed map");
-                    }
+                	if (level.isEmpty())
+                		throw new IOException("Malformed map");
+                	
+                    if (level.peek()==findStartChar((char)buf))
+                        level.pop();
                 } else if (buf==','&&level.isEmpty()) { // Current map item complete
                     break;
                 }
@@ -398,15 +397,41 @@ public class Utf8StorageConverter implements LoadStoreCaster {
             return null;
         }
     }
+    
+    /**
+     * Sanity check of whether this number is a valid integer or long. 
+     * @param number the number to check
+     * @return true if it doesn't contain any invalid characters, i.e. only contains digits and '-'
+     */
+    private static boolean sanityCheckIntegerLong(String number){
+        for (int i=0; i < number.length(); i++){
+            if (number.charAt(i) >= '0' && number.charAt(i) <='9' || i == 0 && number.charAt(i) == '-'){
+                // valid one
+            }
+            else{
+                // contains invalid characters, must not be a integer or long.
+                return false;
+            }
+        }
+        return true;
+    }
 
     @Override
     public Integer bytesToInteger(byte[] b) throws IOException {
         if(b == null)
             return null;
         String s = new String(b);
-        try {
-            return Integer.valueOf(s);
-        } catch (NumberFormatException nfe) {
+        Integer ret = null;
+        
+        // See PIG-2835. Using exception handling to check if it's a double is very expensive.
+        // So we write our sanity check.
+        if (sanityCheckIntegerLong(s)){
+            try {
+                ret = Integer.valueOf(s);
+            } catch (NumberFormatException nfe) {
+            }
+        }
+        if (ret == null){
             // It's possible that this field can be interpreted as a double.
             // Unfortunately Java doesn't handle this in Integer.valueOf.  So
             // we need to try to convert it to a double and if that works then
@@ -424,11 +449,12 @@ public class Utf8StorageConverter implements LoadStoreCaster {
             } catch (NumberFormatException nfe2) {
                 LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                         "converted to int, caught NumberFormatException <" +
-                        nfe.getMessage() + "> field discarded", 
+                        nfe2.getMessage() + "> field discarded", 
                         PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
                 return null;
             }
         }
+        return ret;
     }
     
     @Override
@@ -442,9 +468,17 @@ public class Utf8StorageConverter implements LoadStoreCaster {
             s = new String(b);
         }
         
-        try {
-            return Long.valueOf(s);
-        } catch (NumberFormatException nfe) {
+        // See PIG-2835. Using exception handling to check if it's a double is very expensive.
+        // So we write our sanity check.
+        Long ret = null;
+        if (sanityCheckIntegerLong(s)) {
+            try {
+                ret = Long.valueOf(s);
+            } catch (NumberFormatException nfe) {
+            }
+        }
+        
+        if (ret == null) {
             // It's possible that this field can be interpreted as a double.
             // Unfortunately Java doesn't handle this in Long.valueOf.  So
             // we need to try to convert it to a double and if that works then
@@ -462,11 +496,12 @@ public class Utf8StorageConverter implements LoadStoreCaster {
             } catch (NumberFormatException nfe2) {
                 LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                             "converted to long, caught NumberFormatException <" +
-                            nfe.getMessage() + "> field discarded", 
+                            nfe2.getMessage() + "> field discarded", 
                             PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
                 return null;
             }
         }
+        return ret;
     }
 
     @Override
