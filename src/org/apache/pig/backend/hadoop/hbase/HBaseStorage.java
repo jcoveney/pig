@@ -21,14 +21,18 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.DataInput;
 import java.io.DataOutput;
-import java.lang.reflect.Array;
+import java.lang.reflect.Method;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.HashMap;
 import java.util.Properties;
+
+import org.joda.time.DateTime;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -61,12 +65,14 @@ import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.hbase.util.Base64;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadPushDown;
@@ -77,7 +83,6 @@ import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.hbase.HBaseTableInputFormat.HBaseTableIFBuilder;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.builtin.Utf8StorageConverter;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -132,10 +137,15 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     private final static String CASTER_PROPERTY = "pig.hbase.caster";
     private final static String ASTERISK = "*";
     private final static String COLON = ":";
-    
+    private final static String HBASE_SECURITY_CONF_KEY = "hbase.security.authentication";
+    private final static String HBASE_CONFIG_SET = "hbase.config.set";
+    private final static String HBASE_TOKEN_SET = "hbase.token.set";
+
     private List<ColumnInfo> columnInfo_ = Lists.newArrayList();
     private HTable m_table;
-    private Configuration m_conf;
+
+    //Use JobConf to store hbase delegation token
+    private JobConf m_conf;
     private RecordReader reader;
     private RecordWriter writer;
     private TableOutputFormat outputFormat = null;
@@ -145,12 +155,16 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     private final CommandLine configuredOptions_;
     private final static Options validOptions_ = new Options();
     private final static CommandLineParser parser_ = new GnuParser();
+
     private boolean loadRowKey_;
     private String delimiter_;
     private boolean ignoreWhitespace_;
     private final long limit_;
     private final int caching_;
     private final boolean noWAL_;
+    private final long minTimestamp_;
+    private final long maxTimestamp_;
+    private final long timestamp_;
 
     protected transient byte[] gt_;
     protected transient byte[] gte_;
@@ -176,6 +190,10 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         validOptions_.addOption("caster", true, "Caster to use for converting values. A class name, " +
                 "HBaseBinaryConverter, or Utf8StorageConverter. For storage, casters must implement LoadStoreCaster.");
         validOptions_.addOption("noWAL", false, "Sets the write ahead to false for faster loading. To be used with extreme caution since this could result in data loss (see http://hbase.apache.org/book.html#perf.hbase.client.putwal).");
+        validOptions_.addOption("minTimestamp", true, "Record must have timestamp greater or equal to this value");
+        validOptions_.addOption("maxTimestamp", true, "Record must have timestamp less then this value");
+        validOptions_.addOption("timestamp", true, "Record must have timestamp equal to this value");
+
     }
 
     /**
@@ -214,6 +232,9 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
      * <li>-ignoreWhitespace=(true|false) ignore spaces when parsing column names (default true)
      * <li>-caching=numRows  number of rows to cache (faster scans, more memory).
      * <li>-noWAL=(true|false) Sets the write ahead to false for faster loading.
+     * <li>-minTimestamp= Scan's timestamp for min timeRange
+     * <li>-maxTimestamp= Scan's timestamp for max timeRange
+     * <li>-timestamp= Scan's specified timestamp
      * To be used with extreme caution, since this could result in data loss
      * (see http://hbase.apache.org/book.html#perf.hbase.client.putwal).
      * </ul>
@@ -227,7 +248,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             configuredOptions_ = parser_.parse(validOptions_, optsArr);
         } catch (ParseException e) {
             HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp( "[-loadKey] [-gt] [-gte] [-lt] [-lte] [-columnPrefix] [-caching] [-caster] [-noWAL] [-limit] [-delim] [-ignoreWhitespace]", validOptions_ );
+            formatter.printHelp( "[-loadKey] [-gt] [-gte] [-lt] [-lte] [-columnPrefix] [-caching] [-caster] [-noWAL] [-limit] [-delim] [-ignoreWhitespace] [-minTimestamp] [-maxTimestamp] [-timestamp]", validOptions_ );
             throw e;
         }
 
@@ -248,7 +269,6 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
 
         columnInfo_ = parseColumnList(columnList, delimiter_, ignoreWhitespace_);
 
-        m_conf = HBaseConfiguration.create();
         String defaultCaster = UDFContext.getUDFContext().getClientSystemProps().getProperty(CASTER_PROPERTY, STRING_CASTER);
         String casterOption = configuredOptions_.getOptionValue("caster", defaultCaster);
         if (STRING_CASTER.equalsIgnoreCase(casterOption)) {
@@ -271,6 +291,25 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         caching_ = Integer.valueOf(configuredOptions_.getOptionValue("caching", "100"));
         limit_ = Long.valueOf(configuredOptions_.getOptionValue("limit", "-1"));
         noWAL_ = configuredOptions_.hasOption("noWAL");
+        
+        if (configuredOptions_.hasOption("minTimestamp")){
+            minTimestamp_ = Long.parseLong(configuredOptions_.getOptionValue("minTimestamp"));
+        } else {
+            minTimestamp_ = Long.MIN_VALUE;
+        }
+        
+        if (configuredOptions_.hasOption("maxTimestamp")){
+            maxTimestamp_ = Long.parseLong(configuredOptions_.getOptionValue("maxTimestamp"));
+        } else {
+            maxTimestamp_ = Long.MAX_VALUE;
+        }
+
+        if (configuredOptions_.hasOption("timestamp")){
+            timestamp_ = Long.parseLong(configuredOptions_.getOptionValue("timestamp"));
+        } else {
+            timestamp_ = 0;
+        }
+        
         initScan();	    
     }
 
@@ -327,7 +366,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         return columnInfo;
     }
 
-    private void initScan() {
+    private void initScan() throws IOException{
         scan = new Scan();
 
         // Map-reduce jobs should not run with cacheBlocks
@@ -350,7 +389,12 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             lte_ = Bytes.toBytesBinary(Utils.slashisize(configuredOptions_.getOptionValue("lte")));
             addRowFilter(CompareOp.LESS_OR_EQUAL, lte_);
         }
-
+        if (configuredOptions_.hasOption("minTimestamp") || configuredOptions_.hasOption("maxTimestamp")){
+            scan.setTimeRange(minTimestamp_, maxTimestamp_);
+        }
+        if (configuredOptions_.hasOption("timestamp")){
+        	scan.setTimeStamp(timestamp_);
+        }
         // apply any column filters
         FilterList allColumnFilters = null;
         for (ColumnInfo colInfo : columnInfo_) {
@@ -534,12 +578,20 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
 
     @Override
     public void setLocation(String location, Job job) throws IOException {
+        Properties udfProps = getUDFProperties();
         job.getConfiguration().setBoolean("pig.noSplitCombination", true);
-        m_conf = initialiseHBaseClassLoaderResources(job);
+
+        initialiseHBaseClassLoaderResources(job);
+        m_conf = initializeLocalJobConfig(job);
+        String delegationTokenSet = udfProps.getProperty(HBASE_TOKEN_SET);
+        if (delegationTokenSet == null) {
+            addHBaseDelegationToken(m_conf, job);
+            udfProps.setProperty(HBASE_TOKEN_SET, "true");
+        }
 
         String tablename = location;
-        if (location.startsWith("hbase://")){
-           tablename = location.substring(8);
+        if (location.startsWith("hbase://")) {
+            tablename = location.substring(8);
         }
         if (m_table == null) {
             m_table = new HTable(m_conf, tablename);
@@ -547,7 +599,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         m_table.setScannerCaching(caching_);
         m_conf.set(TableInputFormat.INPUT_TABLE, tablename);
 
-        String projectedFields = getUDFProperties().getProperty( projectedFieldsName() );
+        String projectedFields = udfProps.getProperty( projectedFieldsName() );
         if (projectedFields != null) {
             // update columnInfo_
             pushProjection((RequiredFieldList) ObjectSerializer.deserialize(projectedFields));
@@ -572,22 +624,73 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         m_conf.set(TableInputFormat.SCAN, convertScanToString(scan));
     }
 
-    private Configuration initialiseHBaseClassLoaderResources(Job job) throws IOException {
-        Configuration hbaseConfig = initialiseHBaseConfig(job.getConfiguration());
-
+    private void initialiseHBaseClassLoaderResources(Job job) throws IOException {
         // Make sure the HBase, ZooKeeper, and Guava jars get shipped.
         TableMapReduceUtil.addDependencyJars(job.getConfiguration(),
             org.apache.hadoop.hbase.client.HTable.class,
             com.google.common.collect.Lists.class,
             org.apache.zookeeper.ZooKeeper.class);
 
-        return hbaseConfig;
     }
 
-    private Configuration initialiseHBaseConfig(Configuration conf) {
-        Configuration hbaseConfig = HBaseConfiguration.create();
-        ConfigurationUtil.mergeConf(hbaseConfig, conf);
-        return hbaseConfig;
+    private JobConf initializeLocalJobConfig(Job job) {
+        Properties udfProps = getUDFProperties();
+        Configuration jobConf = job.getConfiguration();
+        JobConf localConf = new JobConf(jobConf);
+        if (udfProps.containsKey(HBASE_CONFIG_SET)) {
+            for (Entry<Object, Object> entry : udfProps.entrySet()) {
+                localConf.set((String) entry.getKey(), (String) entry.getValue());
+            }
+        } else {
+            Configuration hbaseConf = HBaseConfiguration.create();
+            for (Entry<String, String> entry : hbaseConf) {
+                // JobConf may have some conf overriding ones in hbase-site.xml
+                // So only copy hbase config not in job config to UDFContext
+                // Also avoids copying core-default.xml and core-site.xml
+                // props in hbaseConf to UDFContext which would be redundant.
+                if (jobConf.get(entry.getKey()) == null) {
+                    udfProps.setProperty(entry.getKey(), entry.getValue());
+                    localConf.set(entry.getKey(), entry.getValue());
+                }
+            }
+            udfProps.setProperty(HBASE_CONFIG_SET, "true");
+        }
+        return localConf;
+    }
+
+    /**
+     * Get delegation token from hbase and add it to the Job
+     *
+     */
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private void addHBaseDelegationToken(Configuration hbaseConf, Job job) {
+
+        if (!UDFContext.getUDFContext().isFrontend()) {
+            return;
+        }
+
+        if ("kerberos".equalsIgnoreCase(hbaseConf.get(HBASE_SECURITY_CONF_KEY))) {
+            try {
+                // getCurrentUser method is not public in 0.20.2
+                Method m1 = UserGroupInformation.class.getMethod("getCurrentUser");
+                UserGroupInformation currentUser = (UserGroupInformation) m1.invoke(null,(Object[]) null);
+                // Class and method are available only from 0.92 security release
+                Class tokenUtilClass = Class
+                        .forName("org.apache.hadoop.hbase.security.token.TokenUtil");
+                Method m2 = tokenUtilClass.getMethod("obtainTokenForJob",
+                        new Class[] { Configuration.class, UserGroupInformation.class, Job.class });
+                m2.invoke(null,
+                        new Object[] { hbaseConf, currentUser, job });
+            } catch (ClassNotFoundException cnfe) {
+                throw new RuntimeException("Failure loading TokenUtil class, "
+                        + "is secure RPC available?", cnfe);
+            } catch (RuntimeException re) {
+                throw re;
+            } catch (Exception e) {
+                throw new UndeclaredThrowableException(e,
+                        "Unexpected error calling TokenUtil.obtainTokenForJob()");
+            }
+        }
     }
 
     @Override
@@ -625,9 +728,12 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     @Override
     public OutputFormat getOutputFormat() throws IOException {
         if (outputFormat == null) {
-            this.outputFormat = new TableOutputFormat();
-            m_conf = initialiseHBaseConfig(m_conf);
-            this.outputFormat.setConf(m_conf);            
+            if (m_conf == null) {
+                throw new IllegalStateException("setStoreLocation has not been called");
+            } else {
+                this.outputFormat = new TableOutputFormat();
+                this.outputFormat.setConf(m_conf);
+            }
         }
         return outputFormat;
     }
@@ -731,7 +837,8 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         case DataType.INTEGER: return caster.toBytes((Integer) o);
         case DataType.LONG: return caster.toBytes((Long) o);
         case DataType.BOOLEAN: return caster.toBytes((Boolean) o);
-        
+        case DataType.DATETIME: return caster.toBytes((DateTime) o);
+
         // The type conversion here is unchecked. 
         // Relying on DataType.findType to do the right thing.
         case DataType.MAP: return caster.toBytes((Map<String, Object>) o);
@@ -767,7 +874,13 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             schema_ = (ResourceSchema) ObjectSerializer.deserialize(serializedSchema);
         }
 
-        m_conf = initialiseHBaseClassLoaderResources(job);
+        initialiseHBaseClassLoaderResources(job);
+        m_conf = initializeLocalJobConfig(job);
+        // Not setting a udf property and getting the hbase delegation token
+        // only once like in setLocation as setStoreLocation gets different Job
+        // objects for each call and the last Job passed is the one that is
+        // launched. So we end up getting multiple hbase delegation tokens.
+        addHBaseDelegationToken(m_conf, job);
     }
 
     @Override

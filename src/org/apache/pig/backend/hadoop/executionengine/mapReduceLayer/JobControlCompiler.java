@@ -84,6 +84,7 @@ import org.apache.pig.impl.io.NullableDoubleWritable;
 import org.apache.pig.impl.io.NullableFloatWritable;
 import org.apache.pig.impl.io.NullableIntWritable;
 import org.apache.pig.impl.io.NullableLongWritable;
+import org.apache.pig.impl.io.NullableDateTimeWritable;
 import org.apache.pig.impl.io.NullablePartitionWritable;
 import org.apache.pig.impl.io.NullableText;
 import org.apache.pig.impl.io.NullableTuple;
@@ -497,13 +498,13 @@ public class JobControlCompiler{
             for (POStore st: mapStores) {
                 storeLocations.add(st);
                 StoreFuncInterface sFunc = st.getStoreFunc();
-                sFunc.setStoreLocation(st.getSFile().getFileName(), new org.apache.hadoop.mapreduce.Job(nwJob.getConfiguration()));
+                sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
             }
 
             for (POStore st: reduceStores) {
                 storeLocations.add(st);
                 StoreFuncInterface sFunc = st.getStoreFunc();
-                sFunc.setStoreLocation(st.getSFile().getFileName(), new org.apache.hadoop.mapreduce.Job(nwJob.getConfiguration()));
+                sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
             }
 
             // the OutputFormat we report to Hadoop is always PigOutputFormat
@@ -821,10 +822,14 @@ public class JobControlCompiler{
             jobParallelism = pigContext.defaultParallel;
         } else {
             mro.estimatedParallelism = estimateNumberOfReducers(nwJob, mro);
-            // reducer estimation could return -1 if it couldn't estimate
-            log.info("Could not estimate number of reducers and no requested or default " +
-                     "parallelism set. Defaulting to 1 reducer.");
-            jobParallelism = mro.estimatedParallelism > 0 ? mro.estimatedParallelism : 1;
+            if (mro.estimatedParallelism > 0) {
+                jobParallelism = mro.estimatedParallelism;
+            } else {
+                // reducer estimation could return -1 if it couldn't estimate
+                log.info("Could not estimate number of reducers and no requested or default " +
+                         "parallelism set. Defaulting to 1 reducer.");
+                jobParallelism = 1;
+            }
         }
 
         // save it
@@ -952,6 +957,12 @@ public class JobControlCompiler{
         }
     }
 
+    public static class PigDateTimeWritableComparator extends PigWritableComparator {
+        public PigDateTimeWritableComparator() {
+            super(NullableDateTimeWritable.class);
+        }
+    }
+
     public static class PigCharArrayWritableComparator extends PigWritableComparator {
         public PigCharArrayWritableComparator() {
             super(NullableText.class);
@@ -1005,6 +1016,12 @@ public class JobControlCompiler{
     public static class PigGroupingDoubleWritableComparator extends WritableComparator {
         public PigGroupingDoubleWritableComparator() {
             super(NullableDoubleWritable.class, true);
+        }
+    }
+
+    public static class PigGroupingDateTimeWritableComparator extends WritableComparator {
+        public PigGroupingDateTimeWritableComparator() {
+            super(NullableDateTimeWritable.class, true);
         }
     }
 
@@ -1083,6 +1100,10 @@ public class JobControlCompiler{
                 job.setSortComparatorClass(PigDoubleRawComparator.class);
                 break;
 
+            case DataType.DATETIME:
+                job.setSortComparatorClass(PigDateTimeRawComparator.class);
+                break;
+
             case DataType.CHARARRAY:
                 job.setSortComparatorClass(PigTextRawComparator.class);
                 break;
@@ -1135,6 +1156,11 @@ public class JobControlCompiler{
         case DataType.DOUBLE:
             job.setSortComparatorClass(PigDoubleWritableComparator.class);
             job.setGroupingComparatorClass(PigGroupingDoubleWritableComparator.class);
+            break;
+
+        case DataType.DATETIME:
+            job.setSortComparatorClass(PigDateTimeWritableComparator.class);
+            job.setGroupingComparatorClass(PigGroupingDateTimeWritableComparator.class);
             break;
 
         case DataType.CHARARRAY:
