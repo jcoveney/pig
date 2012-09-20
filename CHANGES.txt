@@ -21,8 +21,23 @@ Pig Change Log
 Trunk (unreleased changes)
 
 INCOMPATIBLE CHANGES
+PIG-1891 Enable StoreFunc to make intelligent decision based on job success or failure (initialcontext via gates)
 
 IMPROVEMENTS
+
+PIG-2712: Pig does not call OutputCommitter.abortJob() on the underlying OutputFormat (rohini via gates)
+
+PIG-2918: Avoid Spillable bag overhead where possible (dvryaboy)
+
+PIG-2900: Streaming should provide conf settings in the environment (dvryaboy)
+
+PIG-2353: RANK function like in SQL (xalan via azaroth)
+
+PIG-2915: Builtin TOP udf is sensitive to null input bags (hazen via dvryaboy)
+
+PIG-2901: Errors and lacks in document "Pig Latin Basics" (miyakawataku via billgraham)
+
+PIG-2905: Improve documentation around REPLACE (cheolsoo via billgraham)
 
 PIG-2882: Use Deque instead of Stack (mkhadikov via dvryaboy)
 
@@ -262,7 +277,15 @@ OPTIMIZATIONS
 
 BUG FIXES
 
-PIG-2896:  Pig does not fail anymore if two macros are declared with the same name (julien)
+PIG-2744: Handle Pig command line with XML special characters (lulynn_2008 via daijy)
+
+PIG-2637: Command-line option -e throws TokenMgrError exception (lulynn_2008 via daijy)
+
+PIG-2887: Macro cannot handle negative number (knoguchi via gates)
+
+PIG-2844: ant makepom is misconfigured (julien)
+
+PIG-2896: Pig does not fail anymore if two macros are declared with the same name (julien)
 
 PIG-2848: TestBuiltInBagToTupleOrString fails now that mock.Storage enforces not overwriting output (julien)
 
@@ -735,6 +758,8 @@ inclusion of test classes (cos via gates)
 Release 0.9.3 - Unreleased
 
 BUG FIXES
+
+PIG-2912: Pig should clone JobConf while creating JobContextImpl and TaskAttemptContextImpl in Hadoop23 (rohini via daijy)
 
 PIG-2775: Register jar does not goes to classpath in some cases (daijy)
 
