@@ -28,9 +28,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -45,6 +42,8 @@ import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.utils.SedesHelper;
 import org.apache.pig.impl.util.ObjectSerializer;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 /**
  * A class to handle reading and writing of intermediate results of data types. The serialization format used by this
@@ -54,7 +53,7 @@ import org.apache.pig.impl.util.ObjectSerializer;
 @InterfaceAudience.Private
 @InterfaceStability.Stable
 public class BinInterSedes implements InterSedes {
-    
+
     private static final int ONE_MINUTE = 60000;
 
     public static final byte BOOLEAN_TRUE = 0;
@@ -510,7 +509,7 @@ public class BinInterSedes implements InterSedes {
             out.writeLong(((DateTime) val).getMillis());
             out.writeShort(((DateTime) val).getZone().getOffset((DateTime) val) / ONE_MINUTE);
             break;
-            
+
         case DataType.FLOAT:
             out.writeByte(FLOAT);
             out.writeFloat((Float) val);
@@ -541,8 +540,7 @@ public class BinInterSedes implements InterSedes {
         }
 
         case DataType.CHARARRAY: {
-            String s = (String) val;
-            SedesHelper.writeChararray(out, s);
+            SedesHelper.writeChararray(out, (String) val);
             break;
         }
         case DataType.GENERIC_WRITABLECOMPARABLE:

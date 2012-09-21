@@ -52,7 +52,7 @@ public class FindQuantiles extends EvalFunc<Map<String, Object>>{
     boolean[] mAsc;
     enum State { ALL_ASC, ALL_DESC, MIXED };
     State mState;
-    
+
     private class SortComparator implements Comparator<Tuple> {
         @Override
         @SuppressWarnings("unchecked")
@@ -94,8 +94,8 @@ public class FindQuantiles extends EvalFunc<Map<String, Object>>{
     private Comparator<Tuple> mComparator = new SortComparator();
     private FuncSpec mUserComparisonFuncSpec;
     private ComparisonFunc mUserComparisonFunc;
-    
-    
+
+
     @SuppressWarnings("unchecked")
     private void instantiateFunc() {
         if(mUserComparisonFunc != null) {
@@ -104,14 +104,14 @@ public class FindQuantiles extends EvalFunc<Map<String, Object>>{
             this.mComparator = mUserComparisonFunc;
         }
     }
-    
-    // We need to instantiate any user defined comparison function 
+
+    // We need to instantiate any user defined comparison function
     // on the backend when the FindQuantiles udf is deserialized
     private void readObject(ObjectInputStream is) throws IOException, ClassNotFoundException{
         is.defaultReadObject();
         instantiateFunc();
     }
-    
+
 
     public FindQuantiles() {
         mState = State.ALL_ASC;
@@ -130,7 +130,7 @@ public class FindQuantiles extends EvalFunc<Map<String, Object>>{
             startIndex++;
             ascFlagsLength--;
         }
-        
+
         mAsc = new boolean[ascFlagsLength];
         boolean sawAsc = false;
         boolean sawDesc = false;
@@ -149,7 +149,7 @@ public class FindQuantiles extends EvalFunc<Map<String, Object>>{
      * first field in the input tuple is the number of quantiles to generate
      * second field is the *sorted* bag of samples
      */
-    
+
     @Override
     public Map<String, Object> exec(Tuple in) throws IOException {
         Map<String, Object> output = new HashMap<String, Object>();
@@ -160,12 +160,12 @@ public class FindQuantiles extends EvalFunc<Map<String, Object>>{
         ArrayList<Tuple> quantilesList = new ArrayList<Tuple>();
         InternalMap weightedParts = new InternalMap();
         // the sample file has a tuple as under:
-        // (numQuantiles, bag of samples) 
+        // (numQuantiles, bag of samples)
         // numQuantiles here is the reduce parallelism
         try{
             numQuantiles = (Integer)in.get(0);
             samples = (DataBag)in.get(1);
-            
+
             long numSamples = samples.size();
             long toSkip = numSamples / numQuantiles;
             if(toSkip == 0) {
@@ -174,7 +174,7 @@ public class FindQuantiles extends EvalFunc<Map<String, Object>>{
                 numQuantiles = (int)numSamples;
                 toSkip = 1;
             }
-            
+
             long ind=0, j=-1, nextQuantile = toSkip-1;
             for (Tuple it : samples) {
                 if (ind==nextQuantile){
@@ -195,19 +195,19 @@ public class FindQuantiles extends EvalFunc<Map<String, Object>>{
                 int partInd = (int)(i/toSkip); // which partition
                 if(partInd==numQuantiles) break;
                 // the quantiles array has the element from the sample which is the
-                // last element for a given partition. For example: if numQuantiles 
-                // is 5 and number of samples is 100, then toSkip = 20 
+                // last element for a given partition. For example: if numQuantiles
+                // is 5 and number of samples is 100, then toSkip = 20
                 // quantiles[0] = sample[19] // the 20th element
                 // quantiles[1] = sample[39] // the 40th element
                 // and so on. For any element in the sample between 0 and 19, partInd
                 // will be 0. We want to check if a sample element which is
                 // present between 0 and 19 is also the 19th (quantiles[0] element).
-                // This would mean that element might spread over the 0th and 1st 
+                // This would mean that element might spread over the 0th and 1st
                 // partition. We are looking for contributions to a partition
-                // from such elements. 
-                
+                // from such elements.
+
                 // First We only check for sample elements in partitions other than the last one
-                // < numQuantiles -1 (partInd is 0 indexed). 
+                // < numQuantiles -1 (partInd is 0 indexed).
                 if(partInd<numQuantiles-1 && areEqual(it,quantilesList.get(partInd))){
                     if(!contribs.containsKey(it)){
                         CountingMap<Integer> cm = new CountingMap<Integer>();
@@ -217,7 +217,7 @@ public class FindQuantiles extends EvalFunc<Map<String, Object>>{
                     else
                         contribs.get(it).put(partInd, 1);
                 }
-                else{ 
+                else{
                     // we are either in the last partition (last quantile)
                     // OR the sample element we are currently processing is not
                     // the same as the element in the quantile array for this partition
@@ -226,12 +226,12 @@ public class FindQuantiles extends EvalFunc<Map<String, Object>>{
                     if(!contribs.containsKey(it))
                         continue;
                     else
-                        // we have seen this sample before (in a previous partInd), 
-                        // add to the contribution associated with this sample - if we had 
+                        // we have seen this sample before (in a previous partInd),
+                        // add to the contribution associated with this sample - if we had
                         // not seen this sample in a previous partInd, then we would have not
-                        // had this in the contribs map! (because of the if above).This 
-                        // "key" (represented by the sample item) can either go to the 
-                        // previous partInd or this partInd in the final sort reduce stage. 
+                        // had this in the contribs map! (because of the if above).This
+                        // "key" (represented by the sample item) can either go to the
+                        // previous partInd or this partInd in the final sort reduce stage.
                         // That is where the amount of contribution to each partInd will
                         // matter and influence the choice.
                         contribs.get(it).put(partInd, 1);
@@ -241,10 +241,10 @@ public class FindQuantiles extends EvalFunc<Map<String, Object>>{
             for(Entry<Tuple, CountingMap<Integer>> ent : contribs.entrySet()){
                 if (k % 1000 == 0) progress();
                 Tuple key = ent.getKey(); // sample item which repeats
-                
+
                 // this map will have the contributions of the sample item to the different partitions
-                CountingMap<Integer> value = ent.getValue(); 
-                
+                CountingMap<Integer> value = ent.getValue();
+
                 long total = value.getTotalCount();
                 Tuple probVec =  mTupleFactory.newTuple(numQuantiles.intValue());
                 // initialize all contribution fractions for different
@@ -253,7 +253,7 @@ public class FindQuantiles extends EvalFunc<Map<String, Object>>{
                     probVec.set(l, new Float(0.0));
                 }
                 // for each partition that this sample item is present in,
-                // compute the fraction of the total occurences for that
+                // compute the fraction of the total occurrences for that
                 // partition - this will be the probability with which we
                 // will pick this partition in the final sort reduce job
                 // for this sample item
