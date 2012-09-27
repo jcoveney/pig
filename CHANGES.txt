@@ -25,6 +25,8 @@ PIG-1891 Enable StoreFunc to make intelligent decision based on job success or f
 
 IMPROVEMENTS
 
+PIG-2852: Update documentation regarding parallel local mode execution (cheolsoo via jcoveney)
+
 PIG-2879: Pig current releases lack a UDF startsWith.This UDF tests if a given string starts with the specified prefix. (initialcontext via azaroth)
 
 PIG-2712: Pig does not call OutputCommitter.abortJob() on the underlying OutputFormat (rohini via gates)
@@ -278,6 +280,12 @@ PIG-2337: Provide UDF with input schema (xutingz via daijy)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-2930: ant test doesn't compile in trunk (cheolsoo via daijy)
+
+PIG-2791: Pig does not work with ViewFileSystem (rohini via daijy)
+
+PIG-2833: org.apache.pig.pigunit.pig.PigServer does not initialize set default log level of pigContext (cheolsoo via jcoveney)
 
 PIG-2744: Handle Pig command line with XML special characters (lulynn_2008 via daijy)
 
