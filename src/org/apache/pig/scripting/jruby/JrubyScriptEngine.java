@@ -19,34 +19,44 @@
 package org.apache.pig.scripting.jruby;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.filecache.DistributedCache;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.util.Utils;
 import org.apache.pig.scripting.ScriptEngine;
+import org.apache.pig.tar.TarUtils;
 import org.apache.pig.tools.pigstats.PigStats;
-
+import org.apache.tools.tar.TarOutputStream;
+import org.jruby.CompatVersion;
 import org.jruby.Ruby;
 import org.jruby.RubyArray;
 import org.jruby.RubyBoolean;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.LocalVariableBehavior;
 import org.jruby.embed.ScriptingContainer;
-import org.jruby.javasupport.JavaEmbedUtils.EvalUnit;
-import org.jruby.CompatVersion;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import com.jcraft.jzlib.GZIPOutputStream;
 
 /**
  * Implementation of the script engine for Jruby, which facilitates the registration
@@ -79,7 +89,7 @@ public class JrubyScriptEngine extends ScriptEngine {
          */
         private static Map<String, Map<String, Map<String, Object>>> functionsCache = Maps.newHashMap();
 
-        private static Map<String, Boolean> alreadyRunCache = Maps.newHashMap();
+        private static Set<String> alreadyRunCache = Sets.newHashSet();
 
         private static Map<String, String> cacheFunction = Maps.newHashMap();
 
@@ -94,16 +104,19 @@ public class JrubyScriptEngine extends ScriptEngine {
             functionsCache.put("algebraic", new HashMap<String,Map<String,Object>>());
         }
 
+        private static void setHasAlreadyRun(String path) {
+            alreadyRunCache.add(path);
+        }
+
         @SuppressWarnings("unchecked")
         private static Map<String,Object> getFromCache(String path, Map<String,Map<String,Object>> cacheToUpdate, String regCommand) {
-            Boolean runCheck = alreadyRunCache.get(path);
-            if (runCheck == null || !runCheck.booleanValue()) {
+            if (!alreadyRunCache.contains(path)) {
                 for (Map.Entry<String, Map<String, Map<String, Object>>> entry : functionsCache.entrySet())
                     entry.getValue().remove(path);
 
                 rubyEngine.runScriptlet(getScriptAsStream(path), path);
 
-                alreadyRunCache.put(path, true);
+                alreadyRunCache.add(path);
             }
 
             Map<String,Object> funcMap = cacheToUpdate.get(path);
@@ -121,6 +134,64 @@ public class JrubyScriptEngine extends ScriptEngine {
         }
     }
 
+    private static Map<String, File> gemsToShip = Maps.newHashMap();
+    public static final String GEM_DIR_BASE_NAME = "gems_to_ship_123456"; //TODO move to PigConstants
+    public static final String GEM_TAR_SYMLINK = "apreciousgemindeed.tar.gz"; //TODO move to PigConstants
+
+    //TODO add logging!
+
+    public static void shipGems(PigContext pigContext, Configuration conf) throws IOException {
+        if (gemsToShip.isEmpty()) {
+            return;
+        }
+        shipTarToDistributedCache(tarGemsToShip(Sets.newHashSet(gemsToShip.values())), pigContext, conf);
+    }
+
+    // Another general option would be to add them individually to the distributed cache as they come
+    private static File tarGemsToShip(Set<File> gems) throws IOException {
+        File fout = File.createTempFile("tmp", ".tar.gz");
+        fout.delete();
+        // do I need to buffer as well or does GZIP already?
+        TarOutputStream os = new TarOutputStream(new GZIPOutputStream(new FileOutputStream(fout)));
+
+        for (File f : gems) {
+            TarUtils.tarFile(GEM_DIR_BASE_NAME, f.getParentFile(), new File(f, "lib"), os);
+        }
+        os.close();
+        return fout;
+    }
+
+    private static void shipTarToDistributedCache(File tar, PigContext pigContext, Configuration conf) {
+        DistributedCache.createSymlink(conf); // we will read using symlinks
+        Path src = new Path(tar.toURI());
+        Path dst;
+        try {
+            dst = FileLocalizer.getTemporaryPath(pigContext);
+        } catch (IOException e) {
+            throw new RuntimeException("Error getting temporary path in HDFS", e);
+        }
+        FileSystem fs;
+        try {
+            fs = dst.getFileSystem(conf);
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to get FileSystem", e);
+        }
+        try {
+            fs.copyFromLocalFile(src, dst);
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to copy from local filesystem to HDFS, src = "
+                    + src + ", dst = " + dst, e);
+        }
+
+        String destination = dst.toString() + "#" + GEM_TAR_SYMLINK;;
+
+        try {
+            DistributedCache.addCacheFile(new URI(destination), conf);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException("Unable to add file to distributed cache: " + destination, e);
+        }
+    }
+
     /**
      * Evaluates the script containing ruby udfs to determine what udfs are defined as well as
      * what libaries and other external resources are necessary. These libraries and resources
@@ -134,10 +205,21 @@ public class JrubyScriptEngine extends ScriptEngine {
             isInitialized = true;
         }
 
+        rubyEngine.runScriptlet(getScriptAsStream(path), path);
+        RubyFunctions.setHasAlreadyRun(path);
+        RubyArray list = (RubyArray)rubyEngine.runScriptlet("Gem.loaded_specs.map {|k,v| [k,v.gem_dir]}");
+        for (Object o : list) {
+            RubyArray innerList = (RubyArray)o;
+            String gemName = innerList.get(0).toString();
+            if (gemsToShip.get(gemName) == null) {
+                gemsToShip.put(gemName, new File(innerList.get(1).toString()));
+            }
+        }
+
         for (Map.Entry<String,Object> entry : RubyFunctions.getFunctions("evalfunc", path).entrySet()) {
             String method = entry.getKey();
 
-            String functionType = rubyEngine.callMethod(entry.getValue(), "name", String.class);
+            String functionType = rubyEngine.callMethod(entry.getValue(), "name", String.class); //TODO why is this here? use!
 
             FuncSpec funcspec = new FuncSpec(JrubyEvalFunc.class.getCanonicalName() + "('" + path + "','" + method +"')");
             pigContext.registerFunction(namespace + "." + method, funcspec);
