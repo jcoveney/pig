@@ -19,16 +19,13 @@
 package org.apache.pig.scripting.jruby;
 
 import java.io.IOException;
-import java.util.Map;
 
 import org.apache.pig.AccumulatorEvalFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.scripting.jruby.JrubyScriptEngine.RubyFunctions;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-
+import org.apache.pig.scripting.jruby.JrubyScriptEngine.RubyFunctions;
 import org.jruby.Ruby;
 import org.jruby.embed.ScriptingContainer;
 import org.jruby.runtime.builtin.IRubyObject;
@@ -68,6 +65,12 @@ public class JrubyAccumulatorEvalFunc extends AccumulatorEvalFunc<Object> {
      * registered at the path per the RubyFunctions helper methods.
      */
     private void initialize() {
+        try {
+            JrubyScriptEngine.copyFromDistributedCache();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
         classObject = RubyFunctions.getFunctions("accumulator", path).get(methodName);
         methodReceiver = rubyEngine.callMethod(classObject, "new");
         isInitialized = true;
@@ -79,8 +82,9 @@ public class JrubyAccumulatorEvalFunc extends AccumulatorEvalFunc<Object> {
      */
     @Override
     public void accumulate(Tuple b) throws IOException {
-        if (!isInitialized)
+        if (!isInitialized) {
             initialize();
+        }
         RubyDataBag db = new RubyDataBag(ruby, ruby.getClass("DataBag"), (DataBag)b.get(0));
         rubyEngine.callMethod(methodReceiver, "exec", db, IRubyObject.class);
     }
@@ -110,8 +114,9 @@ public class JrubyAccumulatorEvalFunc extends AccumulatorEvalFunc<Object> {
      */
     @Override
     public Schema outputSchema(Schema input) {
-        if (!isInitialized)
+        if (!isInitialized) {
             initialize();
+        }
         RubySchema rs = PigJrubyLibrary.pigToRuby(ruby, input);
         return PigJrubyLibrary.rubyToPig(rubyEngine.callMethod(classObject, "get_output_schema", rs, RubySchema.class));
     }

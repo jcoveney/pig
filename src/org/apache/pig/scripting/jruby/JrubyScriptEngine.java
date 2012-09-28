@@ -18,9 +18,12 @@
 
 package org.apache.pig.scripting.jruby;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -29,6 +32,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -45,6 +50,8 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tar.TarUtils;
 import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.tools.tar.TarEntry;
+import org.apache.tools.tar.TarInputStream;
 import org.apache.tools.tar.TarOutputStream;
 import org.jruby.CompatVersion;
 import org.jruby.Ruby;
@@ -56,7 +63,7 @@ import org.jruby.embed.ScriptingContainer;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.jcraft.jzlib.GZIPOutputStream;
+import com.google.common.io.Files;
 
 /**
  * Implementation of the script engine for Jruby, which facilitates the registration
@@ -183,13 +190,46 @@ public class JrubyScriptEngine extends ScriptEngine {
                     + src + ", dst = " + dst, e);
         }
 
-        String destination = dst.toString() + "#" + GEM_TAR_SYMLINK;;
+        String destination = dst.toString() + "#" + GEM_TAR_SYMLINK;
 
         try {
             DistributedCache.addCacheFile(new URI(destination), conf);
         } catch (URISyntaxException e) {
             throw new RuntimeException("Unable to add file to distributed cache: " + destination, e);
         }
+    }
+
+    private static boolean haveCopiedFromDistributedCache = false;
+
+    public static void copyFromDistributedCache() throws IOException {
+        if (!haveCopiedFromDistributedCache) {
+            haveCopiedFromDistributedCache = true;
+        }
+
+        File gemTar = new File(GEM_TAR_SYMLINK);
+        if (!gemTar.exists()) {
+            return; // there are no gems
+        }
+        File gemDir = Files.createTempDir();
+        gemDir.deleteOnExit();
+        TarInputStream is = new TarInputStream(new GZIPInputStream(new FileInputStream(gemTar)));
+        TarEntry entry;
+        while ((entry = is.getNextEntry()) != null) {
+            File fileToWriteTo = new File(gemDir, entry.getFile().getPath());
+            OutputStream os = new BufferedOutputStream(new FileOutputStream(fileToWriteTo));
+            is.copyEntryContents(os);
+            os.close();
+        }
+        is.close();
+        List<String> loadPaths = rubyEngine.getLoadPaths();
+        for (File f : gemDir.listFiles()) {
+            loadPaths.add(new File(f, "lib").getAbsolutePath());
+        }
+        rubyEngine.setLoadPaths(loadPaths);
+    }
+
+    public static void addShippedGemsToLoadPath() {
+
     }
 
     /**

@@ -19,19 +19,11 @@
 package org.apache.pig.scripting.jruby;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.util.Utils;
-import org.apache.pig.parser.ParserException;
-import org.apache.pig.backend.executionengine.ExecException;
-
 import org.jruby.Ruby;
-import org.jruby.RubyArray;
 import org.jruby.embed.ScriptingContainer;
 import org.jruby.runtime.builtin.IRubyObject;
 
@@ -82,8 +74,15 @@ public class JrubyEvalFunc extends EvalFunc<Object> {
      * This method initializes the objects necessary to evaluate the Ruby class on the pig side. Using
      * the object that was saved to the functionName key by Ruby, this class gets an instance of the
      * class that will receive method calls, as well as information on the arity.
+     * @throws IOException
      */
     private void initialize() {
+        try {
+            JrubyScriptEngine.copyFromDistributedCache();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
         funcInfoEncapsulator = JrubyScriptEngine.RubyFunctions.getFunctions("evalfunc", fileName).get(functionName);
 
         funcReceiver = rubyEngine.callMethod(funcInfoEncapsulator, "get_receiver");
@@ -129,8 +128,9 @@ public class JrubyEvalFunc extends EvalFunc<Object> {
      */
     @Override
     public Schema outputSchema(Schema input) {
-        if (!isInitialized)
+        if (!isInitialized) {
             initialize();
+        }
         RubySchema rs = PigJrubyLibrary.pigToRuby(ruby, input);
         return PigJrubyLibrary.rubyToPig(rubyEngine.callMethod(funcInfoEncapsulator, "schema", new Object[]{rs, funcReceiver}, RubySchema.class));
     }

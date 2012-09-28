@@ -29,7 +29,6 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.scripting.jruby.JrubyScriptEngine.RubyFunctions;
-
 import org.jruby.Ruby;
 import org.jruby.embed.ScriptingContainer;
 import org.jruby.runtime.builtin.IRubyObject;
@@ -71,8 +70,9 @@ public abstract class JrubyAlgebraicEvalFunc<T> extends AlgebraicEvalFunc<T> {
 
         @Override
         public Tuple exec(Tuple input) throws IOException {
-            if (!isInitialized())
+            if (!isInitialized()) {
                 initialize();
+            }
 
             try {
                 IRubyObject inp = PigJrubyLibrary.pigToRuby(ruby, ((DataBag)input.get(0)).iterator().next().get(0));
@@ -95,8 +95,9 @@ public abstract class JrubyAlgebraicEvalFunc<T> extends AlgebraicEvalFunc<T> {
 
         @Override
         public Tuple exec(Tuple input) throws IOException {
-            if (!isInitialized())
+            if (!isInitialized()) {
                 initialize();
+            }
 
             try {
                 RubyDataBag inp = new RubyDataBag(ruby, ruby.getClass("DataBag"), (DataBag)input.get(0));
@@ -120,8 +121,9 @@ public abstract class JrubyAlgebraicEvalFunc<T> extends AlgebraicEvalFunc<T> {
         @SuppressWarnings("unchecked")
         @Override
         public T exec(Tuple input) throws IOException {
-            if (!isInitialized())
+            if (!isInitialized()) {
                 initialize();
+            }
 
             try {
                 RubyDataBag inp = new RubyDataBag(ruby, ruby.getClass("DataBag"), (DataBag)input.get(0));
@@ -168,6 +170,12 @@ public abstract class JrubyAlgebraicEvalFunc<T> extends AlgebraicEvalFunc<T> {
         public boolean isInitialized() { return isInitialized; }
 
         public void initialize() {
+            try {
+                JrubyScriptEngine.copyFromDistributedCache();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
             receiver = rubyEngine.callMethod(RubyFunctions.getFunctions("algebraic", fileName).get(functionName), "new");
             isInitialized = true;
         }
