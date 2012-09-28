@@ -22,10 +22,9 @@ import static org.apache.pig.builtin.mock.Storage.tuple;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.apache.pig.builtin.mock.Storage.resetData;
-import static org.apache.pig.builtin.mock.Storage.tuple;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.util.Iterator;
@@ -46,14 +45,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestPigServerWithMacros {
-    private PigServer pig = null;
-
     // We pull in this MiniCluster just to get the properties. The test was not functioning properly
     // otherwise.
     private static MiniCluster cluster = MiniCluster.buildCluster();
 
-
-public class TestPigServerWithMacros {
     private PigServer pig = null;
 
     @Before
@@ -177,6 +172,6 @@ public class TestPigServerWithMacros {
         pig.registerQuery("b = row_count_in_jar(a);");
         Iterator<Tuple> iter = pig.openIterator("b");
 
-        Assert.assertTrue(((Long)iter.next().get(0))==5);
+        assertTrue(((Long)iter.next().get(0))==5);
     }
 }
