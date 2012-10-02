@@ -57,6 +57,7 @@ import org.jruby.CompatVersion;
 import org.jruby.Ruby;
 import org.jruby.RubyArray;
 import org.jruby.RubyBoolean;
+import org.jruby.RubyInstanceConfig.CompileMode;
 import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.LocalVariableBehavior;
 import org.jruby.embed.ScriptingContainer;
@@ -81,6 +82,7 @@ public class JrubyScriptEngine extends ScriptEngine {
     static {
         rubyEngine = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
         rubyEngine.setCompatVersion(CompatVersion.RUBY1_9);
+        rubyEngine.getProvider().getRubyInstanceConfig().setCompileMode(CompileMode.JIT); //consider using FORCE
     }
 
     /**
@@ -118,8 +120,9 @@ public class JrubyScriptEngine extends ScriptEngine {
         @SuppressWarnings("unchecked")
         private static Map<String,Object> getFromCache(String path, Map<String,Map<String,Object>> cacheToUpdate, String regCommand) {
             if (!alreadyRunCache.contains(path)) {
-                for (Map.Entry<String, Map<String, Map<String, Object>>> entry : functionsCache.entrySet())
+                for (Map.Entry<String, Map<String, Map<String, Object>>> entry : functionsCache.entrySet()) {
                     entry.getValue().remove(path);
+                }
 
                 rubyEngine.runScriptlet(getScriptAsStream(path), path);
 
@@ -226,10 +229,6 @@ public class JrubyScriptEngine extends ScriptEngine {
             loadPaths.add(new File(f, "lib").getAbsolutePath());
         }
         rubyEngine.setLoadPaths(loadPaths);
-    }
-
-    public static void addShippedGemsToLoadPath() {
-
     }
 
     /**
