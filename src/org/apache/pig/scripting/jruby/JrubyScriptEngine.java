@@ -154,6 +154,7 @@ public class JrubyScriptEngine extends ScriptEngine {
         if (gemsToShip.isEmpty()) {
             return;
         }
+        LOG.debug("Beginning to archive gems to ship.");
         shipTarToDistributedCache(tarGemsToShip(Sets.newHashSet(gemsToShip.values())), pigContext, conf);
     }
 
@@ -161,13 +162,15 @@ public class JrubyScriptEngine extends ScriptEngine {
     private static File tarGemsToShip(Set<File> gems) throws IOException {
         File fout = File.createTempFile("tmp", ".tar.gz");
         fout.delete();
-        // do I need to buffer as well or does GZIP already?
+        //TODO do I need to buffer as well or does GZIP already?
         TarOutputStream os = new TarOutputStream(new GZIPOutputStream(new FileOutputStream(fout)));
 
         for (File f : gems) {
+            LOG.debug("Shipping gem: " + f);
             TarUtils.tarFile(GEM_DIR_BASE_NAME, f.getParentFile(), new File(f, "lib"), os);
         }
         os.close();
+        LOG.debug("Tarred gems added to temporary file: " + fout);
         return fout;
     }
 
@@ -215,20 +218,37 @@ public class JrubyScriptEngine extends ScriptEngine {
         }
         File gemDir = Files.createTempDir();
         gemDir.deleteOnExit();
+        LOG.debug("Temporary gem location: " + gemDir);
         TarInputStream is = new TarInputStream(new GZIPInputStream(new FileInputStream(gemTar)));
         TarEntry entry;
         while ((entry = is.getNextEntry()) != null) {
-            File fileToWriteTo = new File(gemDir, entry.getFile().getPath());
+            LOG.debug("Processing next entry: " + entry.getName());
+            File fileToWriteTo = new File(gemDir, entry.getName());
+            File parent = fileToWriteTo.getParentFile();
+            if (!parent.exists()) {
+                parent.mkdirs();
+            }
+            LOG.debug("Attempting to write to temporary location: " + fileToWriteTo);
+            //TODO may have to make all of the parents between fileToWriteTo and gemDir
             OutputStream os = new BufferedOutputStream(new FileOutputStream(fileToWriteTo));
             is.copyEntryContents(os);
             os.close();
         }
         is.close();
+        String glob = "Dir.glob(\""+gemDir.getAbsolutePath()+"/"+GEM_DIR_BASE_NAME+"/**/*\").map {|x| $LOAD_PATH.unshift x}";
+        LOG.debug("Running following command in ruby: [ "+glob+" ]");
+        rubyEngine.runScriptlet(glob);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Printing $LOAD_PATH");
+            LOG.debug(rubyEngine.runScriptlet("$LOAD_PATH").toString());
+        }
+        /*
         List<String> loadPaths = rubyEngine.getLoadPaths();
         for (File f : gemDir.listFiles()) {
             loadPaths.add(new File(f, "lib").getAbsolutePath());
         }
         rubyEngine.setLoadPaths(loadPaths);
+        */
     }
 
     /**
