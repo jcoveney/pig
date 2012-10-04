@@ -98,10 +98,6 @@ public class POForEach extends PhysicalOperator {
         this(k,-1,null,null);
     }
 
-    public POForEach(OperatorKey k, int rp, List inp) {
-        this(k,rp,inp,null);
-    }
-
     public POForEach(OperatorKey k, int rp) {
         this(k,rp,null,null);
     }

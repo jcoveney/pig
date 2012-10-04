@@ -859,7 +859,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             try {
                 schema = Schema.getPigSchema(new ResourceSchema(logSchema));
             } catch (FrontendException e) {
-                LOG.warn("LogicalSchema in foreach unable to be converted to Schema: " + logSchema);
+                throw new RuntimeException("LogicalSchema in foreach unable to be converted to Schema: " + logSchema, e);
             }
         }
         if (schema != null) {

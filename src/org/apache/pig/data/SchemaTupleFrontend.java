@@ -117,9 +117,11 @@ public class SchemaTupleFrontend {
                         + LOCAL_CODE_DIR + "] with code temp directory: " + codePath);
                 conf.set(LOCAL_CODE_DIR, codePath);
                 return;
+            } else {
+                // This let's us avoid NPE in some of the non-traditional pipelines
+                String codePath = codeDir.getAbsolutePath();
+                conf.set(LOCAL_CODE_DIR, codePath);
             }
-            String codePath = codeDir.getAbsolutePath(); //TODO is this necessary?
-            conf.set(LOCAL_CODE_DIR, codePath); //TODO is this necessary?
             DistributedCache.createSymlink(conf); // we will read using symlinks
             StringBuilder serialized = new StringBuilder();
             boolean first = true;
@@ -301,5 +303,17 @@ public class SchemaTupleFrontend {
      */
     protected static void lazyReset(PigContext pigContext) {
         pigContextToReset = pigContext;
+    }
+
+    class HdfsTempClassMaker {
+        private PigContext pigContext;
+
+        public HdfsTempClassMaker(PigContext pigContext) {
+            this.pigContext = pigContext;
+        }
+
+        public Path getTempPath() throws IOException {
+            return FileLocalizer.getTemporaryPath(pigContext);
+        }
     }
 }

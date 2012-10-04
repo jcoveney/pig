@@ -91,21 +91,18 @@ public class TestPigServer {
     // make sure that name is included or not (depending on flag "included")
     // in the given list of stings
     private static void verifyStringContained(List<URL> list, String name, boolean included) {
-        boolean nameIsSubstring = false;
         int count = 0;
 
         for (URL url : list) {
             if (url.toString().contains(name)) {
-                nameIsSubstring = true;
-                count++;
+                if (!included) {
+                    fail("Included is false, but url ["+url+"] contains name ["+name+"]");
+                }
+                assertEquals("Too many urls contain name: " + name, 1, ++count);
             }
         }
-
         if (included) {
-            assertTrue(nameIsSubstring);
-            assertEquals(1, count);
-        } else {
-            assertFalse(nameIsSubstring);
+            assertEquals("Number of urls that contain name [" + name + "] != 1", 1, count);
         }
     }
 
@@ -148,15 +145,13 @@ public class TestPigServer {
 
         // jar name is not present to start with
         verifyStringContained(pig.getPigContext().extraJars, jarName, false);
-
-        boolean exceptionRaised = false;
+        boolean raisedException = false;
         try {
             pig.registerJar(jarName);
+        } catch (IOException e) {
+            raisedException = true;
         }
-        catch (IOException e) {
-            exceptionRaised = true;
-        }
-        assertTrue(exceptionRaised);
+        assertTrue("registerJar on jarName ["+jarName+"] should have raised an exception", raisedException);
         verifyStringContained(pig.getPigContext().extraJars, jarName, false);
     }
 
@@ -177,14 +172,7 @@ public class TestPigServer {
 
         verifyStringContained(pig.getPigContext().extraJars, jarName, false);
 
-        boolean exceptionRaised = false;
-        try {
-            pig.registerJar(jarLocation + jarName);
-        }
-        catch (IOException e) {
-            exceptionRaised = true;
-        }
-        assertFalse(exceptionRaised);
+        pig.registerJar(jarLocation + jarName);
         verifyStringContained(pig.getPigContext().extraJars, jarName, true);
 
         // clean-up
@@ -216,14 +204,7 @@ public class TestPigServer {
         registerNewResource(jarLocation1);
         registerNewResource(jarLocation2);
 
-        boolean exceptionRaised = false;
-        try {
-            pig.registerJar(jarName);
-        }
-        catch (IOException e) {
-            exceptionRaised = true;
-        }
-        assertFalse(exceptionRaised);
+        pig.registerJar(jarName);
         verifyStringContained(pig.getPigContext().extraJars, jarName, true);
 
         // clean-up
@@ -311,14 +292,7 @@ public class TestPigServer {
         createFakeJarFile(jarLocation, jar1Name);
         createFakeJarFile(jarLocation, jar2Name);
 
-        boolean exceptionRaised = false;
-        try {
-            pig.registerJar(jarLocation + "TestRegisterJarGlobbing*.jar");
-        }
-        catch (IOException e) {
-            exceptionRaised = true;
-        }
-        assertFalse(exceptionRaised);
+        pig.registerJar(jarLocation + "TestRegisterJarGlobbing*.jar");
         verifyStringContained(pig.getPigContext().extraJars, jar1Name, true);
         verifyStringContained(pig.getPigContext().extraJars, jar2Name, true);
 
@@ -338,15 +312,8 @@ public class TestPigServer {
         createFakeJarFile(jarLocation, jar1Name);
         createFakeJarFile(jarLocation, jar2Name);
 
-        boolean exceptionRaised = false;
         String currentDir = System.getProperty("user.dir");
-        try {
-            pig.registerJar(new File(currentDir, dir) + FILE_SEPARATOR + "TestRegisterJarGlobbing*.jar");
-        }
-        catch (IOException e) {
-            exceptionRaised = true;
-        }
-        assertFalse(exceptionRaised);
+        pig.registerJar(new File(currentDir, dir) + FILE_SEPARATOR + "TestRegisterJarGlobbing*.jar");
         verifyStringContained(pig.getPigContext().extraJars, jar1Name, true);
         verifyStringContained(pig.getPigContext().extraJars, jar2Name, true);
 

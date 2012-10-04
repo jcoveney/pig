@@ -18,6 +18,7 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -337,10 +338,5 @@ public class TestLoad {
                 }
             }
         }
-    }
-
-    private void assertTrue(boolean matches) {
-        // TODO Auto-generated method stub
-
     }
 }
