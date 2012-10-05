@@ -41,8 +41,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 
-import org.joda.time.DateTime;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -63,6 +61,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.Utils;
+import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -80,6 +79,7 @@ public class TestSchemaTuple {
         props.setProperty(PigConfiguration.SHOULD_USE_SCHEMA_TUPLE, "true");
 
         conf = ConfigurationUtil.toConfiguration(props);
+
         pigContext = new PigContext(ExecType.LOCAL, props);
     }
 

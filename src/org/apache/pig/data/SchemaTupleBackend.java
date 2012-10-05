@@ -151,7 +151,7 @@ public class SchemaTupleBackend {
             return;
         }
         // Step one is to see if there are any classes in the distributed cache
-        if (jConf.getBoolean(SHOULD_USE_SCHEMA_TUPLE, SCHEMA_TUPLE_ON_BY_DEFAULT)) {
+        if (!jConf.getBoolean(SHOULD_USE_SCHEMA_TUPLE, SCHEMA_TUPLE_ON_BY_DEFAULT)) {
             LOG.info("Key [" + SHOULD_USE_SCHEMA_TUPLE +"] was not set... will not generate code.");
             return;
         }
