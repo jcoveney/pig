@@ -304,16 +304,4 @@ public class SchemaTupleFrontend {
     protected static void lazyReset(PigContext pigContext) {
         pigContextToReset = pigContext;
     }
-
-    class HdfsTempClassMaker {
-        private PigContext pigContext;
-
-        public HdfsTempClassMaker(PigContext pigContext) {
-            this.pigContext = pigContext;
-        }
-
-        public Path getTempPath() throws IOException {
-            return FileLocalizer.getTemporaryPath(pigContext);
-        }
-    }
 }
