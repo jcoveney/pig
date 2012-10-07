@@ -25,6 +25,10 @@ PIG-1891 Enable StoreFunc to make intelligent decision based on job success or f
 
 IMPROVEMENTS
 
+PIG-2877: Make SchemaTuple work in foreach (and thus, in loads) (jcoveney)
+
+PIG-2923: Lazily register bags with SpillableMemoryManager (dvryaboy)
+
 PIG-2929: Improve documentation around AVG, CONCAT, MIN, MAX (cheolsoo via billgraham)
 
 PIG-2852: Update documentation regarding parallel local mode execution (cheolsoo via jcoveney)
@@ -282,6 +286,18 @@ PIG-2337: Provide UDF with input schema (xutingz via daijy)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-2932: Setting high default_parallel causes IOException in local mode (cheolsoo via gates)
+
+PIG-2737: [piggybank] TestIndexedStorage is failing, should be refactored (jcoveney)
+
+PIG-2935: Catch NoSuchMethodError when StoreFuncInterface's new cleanupOnSuccess method isn't implemented. (gates via dvryaboy)
+
+PIG-2920: e2e tests override PERL5LIB environment variable (azaroth)
+
+PIG-2917: SpillableMemoryManager memory leak for WeakReference (haitao.yao via dvryaboy)
+
+PIG-2938: All unit tests that use MR2 MiniCluster are broken in trunk (cheolsoo via dvryaboy)
 
 PIG-2936: Tuple serialization bug (jcoveney)
 
@@ -772,6 +788,8 @@ inclusion of test classes (cos via gates)
 Release 0.9.3 - Unreleased
 
 BUG FIXES
+
+PIG-2944: ivysettings.xml does not let you override .m2/repository (raluri via daijy)
 
 PIG-2912: Pig should clone JobConf while creating JobContextImpl and TaskAttemptContextImpl in Hadoop23 (rohini via daijy)
 
