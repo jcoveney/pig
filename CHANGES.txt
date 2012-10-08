@@ -25,6 +25,10 @@ PIG-1891 Enable StoreFunc to make intelligent decision based on job success or f
 
 IMPROVEMENTS
 
+PIG-2946: Documentation of "history" and "clear" commands (xalan via azaroth)
+
+PIG-2877: Make SchemaTuple work in foreach (and thus, in loads) (jcoveney)
+
 PIG-2923: Lazily register bags with SpillableMemoryManager (dvryaboy)
 
 PIG-2929: Improve documentation around AVG, CONCAT, MIN, MAX (cheolsoo via billgraham)
@@ -284,6 +288,8 @@ PIG-2337: Provide UDF with input schema (xutingz via daijy)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-2932: Setting high default_parallel causes IOException in local mode (cheolsoo via gates)
 
 PIG-2737: [piggybank] TestIndexedStorage is failing, should be refactored (jcoveney)
 
