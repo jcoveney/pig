@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -251,7 +250,9 @@ public class ExecutableManager {
                 LOG.warn("Property set in "+PIG_STREAMING_ENVIRONMENT+" not found in Configuration: " + prop);
                 continue;
             }
+            LOG.debug("Setting property in streaming environment: " + prop);
             envPut(env, prop, value);
+
         }
       }
 
