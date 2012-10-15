@@ -443,7 +443,6 @@ public class JobControlCompiler{
             ss.addSettingsToConf(mro, conf);
         }
 
-
         conf.set("mapred.mapper.new-api", "true");
         conf.set("mapred.reducer.new-api", "true");
 
@@ -652,7 +651,7 @@ public class JobControlCompiler{
             setupDistributedCacheForJoin(mro, pigContext, conf);
 
             // Search to see if we have any UDFs that need to pack things into the
-            // distrubted cache.
+            // distributed cache.
             setupDistributedCacheForUdfs(mro, pigContext, conf);
 
             SchemaTupleFrontend.copyAllGeneratedToDistributedCache(pigContext, conf);

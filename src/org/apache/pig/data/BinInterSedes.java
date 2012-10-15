@@ -28,9 +28,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -45,6 +42,8 @@ import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.utils.SedesHelper;
 import org.apache.pig.impl.util.ObjectSerializer;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 /**
  * A class to handle reading and writing of intermediate results of data types. The serialization format used by this
@@ -168,7 +167,6 @@ public class BinInterSedes implements InterSedes {
     }
 
     public int getTupleSize(DataInput in, byte type) throws IOException {
-
         int sz;
         switch (type) {
         case TUPLE_0:
@@ -542,8 +540,7 @@ public class BinInterSedes implements InterSedes {
         }
 
         case DataType.CHARARRAY: {
-            String s = (String) val;
-            SedesHelper.writeChararray(out, s);
+            SedesHelper.writeChararray(out, (String) val);
             break;
         }
         case DataType.GENERIC_WRITABLECOMPARABLE:
@@ -1149,6 +1146,16 @@ public class BinInterSedes implements InterSedes {
             case BinInterSedes.SMALLCHARARRAY:
             case BinInterSedes.CHARARRAY:
                 return DataType.CHARARRAY;
+            case BinInterSedes.TUPLE_0:
+            case BinInterSedes.TUPLE_1:
+            case BinInterSedes.TUPLE_2:
+            case BinInterSedes.TUPLE_3:
+            case BinInterSedes.TUPLE_4:
+            case BinInterSedes.TUPLE_5:
+            case BinInterSedes.TUPLE_6:
+            case BinInterSedes.TUPLE_7:
+            case BinInterSedes.TUPLE_8:
+            case BinInterSedes.TUPLE_9:
             case BinInterSedes.TUPLE:
             case BinInterSedes.TINYTUPLE:
             case BinInterSedes.SMALLTUPLE:
