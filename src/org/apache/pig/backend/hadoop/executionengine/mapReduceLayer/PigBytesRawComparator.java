@@ -21,14 +21,11 @@ import java.io.IOException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
-
-import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.BinInterSedes;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.io.NullableBytesWritable;
 import org.apache.pig.impl.util.ObjectSerializer;
@@ -37,11 +34,11 @@ public class PigBytesRawComparator extends WritableComparator implements Configu
 
     private final Log mLog = LogFactory.getLog(getClass());
     private boolean[] mAsc;
-    private BytesWritable.Comparator mWrappedComp;
+    private WritableComparator mWrappedComp;
 
     public PigBytesRawComparator() {
         super(NullableBytesWritable.class);
-        mWrappedComp = new BytesWritable.Comparator();
+        mWrappedComp = new BinInterSedes.BinInterSedesTupleRawComparator();
     }
 
     public void setConf(Configuration conf) {
@@ -63,6 +60,7 @@ public class PigBytesRawComparator extends WritableComparator implements Configu
             mAsc = new boolean[1];
             mAsc[0] = true;
         }
+        ((BinInterSedes.BinInterSedesTupleRawComparator)mWrappedComp).setConf(conf);
     }
 
     public Configuration getConf() {
