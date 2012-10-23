@@ -19,6 +19,7 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -67,7 +68,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         LogicalPlan expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 2: simple or implication
         query = "b = filter (load 'd.txt' as (id:int, v1, v2)) by (id > 3) OR (id > 5);" +
@@ -81,7 +82,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 3: constant expression eval
         query = "b = filter (load 'd.txt' as (id:int, v1, v2)) by (id > 3+4*2);" +
@@ -95,7 +96,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 4: simple NOT
         query = "b = filter (load 'd.txt' as (id:int, v1, v2)) by NOT(NOT(NOT(id > 3)));" +
@@ -109,7 +110,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 5: redundant NOT
         query = "b = filter (load 'd.txt' as (id:int, v1, v2)) by NOT(NOT(id > 3));" +
@@ -123,7 +124,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 6: negative
         query = "b = filter (load 'd.txt' as (id:int, v1, v2)) by (id > 3) AND (v1 is null);" +
@@ -137,7 +138,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 7: is not null
         query = "b = filter (load 'd.txt' as (id:int, v1, v2)) by NOT(v1 is null);" +
@@ -151,7 +152,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 8: combo I
         query = "b = filter (load 'd.txt' as (id:int, v1, v2)) by NOT((id > 1) OR ((v1 is null) AND (id > 5)));" +
@@ -165,7 +166,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 9: combo II: lhs <-> rhs
         query = "b = filter (load 'd.txt' as (id:int, v1, v2)) by NOT(((id > 5) AND (v1 is null)) OR (id > 1));"+
@@ -179,7 +180,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 10: complementary OR
         query = "b = filter (load 'd.txt' as (id:int, v1, v2)) by ((id < 1) OR (id >= 1));" +
@@ -193,7 +194,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 11: OR Equality elimination
         query = "b = filter (load 'd.txt' as (id:int, v1, v2)) by ((id < 1) OR (id < 1));" +
@@ -207,7 +208,7 @@ public class TestFilterSimplification {
         "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 12: AND Equality elimination
         query = "b = filter (load 'd.txt' as (id:int, v1, v2)) by ((id < 1) AND (id < 1));" +
@@ -220,7 +221,7 @@ public class TestFilterSimplification {
         query = "b = filter (load 'd.txt' as (id:int, v1, v2)) by (id < 1);" + "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 13: negative case
         query = "b = filter (load 'd.txt' as (id:int, v1, v2)) by ((id < 1) AND (v1 is null));" + "store b into 'empty';";
@@ -232,7 +233,7 @@ public class TestFilterSimplification {
         query = "b = filter (load 'd.txt' as (id:int, v1, v2)) by ((id < 1) AND (v1 is NULL));" + "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 14: combo III
         query = "b = filter (load 'd.txt' as (id:int, v1, v2)) by NOT((id > 1) OR ((v1 is null) AND (id > 1+2*2)));" +
@@ -246,7 +247,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 15: combo III: negative
         query = "b = filter (load 'd.txt' as (id:int, v1:int, v2)) by (((id > 5) OR (v1 < 3)) AND ((id > 4) OR (v1 > 5)));" +
@@ -260,7 +261,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 15: combo III: negative
         query = "b = filter (load 'd.txt' as (id:int, v1:int, v2)) by (((id > 5) OR (v1 > 3)) AND ((id > 4) OR (v1 > 5)));" +
@@ -274,7 +275,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 16: conflicting OR
         query = "b = filter (load 'd.txt' as (id:int, v1, v2)) by ((id < 1) OR (id > 1));" +
@@ -288,7 +289,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 17: conflicting AND: negtive case for now
         query = "b = filter (load 'd.txt' as (id:int, v1, v2)) by ((id < 1) AND (id > 1));" +
@@ -302,7 +303,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 18: combo IV: negative
         query = "b = filter (load 'd.txt' as (id:int, v1:int, v2)) by (((id > 5) OR (v1 > 3)) AND ((id < 8) OR (v1 > 5)));" +
@@ -316,7 +317,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 19: negative AND
         query = "b = filter (load 'd.txt' as (id:int, v1, v2)) by (id > 3) AND (id < 5);" +
@@ -330,7 +331,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 20: negative OR
         query = "b = filter (load 'd.txt' as (id:int, v1, v2)) by (id > 3) OR (id < 5);" +
@@ -344,7 +345,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 20: combo V: negative
         query = "b = filter (load 'd.txt' as (id:int, v1:int, v2)) by (((v1 > 3) OR (id > 5)) AND ((id < 8) OR (v1 > 5)));" +
@@ -358,7 +359,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 22: combo V: negative
         query = "b = filter (load 'd.txt' as (id:int, v1:int, v2)) by (((v1 > 3) OR (id > 5)) AND ((v1 > 5) OR (id < 8)));" +
@@ -372,7 +373,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 23: combo VI: extremely degenerate
         query = "b = filter (load 'd.txt' as (id:int, v1:int, v2)) by ((((id > 1) OR (id > 2)) AND ((id > 3) OR (id > 4))) AND (((id > 5) OR (id > 6)) AND ((id > 7) OR (id > 8))));" +
@@ -386,7 +387,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 24: combo VII: extremely degenerate
         query = "b = filter (load 'd.txt' as (id:int, v1:int, v2)) by ((((id > 1) OR (id > 2)) AND ((id > 3) OR (id > 4))) AND (id > 7));" +
@@ -400,7 +401,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 25: combo VII: extremely degenerate
         query = "b = filter (load 'd.txt' as (id:int, v1:int, v2)) by ((((id > 1) OR (id > 2)) AND ((id > 3) OR (id > 4))) AND (((id > 5) AND (id > 7))));" +
@@ -414,7 +415,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 26: combo VIII: lhs<->rhs for case 25
         query = "b = filter (load 'd.txt' as (id:int, v1:int, v2)) by ((((id > 7) AND (id > 5))) AND (((id > 4) OR (id > 3)) AND ((id > 2) OR (id > 1))));" +
@@ -428,7 +429,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 27: combo VII: rhs<->lhs for case 24
         query = "b = filter (load 'd.txt' as (id:int, v1:int, v2)) by ((id > 7) AND (((id > 4) OR (id > 3)) AND ((id > 2) OR (id > 1))));" +
@@ -442,7 +443,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 28: complex equality
         query = "b = filter (load 'd.txt' as (id:int, v1:int, v2)) by (((id > 4) OR (id > 3)) AND ((id > 3) OR (id > 4)));" +
@@ -456,7 +457,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 29: complex equality
         query = "b = filter (load 'd.txt' as (id:int, v1:int, v2)) by (((id > 4) OR (v1 > 3)) AND ((v1 > 3) OR (id > 4)));" +
@@ -470,7 +471,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 30: complex equality
         query = "b = filter (load 'd.txt' as (id:int, v1:int, v2)) by (((id > 4) OR (v1 > 3)) OR ((v1 > 3) OR (id > 4)));" +
@@ -484,7 +485,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // case 31: See PIG-2067
         query = "A = load 'a.dat' as (cookie);" +
@@ -506,7 +507,7 @@ public class TestFilterSimplification {
 
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
     }
 
@@ -523,7 +524,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         LogicalPlan expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // Regex filtering
         query = "b = filter (load 'd.txt' as (name:chararray, age:int, registration, contributions:double)) by (name matches '^fred.*' and (chararray)registration matches '^dem.*');" +
@@ -537,7 +538,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // NOT Regex filtering
         query = "b = filter (load 'd.txt') by (not $0 matches '^fred.*');" +
@@ -551,7 +552,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // naiive filtering
         query = "b = filter (load 'd.txt') by 1==1;" +
@@ -565,7 +566,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
     }
 
     @Test
@@ -582,7 +583,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         LogicalPlan expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // boolean constant elimination: OR
         query = "b = filter (load 'd.txt' as (id:int, v1, v2)) by (((v1 is not null) AND (id == 1)) OR (1 == 0));" +
@@ -596,7 +597,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // the mirror case of the above
         query = "b = filter (load 'd.txt' as (id:int, v1, v2)) by ((1 == 0) OR ((v1 is not null) AND (id == 1)));" +
@@ -610,7 +611,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
     }
 
     @Test
@@ -626,7 +627,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         LogicalPlan expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // mirror of the above
         query = "b = filter (load 'd.txt' as (a:chararray, b:long, c:map[], d:chararray, e:chararray)) by ((d is not null and d != '') or (e is not null and e != '')) and a == 'v' and b == 117L and c#'p1' == 'h' and c#'p2' == 'to';" +
@@ -640,7 +641,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
     }
 
@@ -665,7 +666,7 @@ public class TestFilterSimplification {
 
         LogicalPlan expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
     }
 
     @Test
@@ -693,7 +694,7 @@ public class TestFilterSimplification {
 
         LogicalPlan expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
     }
 
     @Test
@@ -709,7 +710,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         LogicalPlan expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         query = "b = filter (load 'd.txt' as (k1, k2, k3, v1, v2, v3)) by k2#'f1'#'f' is not null and (v2#'f1'#'f' is not null or v2#'f2'#'f' is not null);" +
                 "store b into 'empty';";
@@ -722,7 +723,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
     }
 
     @Test
@@ -739,7 +740,7 @@ public class TestFilterSimplification {
                 "store b into 'empty';";
         LogicalPlan expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
     }
 
 
@@ -791,7 +792,7 @@ public class TestFilterSimplification {
         //expected plan is same as original plan
         LogicalPlan expected = Util.buildLp(pigServer, query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
     }
 
     // PIG-2316
@@ -806,7 +807,7 @@ public class TestFilterSimplification {
 
         //expected plan is same as original plan
         LogicalPlan expected = Util.buildLp(pigServer, query);
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         //swapping == and !=
         query = "b = filter (load 'd.txt' as (a0:int, a1:int)) "
@@ -818,7 +819,7 @@ public class TestFilterSimplification {
 
         //expected plan is same as original plan
         expected = Util.buildLp(pigServer, query);
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         //more realistic test case which created incorrect output
         query = "b = filter (load 'd.txt' as (a0:int, a1:int)) "
@@ -830,7 +831,7 @@ public class TestFilterSimplification {
 
         //expected plan is same as original plan
         expected = Util.buildLp(pigServer, query);
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
     }
 
     public class MyPlanOptimizer extends LogicalPlanOptimizer {

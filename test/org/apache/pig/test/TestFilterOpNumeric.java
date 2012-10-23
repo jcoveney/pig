@@ -18,6 +18,7 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -31,7 +32,6 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -40,18 +40,11 @@ public class TestFilterOpNumeric {
     private final Log log = LogFactory.getLog(getClass());
 
     private static int LOOP_COUNT = 1024;
-    private static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pig;
 
     @Before
     public void setUp() throws Exception {
-        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        pig.getPigContext().getProperties().setProperty("pig.usenewlogicalplan", "true");
-    }
-
-    @AfterClass
-    public static void oneTimeTearDown() throws Exception {
-        cluster.shutDown();
+        pig = new PigServer(ExecType.LOCAL);
     }
 
     @Test
@@ -82,7 +75,7 @@ public class TestFilterOpNumeric {
 
             String sfirst = t.get(0).toString();
             String ssecond = t.get(1).toString();
-            assertEquals(sfirst, ssecond);
+            assertFalse(sfirst.equals(ssecond));
         }
     }
 
@@ -110,7 +103,7 @@ public class TestFilterOpNumeric {
             Tuple t = it.next();
             Double first = Double.valueOf(t.get(0).toString());
             Double second = Double.valueOf(t.get(1).toString());
-            assertEquals(first, second);
+            assertFalse(first.equals(second));
         }
     }
 

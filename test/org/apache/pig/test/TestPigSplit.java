@@ -18,19 +18,35 @@
 
 package org.apache.pig.test;
 
+import static org.apache.pig.ExecType.LOCAL;
+import static org.apache.pig.ExecType.MAPREDUCE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.Test;
 
-public class TestPigSplit extends PigExecTestCase {
+public class TestPigSplit {
+
+    protected final Log log = LogFactory.getLog(getClass());
+
+    protected ExecType execType = LOCAL;
+
+    static MiniCluster cluster;
+    protected PigServer pigServer;
 
     /**
      * filename of input in each of the tests
@@ -42,6 +58,27 @@ public class TestPigSplit extends PigExecTestCase {
         // override this by setting ant property "test.exectype"
         execType = ExecType.MAPREDUCE;
     }
+
+    @Before
+    public void setUp() throws Exception {
+        String execTypeString = System.getProperty("test.exectype");
+        if(execTypeString!=null && execTypeString.length()>0){
+            execType = ExecType.fromString(execTypeString);
+        }
+        if(execType == MAPREDUCE) {
+            cluster = MiniCluster.buildCluster();
+            pigServer = new PigServer(MAPREDUCE, cluster.getProperties());
+        } else {
+            pigServer = new PigServer(LOCAL);
+        }
+    }
+
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        if(cluster != null)
+            cluster.shutDown();
+    }
+
 
     private void createInput(String[] data) throws IOException {
         if(execType == ExecType.MAPREDUCE) {
@@ -56,7 +93,7 @@ public class TestPigSplit extends PigExecTestCase {
     /* (non-Javadoc)
      * @see org.apache.pig.test.PigExecTestCase#tearDown()
      */
-    @Override
+    @After
     public void tearDown() throws Exception {
         if(execType == ExecType.MAPREDUCE) {
             Util.deleteFile(cluster, inputFileName);
@@ -65,6 +102,7 @@ public class TestPigSplit extends PigExecTestCase {
         } else {
             throw new IOException("unknown exectype:" + execType.toString());
         }
+        pigServer.shutdown();
     }
 
 	public void notestLongEvalSpec() throws Exception{
@@ -77,7 +115,7 @@ public class TestPigSplit extends PigExecTestCase {
 		}
 		Iterator<Tuple> iter = pigServer.openIterator("a");
 		while (iter.hasNext()){
-			throw new Exception();
+			fail();
 		}
 	}
 
@@ -94,18 +132,18 @@ public class TestPigSplit extends PigExecTestCase {
         // order in lexicographic, so 12 comes before 2
         Iterator<Tuple> iter = pigServer.openIterator("b1");
         assertTrue("b1 has an element", iter.hasNext());
-        assertEquals("first item in b1", iter.next().get(0), "12");
+        assertEquals("first item in b1", "12", iter.next().get(0));
         assertTrue("b1 has an element", iter.hasNext());
-        assertEquals("second item in b1", iter.next().get(0), "2");
+        assertEquals("second item in b1", "2", iter.next().get(0));
         assertFalse("b1 is over", iter.hasNext());
 
         iter = pigServer.openIterator("c1");
         assertTrue("c1 has an element", iter.hasNext());
-        assertEquals("first item in c1", iter.next().get(0), "12");
+        assertEquals("first item in c1", "12", iter.next().get(0));
         assertTrue("c1 has an element", iter.hasNext());
-        assertEquals("second item in c1", iter.next().get(0), "2");
+        assertEquals("second item in c1", "2", iter.next().get(0));
         assertTrue("c1 has an element", iter.hasNext());
-        assertEquals("third item in c1", iter.next().get(0), "42");
+        assertEquals("third item in c1", "42", iter.next().get(0));
         assertFalse("c1 is over", iter.hasNext());
 
     }
@@ -123,7 +161,7 @@ public class TestPigSplit extends PigExecTestCase {
 
         Iterator<Tuple> iter = pigServer.openIterator("a");
         while (iter.hasNext()){
-            throw new Exception();
+            fail();
         }
     }
 }

@@ -46,7 +46,7 @@ public class TestKeyTypeDiscoveryVisitor {
 
     @Before
     public void setUp() throws Exception{
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties()); //TODO this doesn't need to be M/R mode
     }
 
     @AfterClass

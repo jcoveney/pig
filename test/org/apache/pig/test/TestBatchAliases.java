@@ -23,8 +23,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.Properties;
 
-import junit.framework.Assert;
-
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecJob;
@@ -76,16 +74,11 @@ public class TestBatchAliases {
         assertTrue(foundE);
     }
 
-    private void deleteOutputFiles() {
-        try {
-            FileLocalizer.delete("/tmp/output1", myPig.getPigContext());
-            FileLocalizer.delete("/tmp/output2", myPig.getPigContext());
-            FileLocalizer.delete("/tmp/output3", myPig.getPigContext());
-            FileLocalizer.delete("/tmp/output4", myPig.getPigContext());
-            FileLocalizer.delete("/tmp/output5", myPig.getPigContext());
-        } catch (IOException e) {
-            e.printStackTrace();
-            Assert.fail();
-        }
+    private void deleteOutputFiles() throws Exception {
+        FileLocalizer.delete("/tmp/output1", myPig.getPigContext());
+        FileLocalizer.delete("/tmp/output2", myPig.getPigContext());
+        FileLocalizer.delete("/tmp/output3", myPig.getPigContext());
+        FileLocalizer.delete("/tmp/output4", myPig.getPigContext());
+        FileLocalizer.delete("/tmp/output5", myPig.getPigContext());
     }
 }

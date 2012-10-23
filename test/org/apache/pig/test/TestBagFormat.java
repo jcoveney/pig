@@ -30,7 +30,7 @@ import org.junit.Test;
 public class TestBagFormat {
 
     @Test
-    public static void testBagFormat() throws Exception {
+    public void testBagFormat() throws Exception {
         DataBag bag = BagFactory.getInstance().newDefaultBag();
 
         Tuple tuple_1 = TupleFactory.getInstance().newTuple(1);

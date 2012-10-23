@@ -18,6 +18,7 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -32,7 +33,6 @@ import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -40,19 +40,13 @@ public class TestFilterOpString {
 
     private final Log log = LogFactory.getLog(getClass());
     private static int LOOP_COUNT = 1024;
-    private static MiniCluster cluster = MiniCluster.buildCluster();
 
     private PigServer pig;
 
     @Before
     public void setUp() throws Exception {
         FileLocalizer.deleteTempFiles();
-        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-    }
-
-    @AfterClass
-    public static void oneTimeTearDown() throws Exception {
-        cluster.shutDown();
+        pig = new PigServer(ExecType.LOCAL);
     }
 
     @Test
@@ -126,7 +120,7 @@ public class TestFilterOpString {
             Tuple t = it.next();
             String first = t.get(0).toString();
             String second = t.get(1).toString();
-            assertEquals(first, second);
+            assertFalse(first.equals(second));
             count++;
         }
         assertEquals(expectedCount, count);

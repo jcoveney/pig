@@ -19,6 +19,7 @@ package org.apache.pig.test;
 
 import static org.apache.pig.newplan.logical.relational.LOTestHelper.newLOLoad;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -29,17 +30,13 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Properties;
 
-import junit.framework.Assert;
-
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.datastorage.DataStorage;
-import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -51,14 +48,22 @@ import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.rules.InputOutputFileValidator;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestInputOutputFileValidator {
+    private PigContext ctx;
+    private PigServer pig;
+
+    @Before
+    public void setUp() throws Exception {
+        ctx = new PigContext(ExecType.LOCAL, new Properties());
+        ctx.connect();
+        pig = new PigServer(ExecType.LOCAL);
+    }
+
     @Test
     public void testLocalModeInputPositive() throws Throwable {
-        PigContext ctx = new PigContext(ExecType.LOCAL, new Properties()) ;
-        ctx.connect() ;
-
         String inputfile = generateTempFile().getAbsolutePath() ;
         String outputfile = generateNonExistenceTempFile().getAbsolutePath() ;
 
@@ -69,9 +74,6 @@ public class TestInputOutputFileValidator {
 
     @Test
     public void testLocalModeNegative2() throws Throwable {
-        PigContext ctx = new PigContext(ExecType.LOCAL, new Properties()) ;
-        ctx.connect() ;
-
         String inputfile = generateTempFile().getAbsolutePath() ;
         String outputfile = generateTempFile().getAbsolutePath() ;
 
@@ -80,11 +82,10 @@ public class TestInputOutputFileValidator {
         InputOutputFileValidator executor = new InputOutputFileValidator(plan, ctx) ;
         try {
             executor.validate() ;
-            fail("Expected to fail.");
+            fail("Expected Exception to be thrown.");
         } catch (Exception pve) {
             //good
         }
-
     }
 
     /**
@@ -97,12 +98,7 @@ public class TestInputOutputFileValidator {
         String input = "input.txt";
         String output= "output.txt";
         String data[] = new String[] {"hello\tworld"};
-         PigServer pig = null;
              try {
-                 Properties props = new Properties();
-                 props.put(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
-                 pig = new PigServer(ExecType.LOCAL, props);
-
                 // reinitialize FileLocalizer for each mode
                 // this is need for the tmp file creation as part of
                 // PigServer.openIterator
@@ -115,9 +111,9 @@ public class TestInputOutputFileValidator {
                 pig.registerQuery("b = load '" + output + "';");
                 Iterator<Tuple> it = pig.openIterator("b");
                 Tuple t = it.next();
-                Assert.assertEquals("hello", t.get(0).toString());
-                Assert.assertEquals("world", t.get(1).toString());
-                Assert.assertEquals(false, it.hasNext());
+                assertEquals("hello", t.get(0).toString());
+                assertEquals("world", t.get(1).toString());
+                assertFalse(it.hasNext());
             } finally {
                 Util.deleteFile(pig.getPigContext(), input);
                 Util.deleteFile(pig.getPigContext(), output);
@@ -135,13 +131,7 @@ public class TestInputOutputFileValidator {
         String input = "input.txt";
         String output= "output.txt";
         String data[] = new String[] {"hello\tworld"};
-        PigServer pig = null;
              try {
-                boolean exceptionCaught = false;
-                Properties props = new Properties();
-                props.put(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
-                pig = new PigServer(ExecType.LOCAL, props);
-
                 Util.deleteFile(pig.getPigContext(), input);
                 Util.deleteFile(pig.getPigContext(), output);
                 Util.createInputFile(pig.getPigContext(), input, data);
@@ -149,13 +139,10 @@ public class TestInputOutputFileValidator {
                 try {
                     pig.registerQuery("a = load '" + input + "';");
                     pig.store("a", output);
+                    fail("Expected exception to be caught");
                 } catch (Exception e) {
                     assertEquals(6000, LogUtils.getPigException(e).getErrorCode());
                     assertTrue(LogUtils.getPigException(e).getMessage().contains("Output Location Validation Failed for"));
-                    exceptionCaught = true;
-                }
-                if(!exceptionCaught) {
-                    Assert.fail("Expected exception to be caught");
                 }
             } finally {
                 Util.deleteFile(pig.getPigContext(), input);
@@ -197,41 +184,6 @@ public class TestInputOutputFileValidator {
         File fp1 = File.createTempFile("file", ".txt") ;
         fp1.delete() ;
         return fp1 ;
-    }
-
-    private String createHadoopTempFile(PigContext ctx) throws Throwable {
-
-        File fp1 = generateTempFile() ;
-
-        ElementDescriptor localElem =
-            ctx.getLfs().asElement(fp1.getAbsolutePath());
-
-        String path = fp1.getAbsolutePath();
-        if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
-            path = FileLocalizer.parseCygPath(path, FileLocalizer.STYLE_UNIX);
-
-        ElementDescriptor distribElem = ctx.getDfs().asElement(path) ;
-
-        localElem.copy(distribElem, null, false);
-
-        return distribElem.toString();
-    }
-
-    private String createHadoopNonExistenceTempFile(PigContext ctx) throws Throwable {
-
-        File fp1 = generateTempFile() ;
-
-        String path = fp1.getAbsolutePath();
-        if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
-            path = FileLocalizer.parseCygPath(path, FileLocalizer.STYLE_UNIX);
-
-        ElementDescriptor distribElem = ctx.getDfs().asElement(path) ;
-
-        if (distribElem.exists()) {
-            distribElem.delete() ;
-        }
-
-        return distribElem.toString();
     }
 
     public static class DummyStorer extends PigStorage{

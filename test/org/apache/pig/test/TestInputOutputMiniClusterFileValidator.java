@@ -20,6 +20,7 @@ package org.apache.pig.test;
 
 import static org.apache.pig.newplan.logical.relational.LOTestHelper.newLOLoad;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -50,10 +51,20 @@ import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.rules.InputOutputFileValidator;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestInputOutputMiniClusterFileValidator {
     private static MiniCluster cluster = MiniCluster.buildCluster();
+    private PigServer pig;
+    private PigContext ctx;
+
+    @Before
+    public void setUp() throws Exception {
+        ctx = new PigContext(ExecType.MAPREDUCE, cluster.getProperties());
+        ctx.connect() ;
+        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    }
 
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
@@ -62,9 +73,6 @@ public class TestInputOutputMiniClusterFileValidator {
 
     @Test
     public void testMapReduceModeInputPositive() throws Throwable {
-        PigContext ctx = new PigContext(ExecType.MAPREDUCE, cluster.getProperties()) ;
-        ctx.connect() ;
-
         String inputfile = createHadoopTempFile(ctx) ;
         String outputfile = createHadoopNonExistenceTempFile(ctx) ;
 
@@ -76,9 +84,6 @@ public class TestInputOutputMiniClusterFileValidator {
 
     @Test
     public void testMapReduceModeInputNegative2() throws Throwable {
-        PigContext ctx = new PigContext(ExecType.MAPREDUCE, cluster.getProperties()) ;
-        ctx.connect() ;
-
         String inputfile = createHadoopTempFile(ctx) ;
         String outputfile = createHadoopTempFile(ctx) ;
 
@@ -103,10 +108,7 @@ public class TestInputOutputMiniClusterFileValidator {
         String input = "input.txt";
         String output= "output.txt";
         String data[] = new String[] {"hello\tworld"};
-        PigServer pig = null;
         	try {
-             	pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-
                 // reinitialize FileLocalizer for each mode
                 // this is need for the tmp file creation as part of
                 // PigServer.openIterator
@@ -121,7 +123,7 @@ public class TestInputOutputMiniClusterFileValidator {
                 Tuple t = it.next();
                 assertEquals("hello", t.get(0).toString());
                 assertEquals("world", t.get(1).toString());
-                assertEquals(false, it.hasNext());
+                assertFalse(it.hasNext());
             } finally {
                 Util.deleteFile(pig.getPigContext(), input);
                 Util.deleteFile(pig.getPigContext(), output);
@@ -140,11 +142,7 @@ public class TestInputOutputMiniClusterFileValidator {
         String input = "input.txt";
         String output= "output.txt";
         String data[] = new String[] {"hello\tworld"};
-        PigServer pig = null;
              try {
-                boolean exceptionCaught = false;
-                pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-
                 Util.deleteFile(pig.getPigContext(), input);
                 Util.deleteFile(pig.getPigContext(), output);
                 Util.createInputFile(pig.getPigContext(), input, data);
@@ -152,13 +150,10 @@ public class TestInputOutputMiniClusterFileValidator {
                 try {
                     pig.registerQuery("a = load '" + input + "';");
                     pig.store("a", output);
+                    fail("Expected exception to be caught");
                 } catch (Exception e) {
                     assertEquals(6000, LogUtils.getPigException(e).getErrorCode());
                     assertTrue(LogUtils.getPigException(e).getMessage().contains("Output Location Validation Failed for"));
-                    exceptionCaught = true;
-                }
-                if(!exceptionCaught) {
-                    fail("Expected exception to be caught");
                 }
             } finally {
                 Util.deleteFile(pig.getPigContext(), input);
@@ -213,12 +208,6 @@ public class TestInputOutputMiniClusterFileValidator {
         bw.write("hohoho") ;
         bw.close() ;
         fp1.deleteOnExit() ;
-        return fp1 ;
-    }
-
-    private File generateNonExistenceTempFile() throws Throwable {
-        File fp1 = File.createTempFile("file", ".txt") ;
-        fp1.delete() ;
         return fp1 ;
     }
 

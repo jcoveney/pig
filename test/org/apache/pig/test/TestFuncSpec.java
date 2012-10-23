@@ -24,12 +24,14 @@ import static org.junit.Assert.assertTrue;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.PigContext;
+import org.junit.Test;
 
 /**
  * Test cases for FuncSpec class
  */
 public class TestFuncSpec {
 
+    @Test
     public void testSpecCtorClassName() {
         String pigStorage = PigStorage.class.getName();
         FuncSpec fs = new FuncSpec(pigStorage);
@@ -37,6 +39,7 @@ public class TestFuncSpec {
         assertTrue(o instanceof PigStorage);
     }
 
+    @Test
     public void testSpecCtorClassNameNoArgs() {
         String pigStorage = PigStorage.class.getName();
         FuncSpec fs = new FuncSpec(pigStorage+"()");
@@ -44,6 +47,7 @@ public class TestFuncSpec {
         assertTrue(o instanceof PigStorage);
     }
 
+    @Test
     public void testSpecCtorClassNameWithArgs() {
         String dummy = DummyClass.class.getName();
         FuncSpec fs = new FuncSpec(dummy+"(':')");
@@ -52,6 +56,7 @@ public class TestFuncSpec {
         assertEquals((byte)':', ((DummyClass)o).delim);
     }
 
+    @Test
     public void testCtorClassNameArgs() {
         String dummy = DummyClass.class.getName();
         String[] args = new String[]{":"};

@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.utils.TestHelper;
@@ -37,12 +38,10 @@ import org.junit.Test;
 
 public class TestForEachNestedPlanLocal {
 
-    private String initString = "local";
-
     private PigServer pig ;
 
     public TestForEachNestedPlanLocal() throws Throwable {
-        pig = new PigServer(initString) ;
+        pig = new PigServer(ExecType.LOCAL) ;
     }
 
     Boolean[] nullFlags = new Boolean[]{ false, true };

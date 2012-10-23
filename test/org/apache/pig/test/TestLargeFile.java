@@ -45,7 +45,6 @@ public class TestLargeFile {
 
     private long total = defaultBlockSize >> 1;
     private int max_rand = 500;
-//    private double sum = 0.0, sumIn = 0.0;
     static MiniCluster cluster = MiniCluster.buildCluster();
 
     Integer [] COUNT = new Integer[max_rand];
@@ -106,7 +105,6 @@ public class TestLargeFile {
         pig.registerQuery("A = load " + fileName + ";");
         pig.registerQuery("A = group A by $0;");
         pig.store("A", tmpFile1, "BinStorage()");
-//        pig.store("A", tmpFile1);
         pig.registerQuery("B = foreach A generate group, COUNT($1);");
 
         Iterator <Tuple> B = pig.openIterator("B");

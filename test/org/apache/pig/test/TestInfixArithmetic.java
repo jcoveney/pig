@@ -33,7 +33,6 @@ import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -42,18 +41,12 @@ public class TestInfixArithmetic {
     private final Log log = LogFactory.getLog(getClass());
 
     private static int LOOP_COUNT = 1024;
-    static MiniCluster cluster = MiniCluster.buildCluster();
 
     private PigServer pig;
 
     @Before
     public void setUp() throws Exception {
-        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-    }
-
-    @AfterClass
-    public static void oneTimeTearDown() throws Exception {
-        cluster.shutDown();
+        pig = new PigServer(ExecType.LOCAL);
     }
 
     Boolean[] nullFlags = new Boolean[] { false, true };
