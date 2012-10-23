@@ -18,56 +18,55 @@
 
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.pig.FuncSpec;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.PigContext;
 
-import junit.framework.TestCase;
-
 /**
  * Test cases for FuncSpec class
  */
-public class TestFuncSpec extends TestCase {
+public class TestFuncSpec {
 
     public void testSpecCtorClassName() {
         String pigStorage = PigStorage.class.getName();
         FuncSpec fs = new FuncSpec(pigStorage);
         Object o = PigContext.instantiateFuncFromSpec(fs);
-        assertEquals(true, o instanceof PigStorage);
+        assertTrue(o instanceof PigStorage);
     }
-    
+
     public void testSpecCtorClassNameNoArgs() {
         String pigStorage = PigStorage.class.getName();
         FuncSpec fs = new FuncSpec(pigStorage+"()");
         Object o = PigContext.instantiateFuncFromSpec(fs);
-        assertEquals(true, o instanceof PigStorage);
+        assertTrue(o instanceof PigStorage);
     }
-    
+
     public void testSpecCtorClassNameWithArgs() {
         String dummy = DummyClass.class.getName();
         FuncSpec fs = new FuncSpec(dummy+"(':')");
         Object o = PigContext.instantiateFuncFromSpec(fs);
-        assertEquals(true, o instanceof DummyClass);
+        assertTrue(o instanceof DummyClass);
         assertEquals((byte)':', ((DummyClass)o).delim);
     }
-    
+
     public void testCtorClassNameArgs() {
         String dummy = DummyClass.class.getName();
         String[] args = new String[]{":"};
         FuncSpec fs = new FuncSpec(dummy, args);
         Object o = PigContext.instantiateFuncFromSpec(fs);
-        assertEquals(true, o instanceof DummyClass);
+        assertTrue(o instanceof DummyClass);
         assertEquals((byte)':', ((DummyClass)o).delim);
     }
-    
-    public static class DummyClass {
-        
-        public byte delim = '\t';
-        
-        public DummyClass(String delim) {
-            this.delim = (byte)(delim.charAt(0));    
-        }
-    }    
-    
-}
 
+    public static class DummyClass {
+
+        public byte delim = '\t';
+
+        public DummyClass(String delim) {
+            this.delim = (byte)(delim.charAt(0));
+        }
+    }
+}

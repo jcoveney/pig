@@ -17,16 +17,13 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.Iterator;
-
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -34,19 +31,19 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.Test;
 
-import junit.framework.TestCase;
-@RunWith(JUnit4.class)
-public class TestFilterOpNumeric extends TestCase {
+public class TestFilterOpNumeric {
 
     private final Log log = LogFactory.getLog(getClass());
 
     private static int LOOP_COUNT = 1024;
     private static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pig;
-    
+
     @Before
-    @Override
     public void setUp() throws Exception {
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         pig.getPigContext().getProperties().setProperty("pig.usenewlogicalplan", "true");
@@ -56,7 +53,7 @@ public class TestFilterOpNumeric extends TestCase {
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     @Test
     public void testNumericEq() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
@@ -69,8 +66,8 @@ public class TestFilterOpNumeric extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load '" 
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+        pig.registerQuery("A=load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
                 + "' using "+PigStorage.class.getName() +"(':');");
         String query = "A = filter A by ($0 == $1 and $0 <= $1);";
         log.info(query);
@@ -81,11 +78,11 @@ public class TestFilterOpNumeric extends TestCase {
             Tuple t = it.next();
             Double first = Double.valueOf(t.get(0).toString());
             Double second = Double.valueOf(t.get(1).toString());
-            assertTrue(first.equals(second));
-        
+            assertEquals(first, second);
+
             String sfirst = t.get(0).toString();
             String ssecond = t.get(1).toString();
-            assertFalse(sfirst.equals(ssecond));
+            assertEquals(sfirst, ssecond);
         }
     }
 
@@ -101,8 +98,8 @@ public class TestFilterOpNumeric extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load '" 
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+        pig.registerQuery("A=load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
                 + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 != $1;";
         log.info(query);
@@ -113,7 +110,7 @@ public class TestFilterOpNumeric extends TestCase {
             Tuple t = it.next();
             Double first = Double.valueOf(t.get(0).toString());
             Double second = Double.valueOf(t.get(1).toString());
-            assertFalse(first.equals(second));
+            assertEquals(first, second);
         }
     }
 
@@ -129,8 +126,8 @@ public class TestFilterOpNumeric extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load '" 
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "' using " 
+        pig.registerQuery("A=load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "' using "
                 + PigStorage.class.getName() + "(':') as (f1: double, f2:double);");
         String query = "A = filter A by ($0 > $1 and $0 >= $1);";
 
@@ -151,10 +148,10 @@ public class TestFilterOpNumeric extends TestCase {
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
-            ps.println(i + "\t" + i + "\t1");            
+            ps.println(i + "\t" + i + "\t1");
         }
         ps.close();
-        pig.registerQuery("A=load '" 
+        pig.registerQuery("A=load '"
                 + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "';");
         String query = "A = foreach A generate ($1 >= "+ LOOP_COUNT+"-10?'1':'0');";
         log.info(query);
@@ -169,21 +166,21 @@ public class TestFilterOpNumeric extends TestCase {
                 count++;
             else
                 assertTrue(first == 0);
-            
+
         }
         assertEquals("expected count of 10", 10, count);
     }
-    
-    
+
+
     @Test
     public void testNestedBinCond() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
-            ps.println(i + "\t" + i + "\t1");            
+            ps.println(i + "\t" + i + "\t1");
         }
         ps.close();
-        pig.registerQuery("A=load '" 
+        pig.registerQuery("A=load '"
                 + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "';");
         String query = "A = foreach A generate (($0 < 10 or $0 < 9)?(($1 >= 5 and $1 >= 4) ? 2: 1) : 0);";
         log.info(query);
@@ -196,12 +193,12 @@ public class TestFilterOpNumeric extends TestCase {
             Integer first = (Integer)t.get(0);
             count+=first;
             assertTrue(first == 1 || first == 2 || first == 0);
-            
+
         }
         assertEquals("expected count of 15", 15, count);
     }
-    
-    @Test 
+
+    @Test
     public void testNumericLt() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
@@ -213,8 +210,8 @@ public class TestFilterOpNumeric extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load '" 
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+        pig.registerQuery("A=load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
                 + "' using " + PigStorage.class.getName() + "(':') as (a: double, b:double);");
         String query = "A = filter A by ($0 <= $1 and $0 < $1);";
 
@@ -228,7 +225,7 @@ public class TestFilterOpNumeric extends TestCase {
             Double second = Double.valueOf(t.get(1).toString());
             assertTrue(first.compareTo(second) < 0);
         }
-        
+
     }
 
     @Test
@@ -245,8 +242,8 @@ public class TestFilterOpNumeric extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load '" 
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+        pig.registerQuery("A=load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
                 + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by ($0 > $1 or $0 >= $1);";
 
@@ -276,8 +273,8 @@ public class TestFilterOpNumeric extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load '" 
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+        pig.registerQuery("A=load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
                 + "' using " + PigStorage.class.getName() + "(':') as (a: double, b:double);");
         String query = "A = filter A by ($0 <= $1 or $0 < $1);";
 
@@ -292,5 +289,4 @@ public class TestFilterOpNumeric extends TestCase {
             assertTrue(first.compareTo(second) <= 0);
         }
     }
-    
 }

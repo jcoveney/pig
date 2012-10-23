@@ -19,41 +19,25 @@ package org.apache.pig.test;
 
 import static org.apache.pig.builtin.mock.Storage.resetData;
 import static org.apache.pig.builtin.mock.Storage.tuple;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Random;
-
-import junit.framework.TestCase;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.test.utils.GenRandomData;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class TestOrderBy3 extends TestCase {
-
+public class TestOrderBy3 {
     private final Log log = LogFactory.getLog(getClass());
 
     private static PigServer pigServer;
@@ -63,38 +47,21 @@ public class TestOrderBy3 extends TestCase {
 
     private PigServer pig;
 
-    @Override
     @Before
     public void setUp() throws Exception {
         ArrayList<Tuple> tuples = new ArrayList<Tuple>();
 
-        try {
-            log.info("Setting up");
+        log.info("Setting up");
 
-            pigServer = new PigServer("local");
-            data = resetData(pigServer);
+        pigServer = new PigServer("local");
+        data = resetData(pigServer);
 
-            Random r = new Random();
-            for (int i = 0; i < MAX; i++) {
-                tuples.add(tuple(i,GenRandomData.genRandString(r)));
-            }
-
-            data.set("test", tuples);
-
-        } catch (ExecException e) {
-            IOException ioe = new IOException("Failed to create Pig Server");
-            ioe.initCause(e);
-            throw ioe;
+        Random r = new Random();
+        for (int i = 0; i < MAX; i++) {
+            tuples.add(tuple(i,GenRandomData.genRandString(r)));
         }
-    }
 
-    @Override
-    @After
-    public void tearDown() throws Exception {
-    }
-
-    @AfterClass
-    public static void oneTimeTearDown() throws Exception {
+        data.set("test", tuples);
     }
 
     public void testNames(boolean ascOrdering) throws Exception {
@@ -126,7 +93,7 @@ public class TestOrderBy3 extends TestCase {
 
             System.out.println("RESULT: " + value1 + "," + value2 + " = "
                     + comparision);
-            assertEquals(true, resultComparision);
+            assertTrue(resultComparision);
 
             if(!it.hasNext()) break;
 
@@ -146,7 +113,6 @@ public class TestOrderBy3 extends TestCase {
         Util.registerMultiLineQuery(pigServer, query);
 
         Iterator<Tuple> it = data.get("result").iterator();
-
 
         int toCompare, value;
 
@@ -183,5 +149,4 @@ public class TestOrderBy3 extends TestCase {
     public void testValuesDESC() throws Exception {
         testNames(false);
     }
-
 }

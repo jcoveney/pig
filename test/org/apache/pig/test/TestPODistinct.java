@@ -18,43 +18,35 @@
 
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import junit.framework.TestCase;
-
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
-import org.apache.pig.test.PORead;
-import org.junit.Before;
 import org.junit.Test;
 
-public class TestPODistinct extends TestCase {
+public class TestPODistinct {
 	DataBag input = BagFactory.getInstance().newDefaultBag();
     Random r = new Random();
     final int MAX_VALUE = 10;
     final int MAX_SAMPLES = 100;
 
-    @Before
-    public void setUp() {
-         // System.out.println();
-    }
-
- 
     @Test
     public void testPODistictWithInt() throws ExecException {
-    	
+
        	input = BagFactory.getInstance().newDefaultBag();
         TupleFactory tf = TupleFactory.getInstance();
         for (int i = 0; i < MAX_SAMPLES; i++) {
@@ -68,7 +60,7 @@ public class TestPODistinct extends TestCase {
      }
 
     public void testPODistictWithNullValues() throws ExecException {
-    	
+
     	input = BagFactory.getInstance().newDefaultBag();
         TupleFactory tf = TupleFactory.getInstance();
         for (int i = 0; i < MAX_SAMPLES; i++) {
@@ -80,9 +72,9 @@ public class TestPODistinct extends TestCase {
 
     	confirmDistinct();
      }
-  
+
     public void testPODistictWithIntAndNullValues() throws ExecException {
-    	
+
       	input = BagFactory.getInstance().newDefaultBag();
         TupleFactory tf = TupleFactory.getInstance();
         for (int i = 0; i < MAX_SAMPLES; i++) {
@@ -97,9 +89,9 @@ public class TestPODistinct extends TestCase {
 
     	confirmDistinct();
      }
- 
+
     public void testPODistictWithIntNullValues() throws ExecException {
-    	
+
     	input = BagFactory.getInstance().newDefaultBag();
         TupleFactory tf = TupleFactory.getInstance();
         for (int i = 0; i < MAX_SAMPLES; i++) {
@@ -113,7 +105,7 @@ public class TestPODistinct extends TestCase {
     	confirmDistinct();
      }
     public void testPODistictWithNullIntValues() throws ExecException {
-    	
+
     	input = BagFactory.getInstance().newDefaultBag();
         TupleFactory tf = TupleFactory.getInstance();
         for (int i = 0; i < MAX_SAMPLES; i++) {
@@ -126,9 +118,9 @@ public class TestPODistinct extends TestCase {
 
     	confirmDistinct();
      }
-    
+
     public void testPODistictArityWithNullValues() throws ExecException {
-    	
+
     	input = BagFactory.getInstance().newDefaultBag();
         TupleFactory tf = TupleFactory.getInstance();
         for (int i = 0; i < MAX_SAMPLES; i++) {
@@ -146,7 +138,7 @@ public class TestPODistinct extends TestCase {
      }
 
     public void confirmDistinct() throws ExecException {
-	   	
+
 	    PORead read = new PORead(new OperatorKey("", r.nextLong()), input);
 	    List<PhysicalOperator> inputs = new LinkedList<PhysicalOperator>();
 	    inputs.add(read);

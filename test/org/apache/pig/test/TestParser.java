@@ -20,17 +20,18 @@ package org.apache.pig.test;
 
 import static org.apache.pig.ExecType.LOCAL;
 import static org.apache.pig.ExecType.MAPREDUCE;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.Properties;
 
-import junit.framework.TestCase;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.pig.PigServer;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.builtin.mock.Storage;
@@ -39,11 +40,8 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class TestParser extends TestCase {
+public class TestParser {
 
 protected final Log log = LogFactory.getLog(getClass());
 
@@ -53,9 +51,7 @@ protected final Log log = LogFactory.getLog(getClass());
     protected PigServer pigServer;
 
     @Before
-    @Override
     public void setUp() throws Exception {
-
         String execTypeString = System.getProperty("test.exectype");
         if(execTypeString!=null && execTypeString.length()>0){
             execType = ExecType.fromString(execTypeString);
@@ -68,7 +64,6 @@ protected final Log log = LogFactory.getLog(getClass());
         }
     }
 
-    @Override
     @After
     public void tearDown() throws Exception {
         pigServer.shutdown();
@@ -82,62 +77,53 @@ protected final Log log = LogFactory.getLog(getClass());
 
     @Test
     public void testLoadingNonexistentFile() throws ExecException, IOException {
-        try {
-            // FIXME : this should be tested in all modes
-            if(execType == ExecType.LOCAL)
-                return;
-            pigServer.registerQuery("vals = load 'nonexistentfile';");
-            pigServer.openIterator("vals");
-            fail("Loading a  nonexistent file should throw an IOException at parse time");
-        } catch (IOException io) {
-        }
+        // FIXME : this should be tested in all modes
+        if(execType == ExecType.LOCAL)
+            return;
+        pigServer.registerQuery("vals = load 'nonexistentfile';");
+        pigServer.openIterator("vals");
+        fail("Loading a  nonexistent file should throw an IOException at parse time");
     }
 
     @Test
     public void testRemoteServerList() throws ExecException, IOException {
-        try {
-            Properties pigProperties = pigServer.getPigContext().getProperties();
-            pigProperties.setProperty("fs.default.name", "hdfs://a.com:8020");
-            Configuration conf;
+        Properties pigProperties = pigServer.getPigContext().getProperties();
+        pigProperties.setProperty("fs.default.name", "hdfs://a.com:8020");
+        Configuration conf;
 
-            pigServer.registerQuery("a = load '/user/pig/1.txt';");
-            conf = ConfigurationUtil.toConfiguration(pigProperties);
-            assertTrue(conf.get("mapreduce.job.hdfs-servers")==null||
-                    conf.get("mapreduce.job.hdfs-servers").equals("hdfs://a.com:8020"));
+        pigServer.registerQuery("a = load '/user/pig/1.txt';");
+        conf = ConfigurationUtil.toConfiguration(pigProperties);
+        assertNotNull(conf.get("mapreduce.job.hdfs-servers"));
+        assertTrue(conf.get("mapreduce.job.hdfs-servers").contains("hdfs://a.com:8020"));
 
-            pigServer.registerQuery("a = load 'hdfs://a.com/user/pig/1.txt';");
-            conf = ConfigurationUtil.toConfiguration(pigProperties);
-            assertTrue(pigProperties.getProperty("mapreduce.job.hdfs-servers")==null||
-                    conf.get("mapreduce.job.hdfs-servers").equals("hdfs://a.com:8020"));
+        pigServer.registerQuery("a = load 'hdfs://a.com/user/pig/1.txt';");
+        conf = ConfigurationUtil.toConfiguration(pigProperties);
+        assertNotNull(conf.get("mapreduce.job.hdfs-servers"));
+        assertTrue(conf.get("mapreduce.job.hdfs-servers").contains("hdfs://a.com:8020"));
 
-            pigServer.registerQuery("a = load 'har:///1.txt';");
-            conf = ConfigurationUtil.toConfiguration(pigProperties);
-            assertTrue(pigProperties.getProperty("mapreduce.job.hdfs-servers")==null||
-                    conf.get("mapreduce.job.hdfs-servers").equals("hdfs://a.com:8020"));
+        pigServer.registerQuery("a = load 'har:///1.txt';");
+        conf = ConfigurationUtil.toConfiguration(pigProperties);
+        assertNotNull(conf.get("mapreduce.job.hdfs-servers"));
+        assertTrue(conf.get("mapreduce.job.hdfs-servers").contains("hdfs://a.com:8020"));
 
-            pigServer.registerQuery("a = load 'hdfs://b.com/user/pig/1.txt';");
-            conf = ConfigurationUtil.toConfiguration(pigProperties);
-            assertTrue(conf.get("mapreduce.job.hdfs-servers")!=null &&
-                    conf.get("mapreduce.job.hdfs-servers").contains("hdfs://b.com"));
+        pigServer.registerQuery("a = load 'hdfs://b.com/user/pig/1.txt';");
+        conf = ConfigurationUtil.toConfiguration(pigProperties);
+        assertNotNull(conf.get("mapreduce.job.hdfs-servers"));
+        assertTrue(conf.get("mapreduce.job.hdfs-servers").contains("hdfs://b.com"));
 
-            pigServer.registerQuery("a = load 'har://hdfs-c.com/user/pig/1.txt';");
-            conf = ConfigurationUtil.toConfiguration(pigProperties);
-            assertTrue(conf.get("mapreduce.job.hdfs-servers")!=null &&
-                    conf.get("mapreduce.job.hdfs-servers").contains("hdfs://c.com"));
+        pigServer.registerQuery("a = load 'har://hdfs-c.com/user/pig/1.txt';");
+        conf = ConfigurationUtil.toConfiguration(pigProperties);
+        assertNotNull(conf.get("mapreduce.job.hdfs-servers"));
+        assertTrue(conf.get("mapreduce.job.hdfs-servers").contains("hdfs://c.com"));
 
-            pigServer.registerQuery("a = load 'hdfs://d.com:8020/user/pig/1.txt';");
-            conf = ConfigurationUtil.toConfiguration(pigProperties);
-            assertTrue(conf.get("mapreduce.job.hdfs-servers")!=null &&
-                    conf.get("mapreduce.job.hdfs-servers").contains("hdfs://d.com:8020"));
-
-
-        } catch (IOException io) {
-        }
+        pigServer.registerQuery("a = load 'hdfs://d.com:8020/user/pig/1.txt';");
+        conf = ConfigurationUtil.toConfiguration(pigProperties);
+        assertNotNull(conf.get("mapreduce.job.hdfs-servers"));
+        assertTrue(conf.get("mapreduce.job.hdfs-servers").contains("hdfs://d.com:8020"));
     }
 
     @Test
     public void testRemoteServerList2() throws ExecException, IOException {
-
         Properties pigProperties = pigServer.getPigContext().getProperties();
         pigProperties.setProperty("fs.default.name", "hdfs://a.com:8020");
         Configuration conf;
@@ -152,26 +138,26 @@ protected final Log log = LogFactory.getLog(getClass());
 
         System.out.println("hdfs-servers: " + pigProperties.getProperty("mapreduce.job.hdfs-servers"));
         conf = ConfigurationUtil.toConfiguration(pigProperties);
-        assertTrue(conf.get("mapreduce.job.hdfs-servers")==null||
-                conf.get("mapreduce.job.hdfs-servers").equals("hdfs://a.com:8020"));
+        assertNotNull(conf.get("mapreduce.job.hdfs-servers"));
+        assertTrue(conf.get("mapreduce.job.hdfs-servers").contains("hdfs://a.com:8020"));
 
         pigServer.registerQuery("store a into 'hdfs://b.com/user/pig/1.txt';");
         System.out.println("hdfs-servers: " + pigProperties.getProperty("mapreduce.job.hdfs-servers"));
         conf = ConfigurationUtil.toConfiguration(pigProperties);
-        assertTrue(conf.get("mapreduce.job.hdfs-servers")!=null &&
-                conf.get("mapreduce.job.hdfs-servers").contains("hdfs://b.com"));
+        assertNotNull(conf.get("mapreduce.job.hdfs-servers"));
+        assertTrue(conf.get("mapreduce.job.hdfs-servers").contains("hdfs://b.com"));
 
         pigServer.registerQuery("store a into 'har://hdfs-c.com:8020/user/pig/1.txt';");
         System.out.println("hdfs-servers: " + pigProperties.getProperty("mapreduce.job.hdfs-servers"));
         conf = ConfigurationUtil.toConfiguration(pigProperties);
-        assertTrue(conf.get("mapreduce.job.hdfs-servers")!=null &&
-                conf.get("mapreduce.job.hdfs-servers").contains("hdfs://c.com:8020"));
+        assertNotNull(conf.get("mapreduce.job.hdfs-servers"));
+        assertTrue(conf.get("mapreduce.job.hdfs-servers").contains("hdfs://c.com:8020"));
 
         pigServer.registerQuery("store a into 'hdfs://d.com:8020/user/pig/1.txt';");
         System.out.println("hdfs-servers: " + pigProperties.getProperty("mapreduce.job.hdfs-servers"));
         conf = ConfigurationUtil.toConfiguration(pigProperties);
-        assertTrue(conf.get("mapreduce.job.hdfs-servers")!=null &&
-                conf.get("mapreduce.job.hdfs-servers").contains("hdfs://d.com:8020"));
+        assertNotNull(conf.get("mapreduce.job.hdfs-servers"));
+        assertTrue(conf.get("mapreduce.job.hdfs-servers").contains("hdfs://d.com:8020"));
 
     }
 }

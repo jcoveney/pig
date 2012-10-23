@@ -17,16 +17,13 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.Iterator;
-
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -34,21 +31,20 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
-
 import org.apache.pig.impl.io.FileLocalizer;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.Test;
 
-import junit.framework.TestCase;
-@RunWith(JUnit4.class)
-public class TestFilterOpString extends TestCase {
+public class TestFilterOpString {
 
     private final Log log = LogFactory.getLog(getClass());
-    private static int LOOP_COUNT = 1024;    
+    private static int LOOP_COUNT = 1024;
     private static MiniCluster cluster = MiniCluster.buildCluster();
 
     private PigServer pig;
-    
+
     @Before
-    @Override
     public void setUp() throws Exception {
         FileLocalizer.deleteTempFiles();
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -58,7 +54,7 @@ public class TestFilterOpString extends TestCase {
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     @Test
     public void testStringEq() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
@@ -77,8 +73,8 @@ public class TestFilterOpString extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load '" 
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+        pig.registerQuery("A=load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
                 + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 eq $1;";
 
@@ -92,11 +88,11 @@ public class TestFilterOpString extends TestCase {
             String first = t.get(0).toString();
             String second = t.get(1).toString();
             count++;
-            assertTrue(first.equals(second));
+            assertEquals(first, second);
         }
         assertEquals(expectedCount, count);
     }
-    
+
     @Test
     public void testStringNeq() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
@@ -112,12 +108,12 @@ public class TestFilterOpString extends TestCase {
                 // test with nulls
                 ps.println(":");
                 ps.println("ab:");
-                ps.println(":ab");                
+                ps.println(":ab");
             }
         }
         ps.close();
-        pig.registerQuery("A=load '" 
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+        pig.registerQuery("A=load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
                 + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 neq $1;";
 
@@ -130,7 +126,7 @@ public class TestFilterOpString extends TestCase {
             Tuple t = it.next();
             String first = t.get(0).toString();
             String second = t.get(1).toString();
-            assertFalse(first.equals(second));
+            assertEquals(first, second);
             count++;
         }
         assertEquals(expectedCount, count);
@@ -151,12 +147,12 @@ public class TestFilterOpString extends TestCase {
                 ps.println("a:");
                 ps.println(":b");
                 ps.println(":");
-                
+
             }
         }
         ps.close();
-        pig.registerQuery("A=load '" 
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+        pig.registerQuery("A=load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
                 + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 gt $1;";
 
@@ -175,7 +171,7 @@ public class TestFilterOpString extends TestCase {
         assertEquals(expectedCount, count);
     }
 
-    
+
 
     @Test
     public void testStringGte() throws Throwable {
@@ -198,9 +194,9 @@ public class TestFilterOpString extends TestCase {
             }
         }
         ps.close();
-        
-        pig.registerQuery("A=load '" 
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+
+        pig.registerQuery("A=load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
                 + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 gte $1;";
 
@@ -237,9 +233,9 @@ public class TestFilterOpString extends TestCase {
             }
         }
         ps.close();
-        
-        pig.registerQuery("A=load '" 
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+
+        pig.registerQuery("A=load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
                 + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 lt $1;";
 
@@ -279,9 +275,9 @@ public class TestFilterOpString extends TestCase {
             }
         }
         ps.close();
-        
-        pig.registerQuery("A=load '" 
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+
+        pig.registerQuery("A=load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
                 + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 lte $1;";
 
@@ -299,5 +295,4 @@ public class TestFilterOpString extends TestCase {
         }
         assertEquals(expectedCount, count);
     }
-
 }

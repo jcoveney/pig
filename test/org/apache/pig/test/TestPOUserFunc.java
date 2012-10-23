@@ -18,36 +18,35 @@
 
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
-import junit.framework.TestCase;
-
 import org.apache.pig.Algebraic;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserComparisonFunc;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.test.PORead;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserComparisonFunc;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.test.utils.GenRandomData;
 import org.junit.Test;
 
-public class TestPOUserFunc extends TestCase {
+public class TestPOUserFunc {
 	Random r = new Random();
 	int MAX_TUPLES = 10;
 
@@ -66,7 +65,7 @@ public class TestPOUserFunc extends TestCase {
 
 		@Override
 		public Schema outputSchema(Schema input) {
-            return new Schema(new Schema.FieldSchema(null, DataType.INTEGER)); 
+            return new Schema(new Schema.FieldSchema(null, DataType.INTEGER));
 		}
 	}
 
@@ -108,7 +107,7 @@ public class TestPOUserFunc extends TestCase {
 		public Double exec(Tuple input) throws IOException {
 			double sum = 0;
 			double count = 0;
-			
+
 			try {
 				sum = sum(input);
 				count = count(input);
@@ -227,7 +226,7 @@ public class TestPOUserFunc extends TestCase {
 
 		@Override
 		public Schema outputSchema(Schema input) {
-            return new Schema(new Schema.FieldSchema(null, DataType.DOUBLE)); 
+            return new Schema(new Schema.FieldSchema(null, DataType.DOUBLE));
 		}
 
 	}
@@ -322,8 +321,8 @@ public class TestPOUserFunc extends TestCase {
         }
 
 	@Test
-	public void algebraicAVG( 
-                 Integer[] input 
+	public void algebraicAVG(
+                 Integer[] input
                , double initialExpectedSum, long initialExpectedCount
                , double intermedExpectedSum, long intermedExpectedCount
                , double expectedAvg
@@ -390,7 +389,7 @@ public class TestPOUserFunc extends TestCase {
 		Double output = (res.returnStatus == POStatus.STATUS_OK) ? (Double) res.result
 				: null;
 		// Double output = fin.exec(outputInitial);
-		assertEquals( expectedAvg, output);
+		assertEquals((Double)expectedAvg, output);
 		// System.out.println("output = " + output);
 
 	}

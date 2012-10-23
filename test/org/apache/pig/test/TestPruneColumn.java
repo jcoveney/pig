@@ -17,6 +17,11 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -58,9 +63,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import junit.framework.TestCase;
-
-public class TestPruneColumn extends TestCase {
+public class TestPruneColumn {
     private PigServer pigServer;
     File tmpFile1;
     File tmpFile2;
@@ -85,7 +88,6 @@ public class TestPruneColumn extends TestCase {
     }
 
     static public class MyFilterFunc extends FilterFunc {
-
         @Override
         public Boolean exec(Tuple input) {
             return true;
@@ -93,7 +95,6 @@ public class TestPruneColumn extends TestCase {
     }
 
     @Before
-    @Override
     public void setUp() throws Exception{
         Logger logger = Logger.getLogger(ColumnPruneVisitor.class);
         logger.removeAllAppenders();
@@ -178,7 +179,6 @@ public class TestPruneColumn extends TestCase {
     }
 
     @After
-    @Override
     public void tearDown() throws Exception{
         tmpFile1.delete();
         tmpFile2.delete();
@@ -195,8 +195,7 @@ public class TestPruneColumn extends TestCase {
         logFile.delete();
     }
 
-    public boolean checkLogFileMessage(String[] messages)
-    {
+    public boolean checkLogFileMessage(String[] messages) {
         BufferedReader reader = null;
 
         try {
@@ -238,8 +237,7 @@ public class TestPruneColumn extends TestCase {
                 }
             }
             return true;
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             return false;
         }
     }
@@ -273,16 +271,16 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==2);
-        assertTrue((Integer)t.get(0) == 2);
-        assertTrue((Integer)t.get(1) == 3);
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0), 2);
+        assertEquals(t.get(1), 3);
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==2);
-        assertTrue((Integer)t.get(0) == 5);
-        assertTrue((Integer)t.get(1) == 2);
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0), 5);
+        assertEquals(t.get(1), 2);
 
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0"}));
     }
@@ -296,16 +294,16 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==2);
-        assertTrue((Integer)t.get(0) == 1);
-        assertTrue((Integer)t.get(1) == 3);
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0), 1);
+        assertEquals(t.get(1), 3);
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==2);
-        assertTrue((Integer)t.get(0) == 2);
-        assertTrue((Integer)t.get(1) == 2);
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0), 2);
+        assertEquals(t.get(1), 2);
 
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1"}));
     }
@@ -319,16 +317,16 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==2);
-        assertTrue((Integer)t.get(0) == 1);
-        assertTrue((Integer)t.get(1) == 2);
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0), 1);
+        assertEquals(t.get(1), 2);
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==2);
-        assertTrue((Integer)t.get(0) == 2);
-        assertTrue((Integer)t.get(1) == 5);
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0), 2);
+        assertEquals(t.get(1), 5);
 
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $2"}));
     }
@@ -344,11 +342,11 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.size()==4);
-        assertTrue(t.get(0).equals(2));
-        assertTrue(t.get(1).equals(3));
-        assertTrue(t.get(2).equals(2));
-        assertTrue(t.get(3).equals(2));
+        assertEquals(t.size(), 4);
+        assertEquals(t.get(0), 2);
+        assertEquals(t.get(1), 3);
+        assertEquals(t.get(2), 2);
+        assertEquals(t.get(3), 2);
 
         assertFalse(iter.hasNext());
 
@@ -366,10 +364,10 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.size()==3);
-        assertTrue(t.get(0).equals(2));
-        assertTrue(t.get(1).equals(3));
-        assertTrue(t.get(2).equals(2));
+        assertEquals(t.size(), 3);
+        assertEquals(t.get(0), 2);
+        assertEquals(t.get(1), 3);
+        assertEquals(t.get(2), 2);
 
         assertFalse(iter.hasNext());
 
@@ -387,9 +385,9 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).equals(1));
-        assertTrue(t.get(1).equals(2));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0), 1);
+        assertEquals(t.get(1), 2);
 
         assertFalse(iter.hasNext());
 
@@ -405,15 +403,15 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).equals(1));
-        assertTrue(t.get(1).equals(5));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0), 1);
+        assertEquals(t.get(1), 5);
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).equals(2));
-        assertTrue(t.get(1).equals(7));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0), 2);
+        assertEquals(t.get(1), 7);
 
         assertFalse(iter.hasNext());
 
@@ -429,19 +427,19 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.size()==4);
-        assertTrue(t.get(0).equals(1));
-        assertTrue(t.get(1).equals(1));
-        assertTrue(t.get(2).equals(2));
-        assertTrue(t.get(3).equals(3));
+        assertEquals(t.size(), 4);
+        assertEquals(t.get(0), 1);
+        assertEquals(t.get(1), 1);
+        assertEquals(t.get(2), 2);
+        assertEquals(t.get(3), 3);
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==4);
-        assertTrue(t.get(0).equals(2));
-        assertTrue(t.get(1).equals(2));
-        assertTrue(t.get(2).equals(5));
-        assertTrue(t.get(3).equals(2));
+        assertEquals(t.size(), 4);
+        assertEquals(t.get(0), 2);
+        assertEquals(t.get(1), 2);
+        assertEquals(t.get(2), 5);
+        assertEquals(t.get(3), 2);
 
         assertFalse(iter.hasNext());
 
@@ -458,8 +456,8 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("2"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "2");
 
         assertFalse(iter.hasNext());
 
@@ -476,8 +474,8 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("2"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "2");
 
         assertFalse(iter.hasNext());
 
@@ -493,16 +491,16 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("2"));
-        assertTrue(t.get(1).toString().equals("3"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "2");
+        assertEquals(t.get(1).toString(), "3");
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("5"));
-        assertTrue(t.get(1).toString().equals("2"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "5");
+        assertEquals(t.get(1).toString(), "2");
 
         assertTrue(emptyLogFileMessage());
     }
@@ -516,16 +514,16 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("2"));
-        assertTrue(t.get(1).toString().equals("aoeuaoeu"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "2");
+        assertEquals(t.get(1).toString(), "aoeuaoeu");
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("5"));
-        assertTrue(t.get(1).toString().equals("aoeuaoeu"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "5");
+        assertEquals(t.get(1).toString(), "aoeuaoeu");
 
         assertTrue(emptyLogFileMessage());
     }
@@ -541,20 +539,20 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0)==null);
+        assertEquals(t.size(), 1);
+        assertNull(t.get(0));
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("2.0"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "2.0");
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("5.0"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "5.0");
 
         assertFalse(iter.hasNext());
 
@@ -587,16 +585,16 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("{(1,2,3)}"));
-        assertTrue(t.get(1).toString().equals("1"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "{(1,2,3)}");
+        assertEquals(t.get(1).toString(), "1");
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("{(2,5,2)}"));
-        assertTrue(t.get(1).toString().equals("1"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "{(2,5,2)}");
+        assertEquals(t.get(1).toString(), "1");
 
         assertFalse(iter.hasNext());
 
@@ -614,23 +612,23 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("{}"));
-        assertTrue(t.get(1).toString().equals("{(1)}"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "{}");
+        assertEquals(t.get(1).toString(), "{(1)}");
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("{(2)}"));
-        assertTrue(t.get(1).toString().equals("{(2)}"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "{(2)}");
+        assertEquals(t.get(1).toString(), "{(2)}");
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("{(5)}"));
-        assertTrue(t.get(1).toString().equals("{}"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "{(5)}");
+        assertEquals(t.get(1).toString(), "{}");
 
         assertFalse(iter.hasNext());
 
@@ -647,16 +645,16 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("1"));
-        assertTrue(t.get(1).toString().equals("2"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "1");
+        assertEquals(t.get(1).toString(), "2");
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("2"));
-        assertTrue(t.get(1).toString().equals("5"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "2");
+        assertEquals(t.get(1).toString(), "5");
 
         assertFalse(iter.hasNext());
 
@@ -673,8 +671,8 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("1"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "1");
 
         assertFalse(iter.hasNext());
 
@@ -691,14 +689,14 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("1"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "1");
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("2"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "2");
 
         assertFalse(iter.hasNext());
 
@@ -715,14 +713,14 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("3"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "3");
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("5"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "5");
 
         assertFalse(iter.hasNext());
 
@@ -740,18 +738,18 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==3);
-        assertTrue(t.get(0).toString().equals("{}"));
-        assertTrue(t.get(1).toString().equals("1"));
-        assertTrue(t.get(2).toString().equals("1"));
+        assertEquals(t.size(), 3);
+        assertEquals(t.get(0).toString(), "{}");
+        assertEquals(t.get(1).toString(), "1");
+        assertEquals(t.get(2).toString(), "1");
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==3);
-        assertTrue(t.get(0).toString().equals("{(1,2,3)}"));
-        assertTrue(t.get(1).toString().equals("2"));
-        assertTrue(t.get(2).toString().equals("2"));
+        assertEquals(t.size(), 3);
+        assertEquals(t.get(0).toString(), "{(1,2,3)}");
+        assertEquals(t.get(1).toString(), "2");
+        assertEquals(t.get(2).toString(), "2");
 
         assertFalse(iter.hasNext());
 
@@ -769,20 +767,20 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==4);
-        assertTrue(t.get(0).toString().equals("1"));
-        assertTrue(t.get(1).toString().equals("2"));
-        assertTrue(t.get(2).toString().equals("3"));
-        assertTrue(t.get(3).toString().equals("{(2)}"));
+        assertEquals(t.size(), 4);
+        assertEquals(t.get(0).toString(), "1");
+        assertEquals(t.get(1).toString(), "2");
+        assertEquals(t.get(2).toString(), "3");
+        assertEquals(t.get(3).toString(), "{(2)}");
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==4);
-        assertTrue(t.get(0).toString().equals("2"));
-        assertTrue(t.get(1).toString().equals("5"));
-        assertTrue(t.get(2).toString().equals("2"));
-        assertTrue(t.get(3).toString().equals("{}"));
+        assertEquals(t.size(), 4);
+        assertEquals(t.get(0).toString(), "2");
+        assertEquals(t.get(1).toString(), "5");
+        assertEquals(t.get(2).toString(), "2");
+        assertEquals(t.get(3).toString(), "{}");
 
         assertFalse(iter.hasNext());
 
@@ -806,25 +804,25 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==2);
+        assertEquals(t.size(), 2);
         assertTrue(results.contains(t.toString()));
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==2);
+        assertEquals(t.size(), 2);
         assertTrue(results.contains(t.toString()));
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==2);
+        assertEquals(t.size(), 2);
         assertTrue(results.contains(t.toString()));
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==2);
+        assertEquals(t.size(), 2);
         assertTrue(results.contains(t.toString()));
 
         assertFalse(iter.hasNext());
@@ -847,25 +845,25 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==2);
+        assertEquals(t.size(), 2);
         results.contains(t.toString());
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==2);
+        assertEquals(t.size(), 2);
         results.contains(t.toString());
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==2);
+        assertEquals(t.size(), 2);
         results.contains(t.toString());
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==2);
+        assertEquals(t.size(), 2);
         results.contains(t.toString());
 
         assertFalse(iter.hasNext());
@@ -885,16 +883,16 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("1"));
-        assertTrue(t.get(1).toString().equals("1"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "1");
+        assertEquals(t.get(1).toString(), "1");
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("2"));
-        assertTrue(t.get(1).toString().equals("2"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "2");
+        assertEquals(t.get(1).toString(), "2");
 
         assertFalse(iter.hasNext());
 
@@ -913,14 +911,14 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("1"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "1");
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("2"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "2");
 
         assertFalse(iter.hasNext());
 
@@ -937,14 +935,14 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("1"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "1");
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("2"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "2");
 
         assertFalse(iter.hasNext());
 
@@ -961,14 +959,14 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("1"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "1");
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("2"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "2");
 
         assertFalse(iter.hasNext());
 
@@ -985,14 +983,14 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("1"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "1");
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("2"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "2");
 
         assertFalse(iter.hasNext());
 
@@ -1009,14 +1007,14 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("(1,2,3)"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "(1,2,3)");
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("(2,5,2)"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "(2,5,2)");
 
         assertFalse(iter.hasNext());
 
@@ -1034,14 +1032,14 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("1"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "1");
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("1"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "1");
 
         assertFalse(iter.hasNext());
 
@@ -1058,14 +1056,14 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("1"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "1");
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("2"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "2");
 
         assertFalse(iter.hasNext());
 
@@ -1082,14 +1080,14 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("1"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "1");
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("1"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "1");
 
         assertFalse(iter.hasNext());
 
@@ -1111,13 +1109,13 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==1);
+        assertEquals(t.size(), 1);
         assertTrue(results.contains(t.toString()));
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==1);
+        assertEquals(t.size(), 1);
         assertTrue(results.contains(t.toString()));
 
         assertFalse(iter.hasNext());
@@ -1136,14 +1134,14 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("1"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "1");
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("2"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "2");
 
         assertFalse(iter.hasNext());
 
@@ -1159,15 +1157,15 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).equals(1));
-        assertTrue(t.get(1).toString().equals("1"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0), 1);
+        assertEquals(t.get(1).toString(), "1");
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).equals(2));
-        assertTrue(t.get(1).toString().equals("2"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0), 2);
+        assertEquals(t.get(1).toString(), "2");
 
         assertFalse(iter.hasNext());
 
@@ -1184,15 +1182,15 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("2"));
-        assertTrue(t.get(1).toString().equals("1"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "2");
+        assertEquals(t.get(1).toString(), "1");
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("4"));
-        assertTrue(t.get(1).toString().equals("2"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "4");
+        assertEquals(t.get(1).toString(), "2");
 
         assertFalse(iter.hasNext());
 
@@ -1227,15 +1225,15 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("1"));
-        assertTrue(t.get(1).toString().equals("1"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "1");
+        assertEquals(t.get(1).toString(), "1");
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("2"));
-        assertTrue(t.get(1).toString().equals("2"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "2");
+        assertEquals(t.get(1).toString(), "2");
 
         assertFalse(iter.hasNext());
 
@@ -1252,15 +1250,15 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("1"));
-        assertTrue(t.get(1).toString().equals("1"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "1");
+        assertEquals(t.get(1).toString(), "1");
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("2"));
-        assertTrue(t.get(1).toString().equals("2"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "2");
+        assertEquals(t.get(1).toString(), "2");
 
         assertFalse(iter.hasNext());
 
@@ -1278,9 +1276,9 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("2"));
-        assertTrue(t.get(1).toString().equals("2"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "2");
+        assertEquals(t.get(1).toString(), "2");
 
         assertFalse(iter.hasNext());
 
@@ -1300,13 +1298,13 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(((Map)t.get(0)).get("key1").toString().equals("1"));
-        assertTrue(((Map)t.get(0)).get("key2").toString().equals("2"));
-        assertTrue(((Map)t.get(0)).get("cond").toString().equals("1"));
-        assertTrue(((Map)t.get(1)).get("key1").toString().equals("1"));
-        assertTrue(((Map)t.get(1)).get("key2").toString().equals("2"));
-        assertTrue(((Map)t.get(1)).get("cond").toString().equals("1"));
+        assertEquals(t.size(), 2);
+        assertEquals(((Map)t.get(0)).get("key1").toString(), "1");
+        assertEquals(((Map)t.get(0)).get("key2").toString(), "2");
+        assertEquals(((Map)t.get(0)).get("cond").toString(), "1");
+        assertEquals(((Map)t.get(1)).get("key1").toString(), "1");
+        assertEquals(((Map)t.get(1)).get("key2").toString(), "2");
+        assertEquals(((Map)t.get(1)).get("cond").toString(), "1");
 
         assertFalse(iter.hasNext());
 
@@ -1322,15 +1320,15 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("1"));
-        assertTrue(t.get(1).toString().equals("3"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "1");
+        assertEquals(t.get(1).toString(), "3");
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("1"));
-        assertTrue(t.get(1).toString().equals("2"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "1");
+        assertEquals(t.get(1).toString(), "2");
 
         assertFalse(iter.hasNext());
 
@@ -1346,17 +1344,17 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.size()==3);
-        assertTrue(t.get(0).toString().equals("1"));
-        assertTrue(t.get(1).toString().equals("2"));
-        assertTrue(t.get(2).toString().equals("3"));
+        assertEquals(t.size(), 3);
+        assertEquals(t.get(0).toString(), "1");
+        assertEquals(t.get(1).toString(), "2");
+        assertEquals(t.get(2).toString(), "3");
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==3);
-        assertTrue(t.get(0).toString().equals("2"));
-        assertTrue(t.get(1).toString().equals("5"));
-        assertTrue(t.get(2).toString().equals("2"));
+        assertEquals(t.size(), 3);
+        assertEquals(t.get(0).toString(), "2");
+        assertEquals(t.get(1).toString(), "5");
+        assertEquals(t.get(2).toString(), "2");
 
         assertFalse(iter.hasNext());
 
@@ -1380,13 +1378,13 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("1"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "1");
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("2"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "2");
 
         assertFalse(iter.hasNext());
 
@@ -1411,15 +1409,15 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("1"));
-        assertTrue(t.get(1).toString().equals("3"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "1");
+        assertEquals(t.get(1).toString(), "3");
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("2"));
-        assertTrue(t.get(0).toString().equals("2"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "2");
+        assertEquals(t.get(0).toString(), "2");
 
         assertFalse(iter.hasNext());
 
@@ -1439,13 +1437,13 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("1"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "1");
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("2"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "2");
 
         assertFalse(iter.hasNext());
 
@@ -1465,13 +1463,13 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("1"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "1");
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("2"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "2");
 
         assertFalse(iter.hasNext());
 
@@ -1493,22 +1491,22 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.size()==1);
+        assertEquals(t.size(), 1);
         assertTrue(results.contains(t.toString()));
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==1);
+        assertEquals(t.size(), 1);
         assertTrue(results.contains(t.toString()));
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==1);
+        assertEquals(t.size(), 1);
         assertTrue(results.contains(t.toString()));
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==1);
+        assertEquals(t.size(), 1);
         assertTrue(results.contains(t.toString()));
 
         assertFalse(iter.hasNext());
@@ -1533,8 +1531,8 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("{(2,2)}"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.get(0).toString(), "{(2,2)}");
 
         assertFalse(iter.hasNext());
 
@@ -1553,21 +1551,21 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("1"));
-        assertTrue(t.get(1).toString().equals("{}"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "1");
+        assertEquals(t.get(1).toString(), "{}");
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("2"));
-        assertTrue(t.get(1).toString().equals("{(1,2,3)}"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "2");
+        assertEquals(t.get(1).toString(), "{(1,2,3)}");
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("5"));
-        assertTrue(t.get(1).toString().equals("{(2,5,2)}"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0).toString(), "5");
+        assertEquals(t.get(1).toString(), "{(2,5,2)}");
 
         assertFalse(iter.hasNext());
 
@@ -1585,11 +1583,11 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.toString().equals("(1)"));
+        assertEquals(t.toString(), "(1)");
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.toString().equals("(2)"));
+        assertEquals(t.toString(), "(2)");
 
         assertFalse(iter.hasNext());
 
@@ -1607,7 +1605,7 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.toString().equals("([2#1,1#1])"));
+        assertEquals(t.toString(), "([2#1,1#1])");
 
         assertFalse(iter.hasNext());
 
@@ -1650,7 +1648,7 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.toString().equals("(3)"));
+        assertEquals(t.toString(), "(3)");
 
         assertFalse(iter.hasNext());
 
@@ -1667,7 +1665,7 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.toString().equals("(3)"));
+        assertEquals(t.toString(), "(3)");
 
         assertFalse(iter.hasNext());
 
@@ -1684,14 +1682,14 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.toString().equals("(2)"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.toString(), "(2)");
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==1);
-        assertTrue(t.toString().equals("(3)"));
+        assertEquals(t.size(), 1);
+        assertEquals(t.toString(), "(3)");
 
         assertFalse(iter.hasNext());
 
@@ -1710,14 +1708,14 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==2);
-        assertTrue(t.toString().equals("({(2,5,2)},{(2,5,2)})"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.toString(), "({(2,5,2)},{(2,5,2)})");
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==2);
-        assertTrue(t.toString().equals("({(1,2,3)},{(1,2,3)})"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.toString(), "({(1,2,3)},{(1,2,3)})");
 
         assertFalse(iter.hasNext());
 
@@ -1737,8 +1735,8 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==3);
-        assertTrue(t.toString().equals("(2,2,2)"));
+        assertEquals(t.size(), 3);
+        assertEquals(t.toString(), "(2,2,2)");
 
         assertFalse(iter.hasNext());
 
@@ -1763,25 +1761,25 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==2);
+        assertEquals(t.size(), 2);
         assertTrue(results.contains(t.toString()));
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==2);
+        assertEquals(t.size(), 2);
         assertTrue(results.contains(t.toString()));
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==2);
+        assertEquals(t.size(), 2);
         assertTrue(results.contains(t.toString()));
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==2);
+        assertEquals(t.size(), 2);
         assertTrue(results.contains(t.toString()));
 
         assertFalse(iter.hasNext());
@@ -1807,25 +1805,25 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==1);
+        assertEquals(t.size(), 1);
         assertTrue(results.contains(t.toString()));
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==1);
+        assertEquals(t.size(), 1);
         assertTrue(results.contains(t.toString()));
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==1);
+        assertEquals(t.size(), 1);
         assertTrue(results.contains(t.toString()));
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.size()==1);
+        assertEquals(t.size(), 1);
         assertTrue(results.contains(t.toString()));
 
         assertFalse(iter.hasNext());
@@ -1845,19 +1843,19 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.toString().equals("(oiue,10)"));
+        assertEquals(t.toString(), "(oiue,10)");
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.toString().equals("(oiue,10)"));
+        assertEquals(t.toString(), "(oiue,10)");
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.toString().equals("(oiue,10)"));
+        assertEquals(t.toString(), "(oiue,10)");
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.toString().equals("(oiue,10)"));
+        assertEquals(t.toString(), "(oiue,10)");
 
         assertFalse(iter.hasNext());
 
@@ -1873,11 +1871,11 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.toString().equals("(2.0,2,3)"));
+        assertEquals(t.toString(), "(2.0,2,3)");
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.toString().equals("(4.0,5,2)"));
+        assertEquals(t.toString(), "(4.0,5,2)");
 
         assertFalse(iter.hasNext());
 
@@ -1894,11 +1892,11 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.toString().equals("(1,2,3,1)"));
+        assertEquals(t.toString(), "(1,2,3,1)");
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.toString().equals("(2,5,2,2)"));
+        assertEquals(t.toString(), "(2,5,2,2)");
 
         assertTrue(emptyLogFileMessage());
     }
@@ -1934,11 +1932,11 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.toString().equals("(1,3)"));
+        assertEquals(t.toString(), "(1,3)");
 
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.toString().equals("(2,2)"));
+        assertEquals(t.toString(), "(2,2)");
 
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1"}));
     }
@@ -1959,21 +1957,21 @@ public class TestPruneColumn extends TestCase {
 
         BufferedReader reader1 = new BufferedReader(new InputStreamReader(FileLocalizer.openDFSFile(output1.toString(), pigServer.getPigContext().getProperties())));
         String line = reader1.readLine();
-        assertTrue(line.equals("1\t2\t3"));
+        assertEquals(line, "1\t2\t3");
 
         line = reader1.readLine();
-        assertTrue(line.equals("2\t3\t4"));
+        assertEquals(line, "2\t3\t4");
 
-        assertTrue(reader1.readLine()==null);
+        assertEquals(reader1.readLine(), null);
 
         BufferedReader reader2 = new BufferedReader(new InputStreamReader(FileLocalizer.openDFSFile(output2.toString(), pigServer.getPigContext().getProperties())));
         line = reader2.readLine();
-        assertTrue(line.equals("3"));
+        assertEquals(line, "3");
 
         line = reader2.readLine();
-        assertTrue(line.equals("4"));
+        assertEquals(line, "4");
 
-        assertTrue(reader2.readLine()==null);
+        assertEquals(reader2.readLine(), null);
 
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $3"}));
 
@@ -2047,9 +2045,9 @@ public class TestPruneColumn extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).equals("a1"));
-        assertTrue(t.get(1).equals("a2"));
+        assertEquals(t.size(), 2);
+        assertEquals(t.get(0), "a1");
+        assertEquals(t.get(1), "a2");
 
         assertFalse(iter.hasNext());
     }
@@ -2078,12 +2076,12 @@ public class TestPruneColumn extends TestCase {
         input1.delete();
         File input2 = File.createTempFile("tmp", "");
         input2.delete();
-        
+
         Util.createLocalInputFile(input1.getAbsolutePath(), new String[]
                 {"[key1#0,key2#5,key3#val3,key4#val4,key5#val5]"});
         Util.createLocalInputFile(input2.getAbsolutePath(), new String[]
                 {"[key1#0,key2#5,key3#val3,key4#val4,key5#val5]"});
-        
+
         pigServer.registerQuery("event_serve = LOAD '" + input1.getAbsolutePath() +
                 "' AS (s, m, l);");
         pigServer.registerQuery("cm_data_raw = LOAD '" + input2.getAbsolutePath() +
@@ -2094,19 +2092,18 @@ public class TestPruneColumn extends TestCase {
         pigServer.registerQuery("event_serve_project = FOREACH  event_serve GENERATE  s#'key3' AS event_guid, s#'key4' AS receive_time;");
         pigServer.registerQuery("event_serve_join = join cm_serve_final by (cm_event_guid), event_serve_project by (event_guid);");
         Iterator<Tuple> iter = pigServer.openIterator("event_serve_join");
-        
+
         String[] expected = new String[] {"(val3,val4,val5,val3,val4)"};
 
         Util.checkQueryOutputsAfterSortRecursive(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("event_serve_join")));
 
-        assertTrue(checkLogFileMessage(new String[]{"Map key required for event_serve: $0->[key4, key3]", 
+        assertTrue(checkLogFileMessage(new String[]{"Map key required for event_serve: $0->[key4, key3]",
                 "Map key required for cm_data_raw: $0->[key4, key3, key5]"}));
     }
 
     // See PIG-2535
     @Test
     public void testStream3() throws Exception {
-
         pigServer.registerQuery("event_serve = LOAD 'input1' AS (s, m, l);");
         pigServer.registerQuery("raw = LOAD 'input2' AS (s, m, l);");
 
@@ -2126,5 +2123,4 @@ public class TestPruneColumn extends TestCase {
         assertTrue(checkLogFileMessage(new String[]{"Map key required for event_serve: $0->[event_guid, receive_time, filter_key]",
                 "Map key required for raw: $0->[source, p_url, cm_serve_timestamp_ms, cm_serve_id, type]"}));
     }
-
 }

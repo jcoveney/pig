@@ -19,22 +19,17 @@ package org.apache.pig.test;
 
 import static org.apache.pig.builtin.mock.Storage.resetData;
 import static org.apache.pig.builtin.mock.Storage.tuple;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-import junit.framework.TestCase;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -42,9 +37,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-public class TestRank3 extends TestCase {
-
-    private final Log log = LogFactory.getLog(getClass());
+public class TestRank3 {
     private static PigServer pigServer;
     private static TupleFactory tf = TupleFactory.getInstance();
     private Data data;
@@ -53,10 +46,8 @@ public class TestRank3 extends TestCase {
     public static void oneTimeSetUp() throws Exception {
     }
 
-    @Override
     @Before
     public void setUp() throws Exception {
-
         try {
             pigServer = new PigServer("local");
 
@@ -99,15 +90,6 @@ public class TestRank3 extends TestCase {
             ioe.initCause(e);
             throw ioe;
         }
-    }
-
-    @Override
-    @After
-    public void tearDown() throws Exception {
-    }
-
-    @AfterClass
-    public static void oneTimeTearDown() throws Exception {
     }
 
     @Test
@@ -161,7 +143,6 @@ public class TestRank3 extends TestCase {
     }
 
     public void verifyExpected(List<Tuple> out, Set<Tuple> expected) {
-
         for (Tuple tup : out) {
             assertTrue(expected + " contains " + tup, expected.contains(tup));
         }
