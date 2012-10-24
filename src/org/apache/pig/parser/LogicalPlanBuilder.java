@@ -1265,7 +1265,9 @@ public class LogicalPlanBuilder {
                         rootSchema.alias = colAlias;
                     }
                 } catch (FrontendException e) {
-                    throw new RuntimeException(e); //TODO(jco) do something real here
+                    // Do nothing. getFieldSchema() is not just a getter -- it has side effects. In some cases, as
+                    // a result of these side effects it will throw an exception, which for our purposes just means
+                    // there is no LogicalFieldSchema available.
                 }
                 return root;
             } else {
