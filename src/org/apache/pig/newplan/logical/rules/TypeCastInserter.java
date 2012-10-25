@@ -21,11 +21,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.pig.FuncSpec;
+import org.apache.pig.builtin.FlattenOutput.FlattenStates;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
-import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.expression.CastExpression;
@@ -61,21 +61,21 @@ public abstract class TypeCastInserter extends Rule {
         plan.add(op);
         return plan;
     }
-    
+
     abstract String getOperatorClassName();
 
     @Override
     public Transformer getNewTransformer() {
         return new TypeCastInserterTransformer();
     }
-    
+
     public class TypeCastInserterTransformer extends Transformer {
         @Override
         public boolean check(OperatorPlan matched) throws FrontendException {
             LogicalRelationalOperator op = (LogicalRelationalOperator)matched.getSources().get(0);
             LogicalSchema s = op.getSchema();
             if (s == null) return false;
-    
+
             if (op instanceof LOLoad) {
                 if (((LOLoad)op).getScriptSchema()==null) return false;
                 if (((LOLoad)op).isCastInserted()) return false;
@@ -84,7 +84,7 @@ public abstract class TypeCastInserter extends Rule {
                 if (((LOStream)op).getScriptSchema()==null) return false;
                 if (((LOStream)op).isCastInserted()) return false;
             }
-            
+
             return true;
         }
 
@@ -96,21 +96,21 @@ public abstract class TypeCastInserter extends Rule {
             // other than byte array, then the plan will be cast(project).  Else
             // it will just be project.
             LogicalPlan innerPlan = new LogicalPlan();
-            
+
             LOForEach foreach = new LOForEach(currentPlan);
             foreach.setInnerPlan(innerPlan);
             foreach.setAlias(op.getAlias());
-            
+
             // Insert the foreach into the plan and patch up the plan.
             if (currentPlan.getSuccessors(op) == null)
                 return;
             Operator next = currentPlan.getSuccessors(op).get(0);
             currentPlan.insertBetween(op, foreach, next);
-            
+
             List<LogicalExpressionPlan> exps = new ArrayList<LogicalExpressionPlan>();
-            LOGenerate gen = new LOGenerate(innerPlan, exps, new boolean[s.size()]);
+            LOGenerate gen = new LOGenerate(innerPlan, exps, new FlattenStates[s.size()]);
             innerPlan.add(gen);
-            
+
             // if we are inserting casts in a load and if the loader
             // implements determineSchema(), insert casts only where necessary
             // Note that in this case, the data coming out of the loader is not
@@ -127,18 +127,18 @@ public abstract class TypeCastInserter extends Rule {
             }
             for (int i = 0; i < s.size(); i++) {
                 LogicalSchema.LogicalFieldSchema fs = s.getField(i);
-                
+
                 LOInnerLoad innerLoad = new LOInnerLoad(innerPlan, foreach, i);
-                innerPlan.add(innerLoad);          
+                innerPlan.add(innerLoad);
                 innerPlan.connect(innerLoad, gen);
-                
+
                 LogicalExpressionPlan exp = new LogicalExpressionPlan();
-                
+
                 ProjectExpression prj = new ProjectExpression(exp, i, -1, gen);
                 exp.add(prj);
-                
+
                 if (fs.type != DataType.BYTEARRAY && (determinedSchema == null || (!fs.isEqual(determinedSchema.getField(i))))) {
-                    // Either no schema was determined by loader OR the type 
+                    // Either no schema was determined by loader OR the type
                     // from the "determinedSchema" is different
                     // from the type specified - so we need to cast
                     CastExpression cast = new CastExpression(exp, prj, new LogicalSchema.LogicalFieldSchema(fs));
@@ -148,7 +148,7 @@ public abstract class TypeCastInserter extends Rule {
                         loadFuncSpec = ((LOLoad)op).getFileSpec().getFuncSpec();
                     } else if (op instanceof LOStream) {
                         StreamingCommand command = ((LOStream)op).getStreamingCommand();
-                        HandleSpec streamOutputSpec = command.getOutputSpec(); 
+                        HandleSpec streamOutputSpec = command.getOutputSpec();
                         loadFuncSpec = new FuncSpec(streamOutputSpec.getSpec());
                     } else {
                         String msg = "TypeCastInserter invoked with an invalid operator class name: " + innerPlan.getClass().getSimpleName();
@@ -163,7 +163,7 @@ public abstract class TypeCastInserter extends Rule {
             else
                 ((LOStream)op).setCastInserted(true);
         }
-        
+
         @Override
         public OperatorPlan reportChanges() {
             return currentPlan;

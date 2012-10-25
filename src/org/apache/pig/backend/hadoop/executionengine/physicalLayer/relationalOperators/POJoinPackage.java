@@ -25,6 +25,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.builtin.FlattenOutput.FlattenStates;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -39,7 +40,7 @@ import org.apache.pig.impl.plan.VisitorException;
 public class POJoinPackage extends POPackage {
 
     private static final long serialVersionUID = 1L;
-    
+
     private POOptimizedForEach forEach;
     private boolean newKey = true;
     private Tuple res = null;
@@ -56,7 +57,7 @@ public class POJoinPackage extends POPackage {
     private DataBag[] dbs = null;
 
     private int lastBagIndex;
-    
+
     public POJoinPackage(OperatorKey k, int rp, POPackage p, POForEach f) {
         super(k, rp);
         String scope = getOperatorKey().getScope();
@@ -91,21 +92,21 @@ public class POJoinPackage extends POPackage {
     }
 
     /**
-     * Calls getNext to get next ForEach result. The input for POJoinPackage is 
-     * a (key, NullableTuple) pair. We will materialize n-1 inputs into bags, feed input#n 
+     * Calls getNext to get next ForEach result. The input for POJoinPackage is
+     * a (key, NullableTuple) pair. We will materialize n-1 inputs into bags, feed input#n
      * one tuple a time to the delegated ForEach operator, the input for ForEach is
-     * 
+     *
      *     (input#1, input#2, input#3....input#n[i]), i=(1..k), suppose input#n consists
-     *     
+     *
      * of k tuples.
      * For every ForEach input, pull all the results from ForEach.
-     * getNext will be called multiple times for a particular input, 
-     * it returns one output tuple from ForEach every time we call getNext, 
+     * getNext will be called multiple times for a particular input,
+     * it returns one output tuple from ForEach every time we call getNext,
      * so we need to maintain internal status to keep tracking of where we are.
      */
     @Override
     public Result getNext(Tuple t) throws ExecException {
-        
+
         if(firstTime){
             firstTime = false;
             if (PigMapReduce.sJobConfInternal.get() != null) {
@@ -130,9 +131,9 @@ public class POJoinPackage extends POPackage {
                 break;
             }
         }
-        
+
         NullableTuple it = null;
-        
+
         // If we see a new NullableTupleIterator, materialize n-1 inputs, construct ForEach input
         // tuple res = (key, input#1, input#2....input#n), the only missing value is input#n,
         // we will get input#n one tuple a time, fill in res, feed to ForEach.
@@ -143,16 +144,16 @@ public class POJoinPackage extends POPackage {
             //Put n-1 inputs into bags
             dbs = new DataBag[numInputs];
             for (int i = 0; i < numInputs - 1; i++) {
-                dbs[i] = useDefaultBag ? BagFactory.getInstance().newDefaultBag() 
-                // In a very rare case if there is a POStream after this 
+                dbs[i] = useDefaultBag ? BagFactory.getInstance().newDefaultBag()
+                // In a very rare case if there is a POStream after this
                 // POJoinPackage in the pipeline and is also blocking the pipeline;
                 // constructor argument should be 2 * numInputs. But for one obscure
-                // case we don't want to pay the penalty all the time.        
-                        : new InternalCachedBag(numInputs-1);                    
+                // case we don't want to pay the penalty all the time.
+                        : new InternalCachedBag(numInputs-1);
             }
             // For last bag, we always use NonSpillableBag.
             dbs[lastBagIndex] = new NonSpillableDataBag((int)chunkSize);
-            
+
             //For each Nullable tuple in the input, put it
             //into the corresponding bag based on the index,
             // except for the last input, which we will stream
@@ -185,7 +186,7 @@ public class POJoinPackage extends POPackage {
                 newKey = true;
                 return eopResult;
             }
-            
+
             res = mTupleFactory.newTuple(numInputs+1);
             for (int i = 0; i < dbs.length; i++)
                 res.set(i+1,dbs[i]);
@@ -200,15 +201,15 @@ public class POJoinPackage extends POPackage {
                 }
             }
             newKey = false;
-            
+
 			// set up the bag with last input to contain
 			// a chunk of CHUNKSIZE values OR the entire bag if
 			// it has less than CHUNKSIZE values - the idea is in most
-			// cases the values are > CHUNKSIZE in number and in 
+			// cases the values are > CHUNKSIZE in number and in
 			// those cases we will be sending the last bag
 			// as a set of smaller chunked bags thus holding lesser
 			// in memory
-			
+
 			// the first tuple can be directly retrieved from "it"
 			dbs[lastBagIndex].add(getValueTuple(it, it.getIndex()));
 			for(int i = 0; i < chunkSize -1 && tupIter.hasNext(); i++) {
@@ -218,7 +219,7 @@ public class POJoinPackage extends POPackage {
 
 			// Attach the input to forEach
             forEach.attachInput(res);
-            
+
             // pull output tuple from ForEach
             Result forEachResult = forEach.getNext(t1);
             {
@@ -233,7 +234,7 @@ public class POJoinPackage extends POPackage {
                 }
             }
         }
-        
+
         // Keep attaching input tuple to ForEach, until:
         // 1. We can initialize ForEach.getNext();
         // 2. There is no more input#n
@@ -258,7 +259,7 @@ public class POJoinPackage extends POPackage {
             }
             // Attach the input to forEach
             forEach.attachInput(res);
-            
+
             // pull output tuple from ForEach
             Result forEachResult = forEach.getNext(t1);
             {
@@ -274,7 +275,7 @@ public class POJoinPackage extends POPackage {
             }
         }
     }
-    
+
     public List<PhysicalPlan> getInputPlans() {
         return forEach.getInputPlans();
     }
@@ -283,8 +284,8 @@ public class POJoinPackage extends POPackage {
         forEach.setInputPlans(plans);
     }
 
-    public void setToBeFlattened(List<Boolean> flattens) {
-        forEach.setToBeFlattened(flattens);
+    public void setToBeFlattened(List<FlattenStates> flattens) {
+        forEach.setStatesToBeFlattened(flattens);
     }
 
     /**

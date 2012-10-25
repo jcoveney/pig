@@ -19,36 +19,24 @@
 package org.apache.pig.newplan.logical.rules;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.pig.FuncSpec;
+import org.apache.pig.builtin.FlattenOutput.FlattenStates;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.builtin.IdentityColumn;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.util.Pair;
-import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
-import org.apache.pig.newplan.OperatorSubPlan;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
-import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.expression.UserFuncExpression;
 import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
 import org.apache.pig.newplan.logical.optimizer.UidResetter;
-import org.apache.pig.newplan.logical.relational.LOCross;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
-import org.apache.pig.newplan.logical.relational.LOInnerLoad;
-import org.apache.pig.newplan.logical.relational.LOJoin;
-import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
-import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
-import org.apache.pig.newplan.logical.rules.PushDownForEachFlatten.PushDownForEachFlattenTransformer;
 import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.newplan.optimizer.Transformer;
 
@@ -60,7 +48,7 @@ public class DuplicateForEachColumnRewrite extends Rule {
 
     public DuplicateForEachColumnRewrite(String n) {
         super(n, true);
-        // See comments in ImplicitSplitInserter for the reason to skip listener 
+        // See comments in ImplicitSplitInserter for the reason to skip listener
         setSkipListener(true);
     }
 
@@ -79,24 +67,24 @@ public class DuplicateForEachColumnRewrite extends Rule {
 
     class DuplicateForEachColumnRewriteTransformer extends Transformer {
         private List<LogicalExpressionPlan> expPlansToInsertIdentity = new ArrayList<LogicalExpressionPlan>();
-        
+
         @Override
         public boolean check(OperatorPlan matched) throws FrontendException {
-            
+
             LOForEach foreach = (LOForEach)matched.getSources().get(0);
             LOGenerate gen = (LOGenerate)foreach.getInnerPlan().getSinks().get(0);
-            
+
             List<LogicalExpressionPlan> expPlans = gen.getOutputPlans();
-            boolean[] flattens = gen.getFlattenFlags();
-            
+            FlattenStates[] flattens = gen.getFlattenFlags();
+
             List<Long> uidSeen = new ArrayList<Long>();
-            
+
             for (int i=0;i<expPlans.size();i++) {
                 LogicalExpressionPlan expPlan = expPlans.get(i);
-                boolean flatten = flattens[i];
+                FlattenStates flatten = flattens[i];
                 LogicalExpression exp = (LogicalExpression)expPlan.getSources().get(0);
                 if (exp.getFieldSchema()!=null) {
-                    if (flatten && (exp.getFieldSchema().type == DataType.BAG || exp.getFieldSchema().type == DataType.TUPLE)) {
+                    if (flatten.shouldFlatten() && (exp.getFieldSchema().type == DataType.BAG || exp.getFieldSchema().type == DataType.TUPLE)) {
                         List<LogicalFieldSchema> innerFieldSchemas = null;
                         if (exp.getFieldSchema().type == DataType.BAG) {
                             if (exp.getFieldSchema().schema!=null) {
@@ -134,20 +122,20 @@ public class DuplicateForEachColumnRewrite extends Rule {
                     }
                 }
             }
-            
+
             if (expPlansToInsertIdentity.isEmpty())
                 return false;
-            
+
             return true;
         }
-        
+
         private boolean checkAndAdd(long uid, List<Long> uidSeen) {
             if (uidSeen.contains(uid))
                 return true;
             uidSeen.add(uid);
             return false;
         }
-        
+
         @Override
         public OperatorPlan reportChanges() {
             return currentPlan;
@@ -165,9 +153,9 @@ public class DuplicateForEachColumnRewrite extends Rule {
             // Since we adjust the uid layout, clear all cached uids
             UidResetter uidResetter = new UidResetter(currentPlan);
             uidResetter.visit();
-            
+
             // Manually regenerate schema since we skip listener
-            // skip duplicate uid check in schema as it would be fixed in 
+            // skip duplicate uid check in schema as it would be fixed in
             // only portion of the plan
             SchemaResetter schemaResetter = new SchemaResetter(currentPlan, true);
             schemaResetter.visit();

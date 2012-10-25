@@ -39,6 +39,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin.TuplesToSchemaTupleList;
+import org.apache.pig.builtin.FlattenOutput.FlattenStates;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.NonSpillableDataBag;
@@ -54,6 +55,8 @@ import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
+
+import com.google.common.collect.Lists;
 
 /**
  * The operator models the join keys using the Local Rearrange operators which
@@ -71,7 +74,7 @@ import org.apache.pig.impl.plan.VisitorException;
 public class POFRJoin extends PhysicalOperator {
     private static final Log log = LogFactory.getLog(POFRJoin.class);
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
     // The number in the input list which denotes the fragmented input
@@ -105,7 +108,7 @@ public class POFRJoin extends PhysicalOperator {
     // Join
     private boolean isLeftOuterJoin;
 
-    // This list contains nullTuples according to schema of various inputs 
+    // This list contains nullTuples according to schema of various inputs
     private DataBag nullBag;
     private Schema[] inputSchemas;
     private Schema[] keySchemas;
@@ -163,13 +166,13 @@ public class POFRJoin extends PhysicalOperator {
 
     /**
      * Configures the Local Rearrange operators & the foreach operator
-     * 
+     *
      * @param old
      * @throws ExecException
      */
     private void createJoinPlans(OperatorKey old) throws ExecException {
-        List<PhysicalPlan> fePlans = new ArrayList<PhysicalPlan>();
-        List<Boolean> flatList = new ArrayList<Boolean>();
+        List<PhysicalPlan> fePlans = Lists.newArrayList();
+        List<FlattenStates> flatList = Lists.newArrayList();
 
         int i = -1;
         for (List<PhysicalPlan> ppLst : phyPlanLists) {
@@ -193,13 +196,13 @@ public class POFRJoin extends PhysicalOperator {
             PhysicalPlan pp = new PhysicalPlan();
             pp.add(ce);
             fePlans.add(pp);
-            flatList.add(true);
+            flatList.add(FlattenStates.FLATTEN_WITH_PREFIX);
         }
         // The ForEach operator here is used for generating a Cross-Product
         // It is given a set of constant expressions with
         // Tuple,(Bag|Tuple),(...)
         // It does a cross product on that and produces output.
-        fe = new POForEach(genKey(old), -1, fePlans, flatList);
+        fe = new POForEach(-1, genKey(old), fePlans, flatList);
     }
 
     @Override
@@ -244,7 +247,7 @@ public class POFRJoin extends PhysicalOperator {
                 if (res.returnStatus == POStatus.STATUS_EOP) {
                     // We have completed all cross-products now its time to move
                     // to next tuple of left side
-                    processingPlan = false;                    
+                    processingPlan = false;
                     break;
                 }
                 if (res.returnStatus == POStatus.STATUS_ERR) {
@@ -345,7 +348,7 @@ public class POFRJoin extends PhysicalOperator {
     /**
      * Builds the HashMaps by reading each replicated input from the DFS using a
      * Load operator
-     * 
+     *
      * @throws ExecException
      */
     private void setUpHashMap() throws ExecException {
@@ -379,9 +382,9 @@ public class POFRJoin extends PhysicalOperator {
 
             POLoad ld = new POLoad(new OperatorKey("Repl File Loader", 1L),
                     replFile);
-            
+
             Properties props = ConfigurationUtil.getLocalFSProperties();
-            PigContext pc = new PigContext(ExecType.LOCAL, props);   
+            PigContext pc = new PigContext(ExecType.LOCAL, props);
             ld.setPc(pc);
             // We use LocalRearrange Operator to seperate Key and Values
             // eg. ( a, b, c ) would generate a, ( a, b, c )
@@ -397,7 +400,7 @@ public class POFRJoin extends PhysicalOperator {
             log.debug("Completed setup. Trying to build replication hash table");
             for (Result res = lr.getNext(dummyTuple);res.returnStatus != POStatus.STATUS_EOP;res = lr.getNext(dummyTuple)) {
                 if (reporter != null)
-                    reporter.progress();               
+                    reporter.progress();
                 Tuple tuple = (Tuple) res.result;
                 if (isKeyNull(tuple.get(1))) continue;
                 Tuple key = mTupleFactory.newTuple(1);
@@ -426,7 +429,7 @@ public class POFRJoin extends PhysicalOperator {
         }
         return false;
     }
-    
+
     private void readObject(ObjectInputStream is) throws IOException,
             ClassNotFoundException, ExecException {
         is.defaultReadObject();
@@ -506,7 +509,7 @@ public class POFRJoin extends PhysicalOperator {
     public void setReplFiles(FileSpec[] replFiles) {
         this.replFiles = replFiles;
     }
-    
+
     @Override
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
         // no op: all handled by the preceding POForEach

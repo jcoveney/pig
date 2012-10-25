@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.pig.builtin.FlattenOutput.FlattenStates;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
@@ -32,7 +33,7 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchem
 
 public class LOGenerate extends LogicalRelationalOperator {
      private List<LogicalExpressionPlan> outputPlans;
-     private boolean[] flattenFlags;
+     private FlattenStates[] flattenFlags;
      private List<LogicalSchema> mUserDefinedSchema = null;
      private List<LogicalSchema> outputPlanSchemas = null;
      // If LOGenerate generate new uid, cache it here.
@@ -40,16 +41,16 @@ public class LOGenerate extends LogicalRelationalOperator {
      // user give complete schema in ForEach statement in script
      private List<LogicalSchema> uidOnlySchemas = null;
 
-    public LOGenerate(OperatorPlan plan, List<LogicalExpressionPlan> ps, boolean[] flatten) {
+    public LOGenerate(OperatorPlan plan, List<LogicalExpressionPlan> ps, FlattenStates[] flatten) {
         this( plan );
         outputPlans = ps;
         flattenFlags = flatten;
     }
-    
+
     public void setOutputPlans(List<LogicalExpressionPlan> plans) {
         this.outputPlans = plans;
     }
-    
+
     public LOGenerate(OperatorPlan plan) {
         super( "LOGenerate", plan );
     }
@@ -59,19 +60,19 @@ public class LOGenerate extends LogicalRelationalOperator {
         if (schema != null) {
             return schema;
         }
-        
+
         if (uidOnlySchemas == null) {
             uidOnlySchemas = new ArrayList<LogicalSchema>();
             for (int i=0;i<outputPlans.size();i++)
                 uidOnlySchemas.add(null);
         }
-        
+
         schema = new LogicalSchema();
         outputPlanSchemas = new ArrayList<LogicalSchema>();
-        
+
         for(int i=0; i<outputPlans.size(); i++) {
             LogicalExpression exp = (LogicalExpression)outputPlans.get(i).getSources().get(0);
-            
+
             LogicalSchema mUserDefinedSchemaCopy = null;
             if (mUserDefinedSchema!=null && mUserDefinedSchema.get(i)!=null) {
                 mUserDefinedSchemaCopy = new LogicalSchema();
@@ -79,18 +80,19 @@ public class LOGenerate extends LogicalRelationalOperator {
                     mUserDefinedSchemaCopy.addField(fs.deepCopy());
                 }
             }
-            
+
             LogicalFieldSchema fieldSchema = null;
-            
+
             // schema of the expression after flatten
             LogicalSchema expSchema = null;
-            
+
             if (exp.getFieldSchema()!=null) {
-            
+
                 fieldSchema = exp.getFieldSchema().deepCopy();
-                
+
                 expSchema = new LogicalSchema();
-                if ((fieldSchema.type != DataType.TUPLE && fieldSchema.type != DataType.BAG)||!flattenFlags[i]) {
+                if ((fieldSchema.type != DataType.TUPLE && fieldSchema.type != DataType.BAG) ||
+                        (flattenFlags[i] == FlattenStates.DO_NOTHING)) {
                     // if type is primitive, just add to schema
                     if (fieldSchema!=null)
                         expSchema.addField(fieldSchema);
@@ -104,23 +106,25 @@ public class LOGenerate extends LogicalRelationalOperator {
                     else {
                      // if we come here, we get a BAG/Tuple with flatten, extract inner schema of the tuple as expSchema
                         List<LogicalSchema.LogicalFieldSchema> innerFieldSchemas = new ArrayList<LogicalSchema.LogicalFieldSchema>();
-                        if (flattenFlags[i]) {
+                        if (flattenFlags[i] != FlattenStates.DO_NOTHING) {
+                            boolean addPrefix = flattenFlags[i] == FlattenStates.FLATTEN_WITH_PREFIX;
                             if (fieldSchema.type == DataType.BAG) {
                                 // if it is bag, get the schema of tuples
                                 if (fieldSchema.schema!=null) {
                                     if (fieldSchema.schema.getField(0).schema!=null)
                                         innerFieldSchemas = fieldSchema.schema.getField(0).schema.getFields();
+
                                     for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas) {
-                                        fs.alias = fs.alias == null ? null : fieldSchema.alias + "::" + fs.alias;
+                                        fs.alias = fs.alias == null ? null : (addPrefix ? fieldSchema.alias + "::" : "") + fs.alias;
                                     }
                                 }
                             } else { // DataType.TUPLE
                                 innerFieldSchemas = fieldSchema.schema.getFields();
                                 for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas) {
-                                    fs.alias = fs.alias == null ? null : fieldSchema.alias + "::" + fs.alias;
+                                    fs.alias = fs.alias == null ? null : (addPrefix ? fieldSchema.alias + "::" : "") + fs.alias;
                                 }
                             }
-                            
+
                             for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas)
                                 expSchema.addField(fs);
                         }
@@ -129,7 +133,7 @@ public class LOGenerate extends LogicalRelationalOperator {
                     }
                 }
             }
-            
+
             // Merge with user defined schema
             if (expSchema!=null && expSchema.size()==0)
                 expSchema = null;
@@ -147,13 +151,13 @@ public class LOGenerate extends LogicalRelationalOperator {
                         //this is the use case where a new alias has been specified by user
                         mergedSchema.getField(0).type = DataType.BYTEARRAY;
                     }
-                
+
                 } else {
 
                     // Merge uid with the exp field schema
                     mergedSchema = LogicalSchema.merge(mUserDefinedSchemaCopy, expSchema, LogicalSchema.MergeMode.LoadForEach);
                     if (mergedSchema==null) {
-                        throw new FrontendException(this, "Cannot merge (" + expSchema.toString(false) + 
+                        throw new FrontendException(this, "Cannot merge (" + expSchema.toString(false) +
                                 ") with user defined schema (" + mUserDefinedSchemaCopy.toString(false) + ")", 1117);
                     }
                     mergedSchema.mergeUid(expSchema);
@@ -172,14 +176,14 @@ public class LOGenerate extends LogicalRelationalOperator {
                         planSchema.addField(fs);
                 }
             }
-            
+
             if (planSchema==null) {
                 schema = null;
                 break;
             }
             for (LogicalFieldSchema fs : planSchema.getFields())
                 schema.addField(fs);
-            
+
             // If the schema is generated by user defined schema, keep uid
             if (expSchema==null) {
                 LogicalSchema uidOnlySchema = planSchema.mergeUid(uidOnlySchemas.get(i));
@@ -197,41 +201,50 @@ public class LOGenerate extends LogicalRelationalOperator {
     public List<LogicalExpressionPlan> getOutputPlans() {
         return outputPlans;
     }
-    
-    public boolean[] getFlattenFlags() {
+
+    public FlattenStates[] getFlattenFlags() {
         return flattenFlags;
     }
-    
+
     public void setFlattenFlags(boolean[] flatten) {
+        FlattenStates[] flattens = new FlattenStates[flatten.length];
+        int idx = 0;
+        for (boolean b : flatten) {
+            flattens[idx++] = b ? FlattenStates.FLATTEN_WITH_PREFIX : FlattenStates.DO_NOTHING;
+        }
+        setFlattenFlags(flattens);
+    }
+
+    public void setFlattenFlags(FlattenStates[] flatten) {
         flattenFlags = flatten;
     }
-    
+
     @Override
     public boolean isEqual(Operator other) throws FrontendException {
         if (!(other instanceof LOGenerate)) {
             return false;
         }
-        
+
         List<LogicalExpressionPlan> otherPlan = ((LOGenerate)other).getOutputPlans();
-        boolean[] fs = ((LOGenerate)other).getFlattenFlags();
-        
+        FlattenStates[] fs = ((LOGenerate)other).getFlattenFlags();
+
         if (outputPlans.size() != otherPlan.size()) {
             return false;
         }
-        
+
         for(int i=0; i<outputPlans.size(); i++) {
             if (flattenFlags[i] != fs[i]) {
                 return false;
             }
-            
+
             if (!outputPlans.get(i).isEqual(otherPlan.get(i))) {
                 return false;
             }
         }
-        
+
         return true;
     }
-  
+
     @Override
     public void accept(PlanVisitor v) throws FrontendException {
          if (!(v instanceof LogicalRelationalNodesVisitor)) {
@@ -239,7 +252,7 @@ public class LOGenerate extends LogicalRelationalOperator {
          }
          ((LogicalRelationalNodesVisitor)v).visit(this);
     }
-    
+
     @Override
     public String toString() {
         StringBuilder msg = new StringBuilder();
@@ -266,7 +279,7 @@ public class LOGenerate extends LogicalRelationalOperator {
         }
         return msg.toString();
     }
-    
+
     public List<LogicalSchema> getUserDefinedSchema() {
         return mUserDefinedSchema;
     }
@@ -274,7 +287,7 @@ public class LOGenerate extends LogicalRelationalOperator {
     public void setUserDefinedSchema(List<LogicalSchema> userDefinedSchema) {
         mUserDefinedSchema = userDefinedSchema;
     }
-    
+
     /**
      * Get the output schema corresponding to each input expression plan
      * @return list of output schemas
@@ -282,24 +295,24 @@ public class LOGenerate extends LogicalRelationalOperator {
     public List<LogicalSchema> getOutputPlanSchemas() {
         return outputPlanSchemas;
     }
-    
+
     public void setOutputPlanSchemas(List<LogicalSchema> outputPlanSchemas) {
         this.outputPlanSchemas = outputPlanSchemas;
     }
-    
+
     public List<LogicalSchema> getUidOnlySchemas() {
         return uidOnlySchemas;
     }
-    
+
     public void setUidOnlySchemas(List<LogicalSchema> uidOnlySchemas) {
         this.uidOnlySchemas = uidOnlySchemas;
     }
-    
+
     @Override
     public void resetUid() {
         this.uidOnlySchemas = null;
     }
-    
+
     @Override
     public void resetSchema(){
         super.resetSchema();

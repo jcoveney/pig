@@ -30,6 +30,7 @@ import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadPushDown;
 import org.apache.pig.LoadPushDown.RequiredField;
 import org.apache.pig.LoadPushDown.RequiredFieldList;
+import org.apache.pig.builtin.FlattenOutput.FlattenStates;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
@@ -59,9 +60,12 @@ import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
 public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
     protected static final Log log = LogFactory.getLog(ColumnPruneVisitor.class);
-    private Map<LOLoad,Pair<Map<Integer,Set<String>>,Set<Integer>>> requiredItems = 
+    private Map<LOLoad,Pair<Map<Integer,Set<String>>,Set<Integer>>> requiredItems =
         new HashMap<LOLoad,Pair<Map<Integer,Set<String>>,Set<Integer>>>();
     private boolean columnPrune;
 
@@ -90,8 +94,8 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
         LogicalSchema s = load.getSchema();
         for (int i=0;i<s.size();i++) {
             RequiredField requiredField = null;
-            // As we have done processing ahead, we assume that 
-            // a column is not present in both ColumnPruner and 
+            // As we have done processing ahead, we assume that
+            // a column is not present in both ColumnPruner and
             // MapPruner
             if( required.first != null && required.first.containsKey(i) ) {
                 requiredField = new RequiredField();
@@ -182,7 +186,7 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
 
                 // build foreach inner plan
                 List<LogicalExpressionPlan> exps = new ArrayList<LogicalExpressionPlan>();
-                LOGenerate gen = new LOGenerate(innerPlan, exps, new boolean[requiredFields.getFields().size()]);
+                LOGenerate gen = new LOGenerate(innerPlan, exps, new FlattenStates[requiredFields.getFields().size()]);
                 innerPlan.add(gen);
 
                 for (int i=0; i<requiredFields.getFields().size(); i++) {
@@ -351,9 +355,9 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
         //     We first construct inputsNeeded, and inputsRemoved = (all inputs) - inputsNeeded.
         //     We cannot figure out inputsRemoved directly since the inputs may be used by other output plan.
         //     We can only get inputsRemoved after visiting all output plans.
-        List<Boolean> flattenList = new ArrayList<Boolean>();
-        Set<Integer> inputsNeeded = new HashSet<Integer>();
-        Set<Integer> inputsRemoved = new HashSet<Integer>();
+        List<FlattenStates> flattenList = Lists.newArrayList();
+        Set<Integer> inputsNeeded = Sets.newHashSet();
+        Set<Integer> inputsRemoved = Sets.newHashSet();
         List<LogicalSchema> outputPlanSchemas = new ArrayList<LogicalSchema>();
         List<LogicalSchema> uidOnlySchemas = new ArrayList<LogicalSchema>();
         List<LogicalSchema> userDefinedSchemas = null;
@@ -391,7 +395,7 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
 
         // Change LOGenerate: remove unneeded output expression plan
         // change flatten flag, outputPlanSchema, uidOnlySchemas
-        boolean[] flatten = new boolean[flattenList.size()];
+        FlattenStates[] flatten = new FlattenStates[flattenList.size()];
         for (int i=0;i<flattenList.size();i++)
             flatten[i] = flattenList.get(i);
 

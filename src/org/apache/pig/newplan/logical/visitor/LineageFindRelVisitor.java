@@ -24,8 +24,8 @@ import java.util.Map;
 
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
+import org.apache.pig.builtin.FlattenOutput.FlattenStates;
 import org.apache.pig.data.DataType;
-import org.apache.pig.impl.builtin.IdentityColumn;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.streaming.StreamingCommand;
@@ -46,7 +46,6 @@ import org.apache.pig.newplan.logical.expression.LogicalExpressionVisitor;
 import org.apache.pig.newplan.logical.expression.MapLookupExpression;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.expression.ScalarExpression;
-import org.apache.pig.newplan.logical.expression.UserFuncExpression;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
 import org.apache.pig.newplan.logical.relational.LOCross;
 import org.apache.pig.newplan.logical.relational.LODistinct;
@@ -71,31 +70,31 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 
 /**
- * Create mapping between uid and Load FuncSpec when the LogicalExpression 
+ * Create mapping between uid and Load FuncSpec when the LogicalExpression
  * associated with it is known to hold an unmodified element of data returned
  * by the load function.
  * This information is used to find the LoadCaster to be used to cast bytearrays
- * into other other types. 
+ * into other other types.
  */
 public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
 
 
     Map<Long, FuncSpec> uid2LoadFuncMap  = new HashMap<Long, FuncSpec>();
-    
+
     //if LogicalRelationalOperator is associated with a single load func spec
     // then the mapping is stored here
-    Map<LogicalRelationalOperator, FuncSpec>  rel2InputFuncMap = 
+    Map<LogicalRelationalOperator, FuncSpec>  rel2InputFuncMap =
         new HashMap<LogicalRelationalOperator, FuncSpec>();
-    
+
     public LineageFindRelVisitor(OperatorPlan plan) throws FrontendException {
         super(plan, new DependencyOrderWalker(plan));
-        
+
     }
-    
+
     public Map<Long, FuncSpec> getUid2LoadFuncMap(){
         return uid2LoadFuncMap;
     }
-    
+
     @Override
     public void visit(LOLoad load) throws FrontendException{
         LogicalSchema schema = load.getSchema();
@@ -107,23 +106,23 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
     public void visit(LOStream stream) throws FrontendException{
         mapToPredLoadFunc(stream);
         StreamingCommand command = ((LOStream)stream).getStreamingCommand();
-        HandleSpec streamOutputSpec = command.getOutputSpec(); 
+        HandleSpec streamOutputSpec = command.getOutputSpec();
         FuncSpec streamLoaderSpec = new FuncSpec(streamOutputSpec.getSpec());
         setLoadFuncForUids(stream.getSchema(), streamLoaderSpec);
         rel2InputFuncMap.put(stream, streamLoaderSpec);
     }
-    
+
     @Override
     public void visit(LOInnerLoad innerLoad) throws FrontendException{
         LOForEach foreach = innerLoad.getLOForEach();
-        LogicalRelationalOperator pred = 
+        LogicalRelationalOperator pred =
             ((LogicalRelationalOperator)foreach.getPlan().getPredecessors(foreach).get(0));
 
         LogicalSchema predSchema = pred.getSchema();
-        
+
         //if this has a schema, the lineage can be tracked using the uid in input schema
         if(innerLoad.getSchema() != null){
-            if(innerLoad.getSchema().size() == 1 
+            if(innerLoad.getSchema().size() == 1
                     && innerLoad.getSchema().getField(0).type == DataType.BYTEARRAY
                     && uid2LoadFuncMap.get(innerLoad.getSchema().getField(0).uid) == null
                     && predSchema != null
@@ -143,9 +142,9 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             mapRelToPredLoadFunc(innerLoad, pred);
         }
     }
-    
+
     /**
-     * map all uids in schema to funcSpec 
+     * map all uids in schema to funcSpec
      * @param schema
      * @param funcSpec
      * @throws VisitorException
@@ -159,7 +158,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             addUidLoadFuncToMap((Long) fs.uid, funcSpec);
             setLoadFuncForUids(fs.schema, funcSpec);
         }
-        
+
     }
 
     @Override
@@ -169,17 +168,17 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
     }
 
     /**
-     * If all predecessors of relOp are associated with same load 
+     * If all predecessors of relOp are associated with same load
      * func , then map reOp to it.
-     * 
+     *
      * @param relOp
-     * @throws FrontendException 
+     * @throws FrontendException
      */
     private void mapToPredLoadFunc(LogicalRelationalOperator relOp)
     throws FrontendException {
         OperatorPlan lp = relOp.getPlan();
         List<Operator> preds = lp.getPredecessors(relOp);
-        if(lp.getPredecessors(relOp) == null || 
+        if(lp.getPredecessors(relOp) == null ||
                 lp.getPredecessors(relOp).size() == 0){
             // no predecessors , nothing to do
             return;
@@ -196,7 +195,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
                 return;
             }
         }
-        rel2InputFuncMap.put(relOp, loadFuncSpec); 
+        rel2InputFuncMap.put(relOp, loadFuncSpec);
     }
 
     /**
@@ -227,7 +226,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
                 }
             }
         }
-        
+
         if(funcSpec == null){
             // If relOp is LOForEach and contains UDF, byte field could come from UDF.
             // We don't assume it share the LoadCaster with predecessor
@@ -237,7 +236,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
                 if (udfFinder.getUDFList().size()!=0)
                     return null;
             }
-            
+
             funcSpec = rel2InputFuncMap.get(relOp);
         }
 
@@ -248,24 +247,24 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             Operator pred) {
         if(rel2InputFuncMap.get(pred) != null){
             rel2InputFuncMap.put(relOp, rel2InputFuncMap.get(pred));
-        }              
+        }
     }
 
     private void visitExpression(LogicalExpressionPlan expPlan)
     throws FrontendException{
         LineageFindExpVisitor findLineageExp =
             new LineageFindExpVisitor(expPlan, uid2LoadFuncMap);
-        findLineageExp.visit();        
+        findLineageExp.visit();
     }
-    
+
     @Override
     public void visit(LOCogroup group) throws FrontendException{
         mapToPredLoadFunc(group);
         List<Operator> inputs = group.getInputs((LogicalPlan)plan);
-        
+
         // list of field schemas of group plans
         List<LogicalFieldSchema> groupPlanSchemas = new ArrayList<LogicalFieldSchema>();
-        
+
         MultiMap<Integer, LogicalExpressionPlan> plans = group.getExpressionPlans();
         for(LogicalExpressionPlan expPlan : plans.values()){
             visitExpression(expPlan);
@@ -274,7 +273,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             }
             groupPlanSchemas.add(((LogicalExpression)expPlan.getSources().get(0)).getFieldSchema());
         }
-        
+
         LogicalSchema sch = group.getSchema();
 
         //if the group plans are associated with same load function , associate
@@ -286,9 +285,9 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
         }
         else
             mapMatchLoadFuncToUid(sch.getField(0), groupPlanSchemas);
-        
-        
-        
+
+
+
         //set the load func spec for the bags in the schema, this helps if
         // the input schemas are not set
         //group schema has a group column followed by bags corresponding to each
@@ -296,9 +295,9 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
         if(sch.size() != inputs.size()+1 ){
             throw new AssertionError("cogroup schema size not same as number of inputs");
         }
-        
-        
-        
+
+
+
         for(int i=1; i < sch.size(); i++){
             long uid = sch.getField(i).uid;
             LogicalRelationalOperator input = (LogicalRelationalOperator) inputs.get(i-1);
@@ -306,9 +305,9 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
                 addUidLoadFuncToMap(uid, rel2InputFuncMap.get(input));
             }
         }
-        
+
     }
-    
+
 
     @Override
     public void visit(LOJoin join) throws FrontendException{
@@ -318,7 +317,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             visitExpression(expPlan);
         }
     }
-    
+
     @Override
     public void visit(LOForEach fe) throws FrontendException{
         mapToPredLoadFunc(fe);
@@ -328,7 +327,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
         currentWalker.walk(this);
         popWalker();
     }
-    
+
     @Override
     public void visit(LOGenerate gen) throws FrontendException{
         mapToPredLoadFunc(gen);
@@ -336,12 +335,12 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
         for(LogicalExpressionPlan expPlan : expPlans){
            visitExpression(expPlan);
         }
-        
+
         //associate flatten output to the load func associated with input
         //expression of flatten
-        boolean[] flattens = gen.getFlattenFlags();
+        FlattenStates[] flattens = gen.getFlattenFlags();
         for(int i=0; i<flattens.length; i++){
-            if(flattens[i] == true){
+            if(flattens[i].shouldFlatten()){
                 //get the output schema corresponding to this exp plan
                 gen.getSchema();
                 if(gen.getOutputPlanSchemas() == null || gen.getOutputPlanSchemas().size() <= i){
@@ -351,7 +350,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
                 if(sch == null){
                     continue;
                 }
-                
+
                 //get the only output exp of the ith plan
                 LogicalExpression exp =
                     (LogicalExpression) gen.getOutputPlans().get(i).getSources().get(0);
@@ -363,9 +362,9 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
                 }
             }
         }
-        
+
     }
-    
+
     @Override
     public void visit(LOSort sort) throws FrontendException{
         mapToPredLoadFunc(sort);
@@ -395,19 +394,19 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
         if (loLimit.getLimitPlan() != null)
             visitExpression(loLimit.getLimitPlan());
     }
-    
+
     @Override
     public void visit(LOSplit relOp) throws FrontendException{
         mapToPredLoadFunc(relOp);
     }
-    
+
     @Override
     public void visit(LOStore relOp) throws FrontendException{
         mapToPredLoadFunc(relOp);
     }
 
 
-    
+
     @Override
     public void visit(LOCross relOp) throws FrontendException{
         mapToPredLoadFunc(relOp);
@@ -416,7 +415,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
     @Override
     public void visit(LOUnion relOp) throws FrontendException{
         mapToPredLoadFunc(relOp);
-        
+
         // Since the uid changes for Union, add mappings for new uids to funcspec
         LogicalSchema schema = relOp.getSchema();
         if(schema != null){
@@ -425,19 +424,19 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             }
         }
     }
-    
+
     @Override
     public void visit(LOSplitOutput split) throws FrontendException{
         mapToPredLoadFunc(split);
         visitExpression(split.getFilterPlan());
-        
+
         //The uid changes across the input and output of a split.
         //In this visitor the uids for the fields in output are mapped to ones
-        // in input based on position. uid2LoadFuncMap is updated with output 
+        // in input based on position. uid2LoadFuncMap is updated with output
         // schema uid and load func mapped to corresponding uid in inputschema
-        
-        
-        LogicalSchema inputSch = 
+
+
+        LogicalSchema inputSch =
             ((LogicalRelationalOperator)split.getPlan().getPredecessors(split).get(0)).getSchema();
 
         LogicalSchema outSchema = split.getSchema();
@@ -448,13 +447,13 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
         if(inputSch == null || outSchema == null){
             String msg = "Bug: in split only one of input/output schema is null "
                 + split;
-            throw new VisitorException(split, msg,2260, PigException.BUG) ; 
+            throw new VisitorException(split, msg,2260, PigException.BUG) ;
         }
-        
+
         if(inputSch.size() != outSchema.size()){
             String msg = "Bug: input and output schema size of split differ "
                 + split;
-            throw new VisitorException(split, msg,2261, PigException.BUG) ; 
+            throw new VisitorException(split, msg,2261, PigException.BUG) ;
         }
 
         for(int i=0; i<inputSch.size(); i++){
@@ -464,15 +463,15 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
                 addUidLoadFuncToMap(outField.uid, uid2LoadFuncMap.get(inField.uid));
             }
         }
-        
+
     }
-    
-    
+
+
     /**
      * Add given uid, loadFuncSpec to mapping
      * @param uid
      * @param loadFuncSpec
-     * @throws VisitorException 
+     * @throws VisitorException
      */
     private void addUidLoadFuncToMap(long uid, FuncSpec loadFuncSpec)
     throws VisitorException{
@@ -489,20 +488,20 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             throw new VisitorException(msg,2262, PigException.BUG) ;
         }
     }
-    
+
     /**
-     * if uid in input field schemas or their inner schemas map to same 
+     * if uid in input field schemas or their inner schemas map to same
      * load function, then map the new uid in bincond also to same
      *  load function in uid2LoadFuncMap
      * @param outFS
      * @param inputFieldSchemas
-     * @throws VisitorException 
+     * @throws VisitorException
      */
     void mapMatchLoadFuncToUid(
             LogicalFieldSchema outFS,
             List<LogicalFieldSchema> inputFieldSchemas) throws VisitorException {
 
-        
+
         if(inputFieldSchemas.size() == 0){
             return;
         }
@@ -512,7 +511,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             if (fs==null)
                 return;
         }
-        
+
         //if same non null load func is associated with all fieldschemas
         // asssociate that with the uid of outFS
         LogicalFieldSchema inpFS1 = inputFieldSchemas.get(0);
@@ -521,7 +520,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
         if(funcSpec1 != null){
             boolean allMatch = true;
             allInnerSchemaMatch = true;
-            
+
             for(LogicalFieldSchema fs : inputFieldSchemas){
                 //check if all func spec match
                 if(!funcSpec1.equals(uid2LoadFuncMap.get(fs.uid))){
@@ -536,7 +535,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
                 addUidLoadFuncToMap(outFS.uid, funcSpec1);
             }
         }
-        
+
         //recursively call the function for corresponding files in inner schemas
         if(allInnerSchemaMatch){
             List<LogicalFieldSchema> outFields = outFS.schema.getFields();
@@ -544,19 +543,19 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
                 List<LogicalFieldSchema> inFsList = new ArrayList<LogicalFieldSchema>();
                 for(LogicalFieldSchema fs : inputFieldSchemas){
                     inFsList.add(fs.schema.getField(i));
-                }                        
+                }
                 mapMatchLoadFuncToUid(outFields.get(i), inFsList);
             }
         }
 
     }
-    
+
 
 
     /**
-     * If a input of dereference or map-lookup has associated load function, 
-     * the same load function should be associated with the dereference or map-lookup. 
-     * 
+     * If a input of dereference or map-lookup has associated load function,
+     * the same load function should be associated with the dereference or map-lookup.
+     *
      */
     class LineageFindExpVisitor extends LogicalExpressionVisitor{
 
@@ -567,18 +566,18 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             super(plan, new ReverseDependencyOrderWalker(plan));
             this.uid2LoadFuncMap = uid2LoadFuncMap;
         }
-        
+
         @Override
         public void visit(ProjectExpression proj) throws FrontendException {
             // proj should have the same uid as input, if input has schema.
-            // if uid does not have associated func spec and input relation 
+            // if uid does not have associated func spec and input relation
             // has null schema or it is inner-load, use the load func associated
-            // with the relation 
+            // with the relation
             LogicalRelationalOperator inputRel = proj.findReferent();
 
             if (proj.getFieldSchema()==null)
                 return;
-            
+
             long uid = proj.getFieldSchema().uid;
             if(uid2LoadFuncMap.get(uid) == null && (inputRel.getSchema() == null || inputRel instanceof LOInnerLoad)){
                 FuncSpec funcSpec = rel2InputFuncMap.get(inputRel);
@@ -587,7 +586,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
                 }
             }
         }
-        
+
         @Override
         public void visit(DereferenceExpression deref) throws FrontendException {
            updateUidMap(deref, deref.getReferredExpression());
@@ -597,8 +596,8 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
         public void visit(MapLookupExpression mapLookup) throws FrontendException {
             updateUidMap(mapLookup, mapLookup.getMap());
         }
-        
-        
+
+
         private void updateUidMap(LogicalExpression exp,
                 LogicalExpression inp) throws FrontendException {
             //find input uid and corresponding load FuncSpec
@@ -608,14 +607,14 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
 
         }
 
-        
+
         @Override
         public void visit(BinCondExpression binCond) throws FrontendException{
             //if either side is a null constant, we can safely associate
             //this bincond with the load func spec on other side
             LogicalExpression lhs = binCond.getLhs();
             LogicalExpression rhs = binCond.getRhs();
-            
+
             if(getNULLConstantInCast(lhs) != null){
                 FuncSpec funcSpec = uid2LoadFuncMap.get(rhs.getFieldSchema().uid);
                 uid2LoadFuncMap.put(binCond.getFieldSchema().uid, funcSpec);
@@ -629,25 +628,25 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
                 inFieldSchemas.add(lhs.getFieldSchema());
                 inFieldSchemas.add(rhs.getFieldSchema());
                 mapMatchLoadFuncToUid(
-                        binCond.getFieldSchema(), 
+                        binCond.getFieldSchema(),
                         inFieldSchemas
                 );
             }
         }
-        
+
         @Override
         public void visit(ScalarExpression scalarExp) throws FrontendException{
             //track lineage to input load function
-            
-            
+
+
             LogicalRelationalOperator inputRel = (LogicalRelationalOperator)scalarExp.getAttachedLogicalOperator();
             LogicalPlan relPlan = (LogicalPlan) inputRel.getPlan();
             List<Operator> softPreds = relPlan.getSoftLinkPredecessors(inputRel);
-            
+
             //1st argument is the column number in input, 2nd arg is the input file name
             Integer inputColNum = (Integer)((ConstantExpression) scalarExp.getArguments().get(0)).getValue();
             String inputFile = (String)((ConstantExpression) scalarExp.getArguments().get(1)).getValue();
-            
+
             long outputUid = scalarExp.getFieldSchema().uid;
             boolean foundInput = false; // a variable to do sanity check on num of input relations
 
@@ -655,7 +654,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             for(Operator softPred : softPreds){
                 LOStore inputStore = (LOStore) softPred;
                 if(inputStore.getFileSpec().getFileName().equals(inputFile)){
-                    
+
                     if(foundInput == true){
                         throw new FrontendException(
                                 "More than one input found for scalar expression",
@@ -664,7 +663,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
                         );
                     }
                     foundInput = true;
-                    
+
                     //found the store corresponding to this scalar expression
                     LogicalSchema sch = inputStore.getSchema();
                     if(sch == null){
@@ -679,7 +678,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
                     }
                 }
             }
-            
+
             if(foundInput == false){
                 throw new FrontendException(
                         "No input found for scalar expression",
@@ -703,16 +702,16 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
                     ConstantExpression constExp = (ConstantExpression)((CastExpression)rel).getExpression();
                     if(constExp.getValue() == null)
                         return constExp;
-                    else 
+                    else
                         return null;
                 }
             }
             return null;
         }
 
-        
+
     }
-    
-    
-    
+
+
+
 }

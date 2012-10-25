@@ -21,6 +21,11 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.pig.builtin.FlattenOutput.FlattenStates;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.newplan.DependencyOrderWalker;
+import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.expression.AddExpression;
 import org.apache.pig.newplan.logical.expression.AndExpression;
 import org.apache.pig.newplan.logical.expression.BinCondExpression;
@@ -66,11 +71,6 @@ import org.apache.pig.newplan.logical.relational.LOStream;
 import org.apache.pig.newplan.logical.relational.LOUnion;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
-import org.apache.pig.newplan.DependencyOrderWalker;
-import org.apache.pig.newplan.Operator;
-
-import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.plan.VisitorException;
 
 /**
  * This class transforms LogicalPlan to its textual representation
@@ -78,7 +78,7 @@ import org.apache.pig.impl.plan.VisitorException;
  */
 public class OptimizeLimitPlanPrinter extends LogicalRelationalNodesVisitor {
     private StringBuilder sb = null ;
-    
+
     public OptimizeLimitPlanPrinter(LogicalPlan plan) throws FrontendException {
         super( plan, new DependencyOrderWalker( plan ) );
         sb = new StringBuilder() ;
@@ -93,12 +93,12 @@ public class OptimizeLimitPlanPrinter extends LogicalRelationalNodesVisitor {
     public void visit(LOJoin join) throws FrontendException {
         appendEdges( join );
     }
-    
+
     @Override
     public void visit(LOGenerate gen) throws FrontendException {
         appendEdges( gen );
     }
-    
+
     @Override
     public void visit(LOInnerLoad load) throws FrontendException {
         appendEdges( load );
@@ -108,30 +108,30 @@ public class OptimizeLimitPlanPrinter extends LogicalRelationalNodesVisitor {
     public void visit(LOUnion loUnion) throws FrontendException {
         appendEdges( loUnion );
     }
-    
+
     @Override
     public void visit(LOStream loStream) throws FrontendException {
         appendEdges( loStream );
     }
-    
+
     @Override
     public void visit(LOFilter filter) throws FrontendException {
     	LogicalExpressionPlan expPlan = filter.getFilterPlan();
     	MyLogicalExpressionVisitor visitor = new MyLogicalExpressionVisitor( expPlan );
     	sb.append("[" + visitor.printToString() + "]" );
-    	
+
     	appendEdges( filter );
     }
-    
+
     @Override
     public void visit(LOStore store) throws FrontendException {
         appendEdges( store );
     }
-    
+
     @Override
     public void visit(LOForEach foreach) throws FrontendException {
         appendOp( foreach ) ;
-        
+
     	boolean hasFlatten = false;
         LogicalPlan inner1 = foreach.getInnerPlan();
         Iterator<Operator> it = inner1.getOperators();
@@ -139,10 +139,10 @@ public class OptimizeLimitPlanPrinter extends LogicalRelationalNodesVisitor {
             Operator op = it.next();
             if( op instanceof LOGenerate ) {
                 LOGenerate gen = (LOGenerate)op;
-                boolean[] flattenFlags = gen.getFlattenFlags();
+                FlattenStates[] flattenFlags = gen.getFlattenFlags();
                 if( flattenFlags != null ) {
-                    for( boolean flatten : flattenFlags ) {
-                        if( flatten ) {
+                    for( FlattenStates flatten : flattenFlags ) {
+                        if( flatten.shouldFlatten() ) {
                             hasFlatten = true;
                             break;
                         }
@@ -158,21 +158,21 @@ public class OptimizeLimitPlanPrinter extends LogicalRelationalNodesVisitor {
         sb.append(";\n");
         appendEdges(foreach);
     }
-    
+
     @Override
     public void visit(LOCogroup loCogroup) throws FrontendException {
     	appendEdges(loCogroup);
     }
-    
+
     @Override
     public void visit(LOSplit loSplit) throws FrontendException {
     	appendEdges(loSplit);
     }
-    
+
     @Override
     public void visit(LOSplitOutput loSplitOutput) throws FrontendException {
     }
-    
+
     @Override
     public void visit(LOSort loSort) throws FrontendException {
         appendOp(loSort) ;
@@ -199,31 +199,31 @@ public class OptimizeLimitPlanPrinter extends LogicalRelationalNodesVisitor {
         sb.append(";\n");
         appendEdges(loLimit);
     }
-    
+
     @Override
     public void visit(LOCross loCross) throws FrontendException {
         appendEdges(loCross);
     }
-    
+
     private void appendOp(Operator op)  {
         sb.append("    "+op.getClass().getSimpleName()) ;
 
     }
-    
+
     private void appendEdges(Operator op) throws FrontendException {
         List<Operator> list = currentWalker.getPlan().getSuccessors(op) ;
 
 		if (list!=null) {
-			for(Operator tmp: list) {         
+			for(Operator tmp: list) {
 			    sb.append("    "+op.getClass().getSimpleName()+" -> ");
 			    sb.append(tmp.getClass().getSimpleName()+";\n");
 		    }
 		}
     }
-    
+
     /***
      * This method has to be called after the visit is totally finished only
-     * @throws IOException 
+     * @throws IOException
      */
     public String printToString() throws IOException {
         try {
@@ -237,7 +237,7 @@ public class OptimizeLimitPlanPrinter extends LogicalRelationalNodesVisitor {
 
 class MyLogicalExpressionVisitor extends LogicalExpressionVisitor {
     private StringBuilder sb = null ;
-    
+
     public MyLogicalExpressionVisitor(LogicalExpressionPlan plan) throws FrontendException {
         super( plan, new DependencyOrderWalker( plan ) );
         sb = new StringBuilder() ;
@@ -247,9 +247,9 @@ class MyLogicalExpressionVisitor extends LogicalExpressionVisitor {
     public void visit(AndExpression op) throws FrontendException {
     	appendEdges( op );
     }
-    
+
     @Override
-    public void visit(OrExpression op) throws FrontendException { 
+    public void visit(OrExpression op) throws FrontendException {
     	appendEdges( op );
     }
 
@@ -257,17 +257,17 @@ class MyLogicalExpressionVisitor extends LogicalExpressionVisitor {
     public void visit(EqualExpression op) throws FrontendException {
     	appendEdges( op );
     }
-    
+
     @Override
     public void visit(ProjectExpression op) throws FrontendException {
     	appendEdges( op );
     }
-    
+
     @Override
     public void visit(ConstantExpression op) throws FrontendException {
     	appendEdges( op );
     }
-    
+
     @Override
     public void visit(CastExpression op) throws FrontendException {
     	appendEdges( op );
@@ -277,24 +277,24 @@ class MyLogicalExpressionVisitor extends LogicalExpressionVisitor {
     public void visit(GreaterThanExpression op) throws FrontendException {
     	appendEdges( op );
     }
-    
+
     @Override
     public void visit(GreaterThanEqualExpression op) throws FrontendException {
     	appendEdges( op );
     }
 
     @Override
-    public void visit(LessThanExpression op) throws FrontendException { 
+    public void visit(LessThanExpression op) throws FrontendException {
     	appendEdges( op );
     }
-    
+
     @Override
     public void visit(LessThanEqualExpression op) throws FrontendException {
     	appendEdges( op );
     }
 
     @Override
-    public void visit(NotEqualExpression op) throws FrontendException { 
+    public void visit(NotEqualExpression op) throws FrontendException {
     	appendEdges( op );
     }
 
@@ -307,32 +307,32 @@ class MyLogicalExpressionVisitor extends LogicalExpressionVisitor {
     public void visit(IsNullExpression op) throws FrontendException {
     	appendEdges( op );
     }
-    
+
     @Override
     public void visit(NegativeExpression op) throws FrontendException {
     	appendEdges( op );
     }
-    
+
     @Override
     public void visit(AddExpression op) throws FrontendException {
     	appendEdges( op );
     }
-    
+
     @Override
     public void visit(SubtractExpression op) throws FrontendException {
     	appendEdges( op );
     }
-    
+
     @Override
     public void visit(MultiplyExpression op) throws FrontendException {
     	appendEdges( op );
     }
-    
+
     @Override
     public void visit(ModExpression op) throws FrontendException {
     	appendEdges( op );
     }
-    
+
     @Override
     public void visit(DivideExpression op) throws FrontendException {
     	appendEdges( op );
@@ -344,7 +344,7 @@ class MyLogicalExpressionVisitor extends LogicalExpressionVisitor {
     }
 
     @Override
-    public void visit(BinCondExpression op) throws FrontendException {        
+    public void visit(BinCondExpression op) throws FrontendException {
     	appendEdges(op);
     }
 
@@ -366,7 +366,7 @@ class MyLogicalExpressionVisitor extends LogicalExpressionVisitor {
         List<Operator> list = currentWalker.getPlan().getSuccessors(op) ;
 
 		if (list!=null) {
-			for(Operator tmp: list) {         
+			for(Operator tmp: list) {
 			    sb.append("    "+op.getClass().getSimpleName()+" -> ");
 			    sb.append(tmp.getClass().getSimpleName()+";\n");
 		    }
@@ -381,5 +381,5 @@ class MyLogicalExpressionVisitor extends LogicalExpressionVisitor {
         }
         return sb.toString() ;
     }
-    
+
 }

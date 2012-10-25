@@ -504,7 +504,7 @@ public class ColumnPruneHelper {
                                      }
                                      else {
                                          if (prj.findReferent().getSchema()!=null) {
-                                             LogicalSchema.LogicalFieldSchema fs = prj.findReferent().getSchema().getField(prj.getColNum()); 
+                                             LogicalSchema.LogicalFieldSchema fs = prj.findReferent().getSchema().getField(prj.getColNum());
                                              input.add(fs.uid);
                                          }
                                      }
@@ -517,7 +517,7 @@ public class ColumnPruneHelper {
 
              // for the flatten bag, we need to make sure at least one field is in the input
              for(int i=0; i<ll.size(); i++) {
-                 if (!gen.getFlattenFlags()[i]) {
+                 if (!gen.getFlattenFlags()[i].shouldFlatten()) {
                      continue;
                  }
                  LogicalExpressionPlan exp = ll.get(i);

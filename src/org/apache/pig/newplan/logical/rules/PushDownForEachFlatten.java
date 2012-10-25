@@ -20,29 +20,29 @@ package org.apache.pig.newplan.logical.rules;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.pig.newplan.logical.expression.LogicalExpression;
-import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
-import org.apache.pig.newplan.logical.expression.ProjectExpression;
-import org.apache.pig.newplan.logical.relational.LOForEach;
-import org.apache.pig.newplan.logical.relational.LOGenerate;
-import org.apache.pig.newplan.logical.relational.LOInnerLoad;
-import org.apache.pig.newplan.logical.relational.LOSort;
-import org.apache.pig.newplan.logical.relational.LOCross;
-import org.apache.pig.newplan.logical.relational.LOJoin;
-import org.apache.pig.newplan.logical.relational.LogicalPlan;
-import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
-import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.builtin.FlattenOutput.FlattenStates;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.OperatorSubPlan;
+import org.apache.pig.newplan.logical.expression.LogicalExpression;
+import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
+import org.apache.pig.newplan.logical.expression.ProjectExpression;
+import org.apache.pig.newplan.logical.relational.LOCross;
+import org.apache.pig.newplan.logical.relational.LOForEach;
+import org.apache.pig.newplan.logical.relational.LOGenerate;
+import org.apache.pig.newplan.logical.relational.LOInnerLoad;
+import org.apache.pig.newplan.logical.relational.LOJoin;
+import org.apache.pig.newplan.logical.relational.LOSort;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
+import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.newplan.optimizer.Transformer;
-import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.util.Pair;
 
 public class PushDownForEachFlatten extends Rule {
 
@@ -62,7 +62,7 @@ public class PushDownForEachFlatten extends Rule {
     public Transformer getNewTransformer() {
         return new PushDownForEachFlattenTransformer();
     }
-    
+
     class PushDownForEachFlattenTransformer extends Transformer {
         private OperatorSubPlan subPlan;
 
@@ -71,46 +71,46 @@ public class PushDownForEachFlatten extends Rule {
             // the foreach with flatten can be swapped with an order by
             // as the order by will have lesser number of records to sort
             // also the sort does not alter the records that are processed
-            
+
             // the foreach with flatten can be pushed down a cross or a join
             // for the same reason. In this case the foreach has to be first
             // unflattened and then a new foreach has to be inserted after
             // the cross or join. In both cross and foreach the actual columns
             // from the foreach are not altered but positions might be changed
-            
+
             // in the case of union the column is transformed and as a result
             // the foreach flatten cannot be pushed down
-            
+
             // for distinct the output before flattening and the output
             // after flattening might be different. For example, consider
             // {(1), (1)}. Distinct of this bag is still {(1), (1)}.
             // distinct(flatten({(1), (1)})) is (1). However,
             // flatten(distinct({(1), (1)})) is (1), (1)
-            
+
             // in both cases correctness is not affected
-            
+
             LOForEach foreach = (LOForEach)matched.getSources().get(0);
             LOGenerate gen = OptimizerUtils.findGenerate( foreach );
-            
+
             if( !OptimizerUtils.hasFlatten( gen ) )
                 return false;
-            
+
             // If a foreach contains a nondeterministic udf, we shouldn't push it down.
             for (LogicalExpressionPlan p : gen.getOutputPlans()) {
                 if (OptimizerUtils.planHasNonDeterministicUdf(p))
                     return false;
             }
-            
+
             List<Operator> succs = currentPlan.getSuccessors( foreach );
             if( succs == null || succs.size() != 1 )
                 return false;
-            
+
             List<Long> uids = getNonFlattenFieldUids( gen );
 
             Operator succ = succs.get( 0  );
             if( !( succ instanceof LOSort || succ instanceof LOJoin || succ instanceof LOCross ) )
                 return false;
-            
+
             if( succ instanceof LOSort ) {
                 // Check if the expressions for the foreach generate are purely projection including flatten fields.
                 List<LogicalExpressionPlan> exprs = gen.getOutputPlans();
@@ -132,20 +132,20 @@ public class PushDownForEachFlatten extends Rule {
                 return true;
             } else {
                 List<Operator> preds = currentPlan.getPredecessors( succ );
-                
-                // We do not optimize if peer is ForEach with flatten. This is 
+
+                // We do not optimize if peer is ForEach with flatten. This is
                 // a simplification, may change in the future.
                 for( Operator op : preds ) {
                     if( op == foreach )
                         continue;
-                    else if( op instanceof LOForEach && 
+                    else if( op instanceof LOForEach &&
                             OptimizerUtils.hasFlatten( OptimizerUtils.findGenerate( (LOForEach)op ) ) )
                         return false;
                 }
-                
+
                 if( ( (LogicalRelationalOperator)succ ).getSchema() == null )
                     return false;
-                
+
                 if( succ instanceof LOCross ) {
                     return true;
                 } else {
@@ -168,8 +168,8 @@ public class PushDownForEachFlatten extends Rule {
                     return true;
                 }
             }
-        } 
-        
+        }
+
         private List<ProjectExpression> getProjectExpressions(LogicalExpressionPlan expr) {
             List<Operator> ops = expr.getSinks();
             List<ProjectExpression> projs = new ArrayList<ProjectExpression>( ops.size() );
@@ -183,19 +183,19 @@ public class PushDownForEachFlatten extends Rule {
 
         private List<Long> getNonFlattenFieldUids(LOGenerate gen) throws FrontendException {
             List<Long> uids = new ArrayList<Long>();
-            
+
             List<LogicalExpressionPlan> exprs = gen.getOutputPlans();
             for( int i = 0; i < exprs.size(); i++ ) {
                 LogicalExpressionPlan expr = exprs.get( i );
-                if( gen.getFlattenFlags()[i] )
+                if( gen.getFlattenFlags()[i].shouldFlatten() )
                     continue;
                 LogicalExpression e = (LogicalExpression)expr.getSources().get( 0 );
                 uids.add( e.getFieldSchema().uid );
             }
-            
+
             return uids;
         }
-        
+
         /**
          * Check if the given expression contains only a pure projection.
          * For instance $0 is legal, f1 is legal, but 5 + $2 is not legal.
@@ -208,7 +208,7 @@ public class PushDownForEachFlatten extends Rule {
                 return false;
             return true;
         }
-        
+
         @Override
         public OperatorPlan reportChanges() {
             return subPlan;
@@ -217,7 +217,7 @@ public class PushDownForEachFlatten extends Rule {
         @Override
         public void transform(OperatorPlan matched) throws FrontendException {
             subPlan = new OperatorSubPlan( currentPlan );
-            
+
             LOForEach foreach = (LOForEach)matched.getSources().get(0);
             Operator next = currentPlan.getSuccessors( foreach ).get(0);
             if( next instanceof LOSort ) {
@@ -243,14 +243,14 @@ public class PushDownForEachFlatten extends Rule {
                 List<Operator> preds = currentPlan.getPredecessors( next );
                 List<Integer> fieldsToBeFlattaned = new ArrayList<Integer>();
                 Map<Integer, LogicalSchema> cachedUserDefinedSchema = new HashMap<Integer, LogicalSchema>();
-                boolean[] flags = null;
+                FlattenStates[] flags = null;
                 int fieldCount = 0;
                 for( Operator op : preds ) {
                     if( op == foreach ) {
                         LOGenerate gen = OptimizerUtils.findGenerate( foreach );
                         flags = gen.getFlattenFlags();
                         for( int i = 0; i < flags.length; i++ ) {
-                            if( flags[i] ) {
+                            if( flags[i].shouldFlatten() ) {
                                 fieldsToBeFlattaned.add(fieldCount);
                                 if (gen.getUserDefinedSchema()!=null && gen.getUserDefinedSchema().get(i)!=null) {
                                     cachedUserDefinedSchema.put(fieldCount, gen.getUserDefinedSchema().get(i));
@@ -265,9 +265,9 @@ public class PushDownForEachFlatten extends Rule {
                         fieldCount += ( (LogicalRelationalOperator)op ).getSchema().size();
                     }
                 }
-                
-                
-                boolean[] flattenFlags = new boolean[fieldCount];
+
+
+                FlattenStates[] flattenFlags = new FlattenStates[fieldCount];
                 List<LogicalSchema> mUserDefinedSchema = null;
                 if (cachedUserDefinedSchema!=null) {
                     mUserDefinedSchema = new ArrayList<LogicalSchema>();
@@ -275,12 +275,12 @@ public class PushDownForEachFlatten extends Rule {
                         mUserDefinedSchema.add(null);
                 }
                 for( Integer i : fieldsToBeFlattaned ) {
-                    flattenFlags[i] = true;
+                    flattenFlags[i] = FlattenStates.FLATTEN_WITH_PREFIX;
                     if (cachedUserDefinedSchema.containsKey(i)) {
                         mUserDefinedSchema.set(i, cachedUserDefinedSchema.get(i));
                     }
                 }
-                
+
                 // Now create a new foreach after cross/join and insert it into the plan.
                 LOForEach newForeach = new LOForEach( currentPlan );
                 LogicalPlan innerPlan = new LogicalPlan();
@@ -294,14 +294,14 @@ public class PushDownForEachFlatten extends Rule {
                     LogicalExpressionPlan expr = new LogicalExpressionPlan();
                     expr.add( new ProjectExpression( expr, i, -1, gen ) );
                     exprs.add( expr );
-                    
+
                     LOInnerLoad innerLoad = new LOInnerLoad(innerPlan, newForeach, i);
                     innerPlan.add(innerLoad);
                     innerPlan.connect(innerLoad, gen);
                 }
-                
+
                 newForeach.setAlias(((LogicalRelationalOperator)next).getAlias());
-                
+
                 Operator opAfterX = null;
                 List<Operator> succs = currentPlan.getSuccessors( next );
                 if( succs == null || succs.size() == 0 ) {
@@ -311,12 +311,12 @@ public class PushDownForEachFlatten extends Rule {
                     opAfterX = succs.get( 0 );
                     currentPlan.insertBetween(next, newForeach, opAfterX);
                 }
-                
+
                 // Finally remove flatten flags from the original foreach and regenerate schemas for those impacted.
                 for( int i = 0; i < flags.length; i++ ) {
-                    flags[i] = false;
+                    flags[i] = FlattenStates.DO_NOTHING;
                 }
-                
+
                 subPlan.add(foreach);
                 subPlan.add(next);
                 subPlan.add(newForeach);

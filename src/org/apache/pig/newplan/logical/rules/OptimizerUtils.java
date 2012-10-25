@@ -19,8 +19,7 @@ package org.apache.pig.newplan.logical.rules;
 
 import java.util.Iterator;
 
-import org.apache.pig.builtin.Nondeterministic;
-import org.apache.pig.impl.PigContext;
+import org.apache.pig.builtin.FlattenOutput.FlattenStates;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
@@ -46,17 +45,15 @@ public class OptimizerUtils {
      * @return true if LOGenerate instance contains flatten fields, false otherwise
      */
     public static boolean hasFlatten(LOGenerate gen) {
-        boolean hasFlatten = false;
-        boolean[] flattenFlags = gen.getFlattenFlags();
+        FlattenStates[] flattenFlags = gen.getFlattenFlags();
         if( flattenFlags != null ) {
-            for( boolean flatten : flattenFlags ) {
-                if( flatten ) {
-                    hasFlatten = true;
-                    break;
+            for( FlattenStates flatten : flattenFlags ) {
+                if( flatten.shouldFlatten() ) {
+                    return true;
                 }
             }
         }
-        return hasFlatten;
+        return false;
     }
 
     /**
@@ -76,7 +73,7 @@ public class OptimizerUtils {
      *
      * @param filterPlan
      * @return true of the filter plan contains a non-deterministic UDF
-     * @throws FrontendException 
+     * @throws FrontendException
      */
     public static boolean planHasNonDeterministicUdf(LogicalExpressionPlan filterPlan)
     throws FrontendException {

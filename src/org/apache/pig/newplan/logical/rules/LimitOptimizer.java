@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.pig.builtin.FlattenOutput.FlattenStates;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -88,10 +89,10 @@ public class LimitOptimizer extends Rule {
                     Operator op = it.next();
                     if (op instanceof LOGenerate) {
                         LOGenerate gen = (LOGenerate) op;
-                        boolean[] flattenFlags = gen.getFlattenFlags();
+                        FlattenStates[] flattenFlags = gen.getFlattenFlags();
                         if (flattenFlags != null) {
-                            for (boolean flatten : flattenFlags) {
-                                if (flatten)
+                            for (FlattenStates flatten : flattenFlags) {
+                                if (flatten.shouldFlatten())
                                     return false;
                             }
                         }
@@ -120,7 +121,7 @@ public class LimitOptimizer extends Rule {
                 // Get operator before LOForEach
                 Operator prepredecessor = currentPlan.getPredecessors(pred)
                     .get(0);
-                
+
                 List<Operator> softPrepredecessors=null;
                 // get a clone of softPrepredecessors to avoid ConcurrentModificationException
                 if (currentPlan.getSoftLinkPredecessors(limit)!=null) {

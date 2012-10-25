@@ -22,12 +22,13 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.pig.PigException;
+import org.apache.pig.builtin.FlattenOutput.FlattenStates;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.validators.TypeCheckerException;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
-import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.Operator;
@@ -92,7 +93,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
 
     /***
      * The schema of filter output will be the same as filter input
-     * @throws FrontendException 
+     * @throws FrontendException
      */
     @Override
     public void visit(LOFilter filter) throws FrontendException {
@@ -115,17 +116,17 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
         byte innerCondType = ((LogicalExpression)comparisonPlan.getSources().get(0)).getType();
         if (innerCondType != DataType.BOOLEAN) {
             int errCode = 1058;
-            String msg = "Filter's condition must evaluate to boolean. Found: " + 
+            String msg = "Filter's condition must evaluate to boolean. Found: " +
                          DataType.findTypeName(innerCondType);
             msgCollector.collect(msg, MessageType.Error) ;
             throwTypeCheckerException(filter, msg, errCode, PigException.INPUT, null) ;
-        }       
+        }
 
         try {
             // re-compute the schema
             filter.resetSchema();
             filter.getSchema() ;
-        } 
+        }
         catch (FrontendException fe) {
             int errCode = 1059;
             String msg = "Problem while reconciling output schema of Filter" ;
@@ -133,7 +134,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             throwTypeCheckerException(filter, msg, errCode, PigException.INPUT, fe) ;
         }
     }
-    
+
     private void throwTypeCheckerException(Operator op, String msg,
             int errCode, byte input, FrontendException fe) throws TypeCheckerException {
         if( fe == null ) {
@@ -166,7 +167,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
         innerLoad.resetSchema();
         innerLoad.getSchema();
     }
-    
+
     @Override
     public void visit(LOForEach forEach) throws FrontendException {
         try {
@@ -224,7 +225,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             throwTypeCheckerException(u, msg, errCode, PigException.INPUT, fee) ;
         }
 
-        // Do cast insertion only if we are typed 
+        // Do cast insertion only if we are typed
         // and if its not union-onschema. In case of union-onschema the
         // foreach with cast is added in UnionOnSchemaSetter
         if (schema != null && !u.isOnSchema()) {
@@ -262,7 +263,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
      * @param fromOp
      * @param toOp
      * @return the inserted operator. null is no insertion
-     * @throws FrontendException 
+     * @throws FrontendException
      */
     private LOForEach insertCastForEachInBetweenIfNecessary(
             LogicalRelationalOperator fromOp,
@@ -298,7 +299,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
         }
         catch(FrontendException fe) {
             int errCode = 1055;
-            String msg = "Problem while reading schema from input of " 
+            String msg = "Problem while reading schema from input of "
                 + fromOp.getClass().getSimpleName();
             throwTypeCheckerException(fromOp, msg, errCode, PigException.BUG, fe);
         }
@@ -307,7 +308,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
         // as number of output fields from "fromOp"
         if (fromSchema.size() != toSchema.size()) {
             int errCode = 1078;
-            String msg = "Schema size mismatch for casting. Input schema size: " 
+            String msg = "Schema size mismatch for casting. Input schema size: "
                 + fromSchema.size() + ". Target schema size: " + toSchema.size();
             throwTypeCheckerException(toOp, msg, errCode, PigException.INPUT, null);
         }
@@ -318,8 +319,8 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
         LogicalPlan innerPlan = new LogicalPlan();
 
         // create LOGenerate for foreach
-        LOGenerate loGen = new LOGenerate(innerPlan, generatePlans, 
-                new boolean[toSchema.size()]);
+        LOGenerate loGen = new LOGenerate(innerPlan, generatePlans,
+                new FlattenStates[toSchema.size()]);
         innerPlan.add(loGen);
 
         // Create ForEach to be inserted
@@ -514,7 +515,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
 
     /***
      * The schema of sort output will be the same as sort input.
-     * @throws FrontendException 
+     * @throws FrontendException
      *
      */
     public void visit(LOSort sort) throws FrontendException {
@@ -594,7 +595,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
         OperatorPlan lp = split.getPlan();
         List<Operator> inputList = lp.getPredecessors(split);
 
-        if (inputList.size() != 1) {            
+        if (inputList.size() != 1) {
             int errCode = 2008;
             String msg = "LOSplit cannot have more than one input. Found: " + inputList.size() + " input(s).";
             throwTypeCheckerException(split, msg, errCode, PigException.BUG, null) ;
@@ -615,7 +616,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
 
     /**
      * LOJoin visitor
-     * @throws FrontendException 
+     * @throws FrontendException
      */
     public void visit(LOJoin join) throws FrontendException {
         try {
@@ -664,7 +665,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
                 for(int i=0;i < inputs.size(); i++) {
                     Collection<LogicalExpressionPlan> exprPlans = join.getJoinPlan(i);
 
-                    //there should be one and only expression plan - that gets 
+                    //there should be one and only expression plan - that gets
                     // checked in getAtomicJoinColType()
                     LogicalExpressionPlan exprPlan = exprPlans.iterator().next();
 
@@ -683,7 +684,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
 
                 // go through all inputs again to add cast if necessary
                 for(int i=0;i < inputs.size(); i++) {
-                    List<LogicalExpressionPlan> innerPlans = 
+                    List<LogicalExpressionPlan> innerPlans =
                         new ArrayList<LogicalExpressionPlan>(join.getJoinPlan(i)) ;
                     for(int j=0;j < innerPlans.size(); j++) {
                         LogicalExpressionPlan innerPlan = innerPlans.get(j) ;
@@ -717,7 +718,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
 
         try {
             join.resetSchema();
-            join.getSchema(); 
+            join.getSchema();
         }
         catch (FrontendException fe) {
             int errCode = 1060;
@@ -743,8 +744,8 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
     /**
      * This can be used to get the merged type of output join col
      * only when the join col is of atomic type
-     * @return The type of the join col 
-     * @throws FrontendException 
+     * @return The type of the join col
+     * @throws FrontendException
      */
     private byte getAtomicJoinColType(LOJoin join) throws FrontendException {
         if (isJoinOnMultiCols(join)) {
@@ -758,7 +759,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
         // merge all the inner plan outputs so we know what type
         // our group column should be
         for(int i=0;i < plan.getPredecessors(join).size() ; i++) {
-            List<LogicalExpressionPlan> innerPlans = 
+            List<LogicalExpressionPlan> innerPlans =
                 new ArrayList<LogicalExpressionPlan>(join.getJoinPlan(i)) ;
             if (innerPlans.size() != 1) {
                 int errCode = 1012;
@@ -776,14 +777,14 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             }
         }
 
-        return groupType ; 
+        return groupType ;
     }
 
     /**
      * This can be used to get the merged type of output join col
      * only when the join/cogroup col is of atomic type
-     * @return The type of the join col 
-     * @throws FrontendException 
+     * @return The type of the join col
+     * @throws FrontendException
      */
     private byte getAtomicColType(MultiMap<Integer, LogicalExpressionPlan> allExprPlans) throws FrontendException {
         if (isMultiExprPlanPerInput(allExprPlans)) {
@@ -797,7 +798,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
         // merge all the inner plan outputs so we know what type
         // our group column should be
         for(int i=0;i < allExprPlans.size() ; i++) {
-            List<LogicalExpressionPlan> innerPlans = 
+            List<LogicalExpressionPlan> innerPlans =
                 new ArrayList<LogicalExpressionPlan>(allExprPlans.get(i)) ;
             if (innerPlans.size() != 1) {
                 int errCode = 1012;
@@ -815,7 +816,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             }
         }
 
-        return groupType ; 
+        return groupType ;
     }
 
 
@@ -867,11 +868,11 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
     }
 
     /**
-     * Create combined group-by/join column schema based on join/cogroup 
+     * Create combined group-by/join column schema based on join/cogroup
      * expression plans for all inputs.
-     * This implementation is based on the assumption that all the 
+     * This implementation is based on the assumption that all the
      * inputs have the same join col tuple arity.
-     * 
+     *
      * @param exprPlans
      * @return
      * @throws FrontendException
@@ -904,7 +905,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
 
                 if(eOp instanceof ProjectExpression) {
                     if(((ProjectExpression)eOp).isProjectStar()) {
-                        //there is a project star and there is more than one 
+                        //there is a project star and there is more than one
                         // expression plan
                         int errCode = 1013;
                         String msg = "Grouping attributes can either be star (*) " +
@@ -912,7 +913,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
                         msgCollector.collect(msg, MessageType.Error) ;
                         throw new FrontendException(
                                 msg, errCode, PigException.INPUT, false, null
-                        );         
+                        );
                     }
                 }
                 //merge the type
@@ -925,7 +926,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
                     }
                     String msg =
                         colType + " column no. " +
-                        (j+1) + " in relation no. " + (i+1) + " of  " + colType + 
+                        (j+1) + " in relation no. " + (i+1) + " of  " + colType +
                         " statement has datatype " + DataType.findTypeName(innerType) +
                         " which is incompatible with type of corresponding column" +
                         " in earlier relation(s) in the statement";
@@ -950,7 +951,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
      * COGroup
      * All group by cols from all inputs have to be of the
      * same type
-     * @throws FrontendException 
+     * @throws FrontendException
      */
     @Override
     public void visit(LOCogroup cg) throws FrontendException {
@@ -964,7 +965,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             throwTypeCheckerException(cg, msg, errCode, PigException.INPUT, fe) ;
         }
 
-        MultiMap<Integer, LogicalExpressionPlan> groupByPlans = 
+        MultiMap<Integer, LogicalExpressionPlan> groupByPlans =
             cg.getExpressionPlans();
 
         List<Operator> inputs = cg.getInputs((LogicalPlan)plan);
@@ -1018,7 +1019,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
                 // go through all inputs again to add cast if necessary
                 for(int i=0;i < inputs.size(); i++) {
 
-                    List<LogicalExpressionPlan> innerPlans = 
+                    List<LogicalExpressionPlan> innerPlans =
                         new ArrayList<LogicalExpressionPlan>(groupByPlans.get(i)) ;
                     for(int j=0;j < innerPlans.size(); j++) {
                         LogicalExpressionPlan innerPlan = innerPlans.get(j) ;

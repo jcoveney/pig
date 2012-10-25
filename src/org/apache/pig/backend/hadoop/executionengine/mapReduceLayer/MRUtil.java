@@ -27,29 +27,31 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.builtin.FlattenOutput.FlattenStates;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 
+import com.google.common.collect.Lists;
+
 public class MRUtil {
     // simpleConnectMapToReduce is a utility to end a map phase and start a reduce phase in
     //     a mapreduce operator:
     // 1. mro only contains map plan
-    // 2. need to add POLocalRearrange to end map plan, and add 
+    // 2. need to add POLocalRearrange to end map plan, and add
     //    POPackage to start a reduce plan
     // 3. POLocalRearrange/POPackage are trivial
-    static public void simpleConnectMapToReduce(MapReduceOper mro, String scope, NodeIdGenerator nig) throws PlanException
-    {
+    static public void simpleConnectMapToReduce(MapReduceOper mro, String scope, NodeIdGenerator nig) throws PlanException {
         PhysicalPlan ep = new PhysicalPlan();
         POProject prjStar = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
         prjStar.setResultType(DataType.TUPLE);
         prjStar.setStar(true);
         ep.add(prjStar);
-        
+
         List<PhysicalPlan> eps = new ArrayList<PhysicalPlan>();
         eps.add(ep);
-        
+
         POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)));
         try {
             lr.setIndex(0);
@@ -61,24 +63,23 @@ public class MRUtil {
         lr.setKeyType(DataType.TUPLE);
         lr.setPlans(eps);
         lr.setResultType(DataType.TUPLE);
-        
+
         mro.mapPlan.addAsLeaf(lr);
-        
+
         POPackage pkg = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)));
         pkg.setKeyType(DataType.TUPLE);
         pkg.setNumInps(1);
         boolean[] inner = {false};
         pkg.setInner(inner);
         mro.reducePlan.add(pkg);
-        
+
         mro.reducePlan.addAsLeaf(getPlainForEachOP(scope, nig));
     }
-    
+
     // Get a simple POForEach: ForEach X generate flatten($1)
-    static public POForEach getPlainForEachOP(String scope, NodeIdGenerator nig)
-    {
-        List<PhysicalPlan> eps1 = new ArrayList<PhysicalPlan>();
-        List<Boolean> flat1 = new ArrayList<Boolean>();
+    static public POForEach getPlainForEachOP(String scope, NodeIdGenerator nig) {
+        List<PhysicalPlan> eps1 = Lists.newArrayList();
+        List<FlattenStates> flat1 = Lists.newArrayList(FlattenStates.FLATTEN_WITH_PREFIX);
         PhysicalPlan ep1 = new PhysicalPlan();
         POProject prj1 = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
         prj1.setResultType(DataType.TUPLE);
@@ -87,9 +88,8 @@ public class MRUtil {
         prj1.setOverloaded(true);
         ep1.add(prj1);
         eps1.add(ep1);
-        flat1.add(true);
-        POForEach fe = new POForEach(new OperatorKey(scope, nig
-                .getNextNodeId(scope)), -1, eps1, flat1);
+        POForEach fe = new POForEach(-1, new OperatorKey(scope, nig
+                .getNextNodeId(scope)), eps1, flat1);
         fe.setResultType(DataType.BAG);
         return fe;
     }
