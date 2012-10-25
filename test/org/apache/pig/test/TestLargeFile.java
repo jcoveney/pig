@@ -122,7 +122,7 @@ public class TestLargeFile {
     }
 
     @Test
-    public void testOrder () throws Exception {
+    public void testOrder() throws Exception {
         System.out.println("Running testOrder...");
         int N = 0, Nplus1 = 0;
         pig.registerQuery("A = load " + fileName + ";");
@@ -143,11 +143,14 @@ public class TestLargeFile {
             assertEquals(1, flag);
 
             N = Nplus1;
+
         }
+
+
     }
 
     @Test
-    public void testDistinct () throws Exception {
+    public void testDistinct() throws Exception {
         System.out.println("Running testDistinct...");
         pig.registerQuery("A = load " + fileName + ";");
         pig.registerQuery("B = distinct A;");
@@ -176,4 +179,5 @@ public class TestLargeFile {
         }
 
     }
+
 }
