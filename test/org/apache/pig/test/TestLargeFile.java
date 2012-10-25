@@ -19,20 +19,20 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.Random;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,8 +51,7 @@ public class TestLargeFile {
     private int max_rand = 500;
     static MiniCluster cluster = MiniCluster.buildCluster();
 
-    Integer [] COUNT = new Integer[max_rand];
-
+    Integer[] COUNT = new Integer[max_rand];
 
     PigServer pig;
     String fileName, tmpFile1;
@@ -74,28 +73,25 @@ public class TestLargeFile {
             COUNT[i] = 0;
         }
 
-
         for(long i = 0; i < total; i++) {
-
             Integer x = new Integer(rand.nextInt(max_rand));
-            COUNT[x.intValue()] ++;
+            COUNT[x.intValue()]++;
             dat.write((x.toString() + "\n").getBytes());
         }
 
         dat.close();
 
-        try {
-            pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        }
-        catch (ExecException e) {
-            IOException ioe = new IOException("Failed to create Pig server");
-            ioe.initCause(e);
-            throw ioe;
-        }
+        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+
         fileName = "'" + FileLocalizer.hadoopify(datFile.toString(), pig.getPigContext()) + "'";
         tmpFile1 = "'" + FileLocalizer.getTemporaryPath(pig.getPigContext()).toString() + "'";
 
         datFile.delete();
+    }
+
+    @After
+    public void oneTime() throws Exception {
+        pig.shutdown();
     }
 
     @AfterClass
@@ -111,58 +107,50 @@ public class TestLargeFile {
         pig.store("A", tmpFile1, "BinStorage()");
         pig.registerQuery("B = foreach A generate group, COUNT($1);");
 
-        Iterator <Tuple> B = pig.openIterator("B");
+        Iterator<Tuple> B = pig.openIterator("B");
 
-        while(B.hasNext()) {
+        while (B.hasNext()) {
             Tuple temp = B.next();
             int index = DataType.toInteger(temp.get(0));
             int value = DataType.toInteger(temp.get(1));
             System.out.println("COUNT [" + index + "] = " + COUNT[index] + " B[" + index + "] = " + value);
 
             assertEquals(COUNT[index].intValue(), value);
-
         }
-
     }
 
     @Test
-    public void testOrder () throws Exception {
+    public void testOrder() throws Exception {
         System.out.println("Running testOrder...");
         int N = 0, Nplus1 = 0;
         pig.registerQuery("A = load " + fileName + ";");
         pig.registerQuery("B = order A by $0;");
 
-        Iterator <Tuple> B = pig.openIterator("B");
+        Iterator<Tuple> B = pig.openIterator("B");
 
-        if(B.hasNext()) {
+        if (B.hasNext()) {
             N = DataType.toInteger(B.next().get(0));
         }
 
-        while(B.hasNext()) {
-            int flag = 0;
+        while (B.hasNext()) {
             Nplus1 = DataType.toInteger(B.next().get(0));
-            if(Nplus1 >= N) {
-                flag = 1;
-            }
-            assertEquals(flag, 1);
+
+            assertTrue("Expecting Nplus ["+Nplus1+"] to be greater than or equal to N ["+N+"]", Nplus1 >= N);
 
             N = Nplus1;
-
         }
-
-
     }
 
     @Test
-    public void testDistinct () throws Exception {
+    public void testDistinct() throws Exception {
         System.out.println("Running testDistinct...");
         pig.registerQuery("A = load " + fileName + ";");
         pig.registerQuery("B = distinct A;");
 
         Iterator <Tuple> B = pig.openIterator("B");
 
-        Integer [] COUNT_Test = new Integer [max_rand];
-        Integer [] COUNT_Data = new Integer [max_rand];
+        Integer[] COUNT_Test = new Integer[max_rand];
+        Integer[] COUNT_Data = new Integer[max_rand];
 
         for(int i = 0; i < max_rand; i++) {
             COUNT_Test[i] = 0;
@@ -181,7 +169,5 @@ public class TestLargeFile {
         for(int i = 0; i < max_rand; i++) {
             assertEquals(COUNT_Test[i].intValue(), COUNT_Data[i].intValue());
         }
-
     }
-
 }
