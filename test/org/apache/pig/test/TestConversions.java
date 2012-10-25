@@ -42,6 +42,7 @@ import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.TestHelper;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.junit.Before;
 import org.junit.Test;
 
 /**
@@ -52,9 +53,10 @@ import org.junit.Test;
 public class TestConversions {
 
     PigStorage ps = new PigStorage();
-	Random r = new Random();
+	Random r = new Random(42L);
 	final int MAX = 10;
 
+	@Before
 	public void setUp() {
 	    DateTimeZone.setDefault(DateTimeZone.forOffsetMillis(DateTimeZone.UTC.getOffset(null)));
 	}
@@ -82,7 +84,8 @@ public class TestConversions {
     }
 
     @Test
-    public  void testBytesToInteger() throws IOException {
+    public  void testBytesToInteger() throws IOException
+    {
         // valid ints
         String[] a = {"1", "-2345",  "1234567", "1.1", "-23.45", ""};
         Integer[] ia = {1, -2345, 1234567, 1, -23};
@@ -102,7 +105,8 @@ public class TestConversions {
     }
 
     @Test
-    public  void testBytesToFloat() throws IOException {
+    public  void testBytesToFloat() throws IOException
+    {
         // valid floats
         String[] a = {"1", "-2.345",  "12.12334567", "1.02e-2",".23344",
 		      "23.1234567897", "12312.33", "002312.33", "1.02e-2", ""};
@@ -121,14 +125,16 @@ public class TestConversions {
             byte[] b = s.getBytes();
             Float fl = ps.getLoadCaster().bytesToFloat(b);
             assertNull(fl);
+
         }
     }
 
     @Test
-    public  void testBytesToDouble() throws IOException {
+    public  void testBytesToDouble() throws IOException
+    {
         // valid doubles
         String[] a = {"1", "-2.345",  "12.12334567890123456", "1.02e12","-.23344", ""};
-        Double[] d = {(double)1, -2.345,  12.12334567890123456, 1.02e12, -.23344};
+        Double[] d = {1.0, -2.345,  12.12334567890123456, 1.02e12, -.23344};
         for (int j = 0; j < d.length; j++) {
             byte[] b = a[j].getBytes();
             assertEquals(d[j], ps.getLoadCaster().bytesToDouble(b));
@@ -145,7 +151,8 @@ public class TestConversions {
     }
 
     @Test
-    public  void testBytesToLong() throws IOException {
+    public  void testBytesToLong() throws IOException
+    {
         // valid Longs
         String[] a = {"1", "-2345",  "123456789012345678", "1.1", "-23.45",
 		      "21345345", "3422342", ""};
@@ -167,7 +174,8 @@ public class TestConversions {
     }
 
     @Test
-    public  void testBytesToChar() throws IOException {
+    public  void testBytesToChar() throws IOException
+    {
         // valid Strings
         String[] a = {"1", "-2345",  "text", "hello\nworld", ""};
 
@@ -178,7 +186,8 @@ public class TestConversions {
     }
 
     @Test
-    public  void testBytesToTuple() throws IOException {
+    public  void testBytesToTuple() throws IOException
+    {
         for (int i = 0; i < MAX; i++) {
             Tuple t = GenRandomData.genRandSmallBagTextTuple(r, 1, 100);
 
@@ -191,7 +200,8 @@ public class TestConversions {
     }
 
     @Test
-    public  void testBytesToBag() throws IOException {
+    public  void testBytesToBag() throws IOException
+    {
         ResourceFieldSchema fs = GenRandomData.getFullTupTextDataBagFieldSchema();
 
         for (int i = 0; i < MAX; i++) {
@@ -203,7 +213,8 @@ public class TestConversions {
     }
 
     @Test
-    public  void testBytesToMap() throws IOException {
+    public  void testBytesToMap() throws IOException
+    {
 
         for (int i = 0; i < MAX; i++) {
             Map<String, Object>  m = GenRandomData.genRandMap(r,5);
@@ -259,7 +270,6 @@ public class TestConversions {
     @Test
     public void testTupleToBytes() throws IOException {
         Tuple t = GenRandomData.genRandSmallBagTextTuple(r, 1, 100);
-        //Tuple t = GenRandomData.genRandSmallTuple(r, 100);
         assertTrue(DataType.equalByteArrays(t.toString().getBytes(), ((Utf8StorageConverter)ps.getLoadCaster()).toBytes(t)));
     }
 
@@ -289,8 +299,8 @@ public class TestConversions {
             Tuple t2 = (Tuple)iter2.next();
             for (int j=0;j<5;j++) {
                 assertTrue(t2.get(j) instanceof Integer);
-                float expectedValue = (Float)(t1.get(j));
-                assertEquals(Integer.valueOf((int)expectedValue), t2.get(j));
+                Integer expectedValue = Integer.valueOf(((Float)t1.get(j)).intValue());
+                assertEquals(expectedValue, t2.get(j));
             }
         }
     }
@@ -307,13 +317,13 @@ public class TestConversions {
 
             assertTrue(convertedTuple.get(1) instanceof Long);
             Integer origValue1 = (Integer)t.get(1);
-            assertEquals(convertedTuple.get(1), new Long(origValue1.longValue()));
+            assertEquals(convertedTuple.get(1), Long.valueOf(origValue1.longValue()));
 
             assertNull(convertedTuple.get(2));
 
             assertTrue(convertedTuple.get(3) instanceof Double);
             Float origValue3 = (Float)t.get(3);
-            assertEquals((Double)convertedTuple.get(3), origValue3.doubleValue(), 0.01);
+            assertEquals(((Double)convertedTuple.get(3)).doubleValue(), origValue3.doubleValue(), 0.01);
 
             assertTrue(convertedTuple.get(4) instanceof Float);
             Double origValue4 = (Double)t.get(4);
@@ -330,7 +340,7 @@ public class TestConversions {
 
             assertTrue(convertedTuple.get(9) instanceof Boolean);
             String origValue9 = (String)t.get(9);
-            assertEquals(new Boolean(origValue9), convertedTuple.get(9));
+            assertEquals(Boolean.valueOf(origValue9), convertedTuple.get(9));
         }
     }
 
@@ -401,7 +411,7 @@ public class TestConversions {
         schema = Utils.getSchemaFromString("t:tuple()");
         rfs = new ResourceSchema(schema).getFields()[0];
         t = ps.getLoadCaster().bytesToTuple(s.getBytes(), rfs);
-        assertEquals(3, t.size());
+        assertTrue(t.size()==3);
         assertTrue(t.get(0) instanceof DataByteArray);
         assertEquals("a", t.get(0).toString());
         assertTrue(t.get(1) instanceof DataByteArray);

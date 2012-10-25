@@ -28,7 +28,6 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Iterator;
-import java.util.Properties;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -44,7 +43,7 @@ public class TestUTF8 {
 
     @Before
     public void setUp() throws Exception {
-        pigServer = new PigServer(ExecType.LOCAL, new Properties());
+        pigServer = new PigServer(ExecType.LOCAL);
     }
 
     @Test
