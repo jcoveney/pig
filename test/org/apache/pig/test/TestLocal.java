@@ -31,6 +31,7 @@ import java.util.Iterator;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -54,9 +55,8 @@ public class TestLocal {
     private PigServer pig;
 
     @Before
-    protected void setUp() throws Exception {
-        //pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        pig = new PigServer("local");
+    public void setUp() throws Exception {
+        pig = new PigServer(ExecType.LOCAL);
     }
 
     @Test
@@ -97,7 +97,6 @@ public class TestLocal {
 
     }
 
-    @Test
     public Double bigGroupAll( File tmpFile ) throws Throwable {
 
         String query = "foreach (group (load '"
@@ -396,7 +395,6 @@ public class TestLocal {
     }
 
 
-    @Test
     public void definedFunctions(String[][] data) throws Throwable {
 
         File tmpFile=TestHelper.createTempFile(data) ;

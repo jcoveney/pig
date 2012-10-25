@@ -206,7 +206,7 @@ public class TestNewPlanRule {
 
         Operator m1 = l.get(0).getSources().get(0);
         assertTrue(m1.getName().equals("p1") || m1.getName().equals("p2"));
-        assertEquals(2, l.get(0).size());
+        assertEquals(1, l.get(0).size());
 
         Operator m2 = l.get(1).getSources().get(0);
         assertTrue(m2.getName().equals("p1") || m2.getName().equals("p2"));

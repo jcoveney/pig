@@ -59,6 +59,7 @@ public class TestPODistinct {
     	confirmDistinct();
      }
 
+    @Test
     public void testPODistictWithNullValues() throws ExecException {
 
     	input = BagFactory.getInstance().newDefaultBag();
@@ -73,6 +74,7 @@ public class TestPODistinct {
     	confirmDistinct();
      }
 
+    @Test
     public void testPODistictWithIntAndNullValues() throws ExecException {
 
       	input = BagFactory.getInstance().newDefaultBag();
@@ -90,6 +92,7 @@ public class TestPODistinct {
     	confirmDistinct();
      }
 
+    @Test
     public void testPODistictWithIntNullValues() throws ExecException {
 
     	input = BagFactory.getInstance().newDefaultBag();
@@ -104,6 +107,8 @@ public class TestPODistinct {
 
     	confirmDistinct();
      }
+
+    @Test
     public void testPODistictWithNullIntValues() throws ExecException {
 
     	input = BagFactory.getInstance().newDefaultBag();
@@ -119,6 +124,7 @@ public class TestPODistinct {
     	confirmDistinct();
      }
 
+    @Test
     public void testPODistictArityWithNullValues() throws ExecException {
 
     	input = BagFactory.getInstance().newDefaultBag();

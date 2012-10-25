@@ -34,7 +34,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.junit.Test;
 
 public class TestPORegexp {
-    static Random r = new Random();
+    static Random r = new Random(42L);
 
     @Test
     public void testOrdering() {

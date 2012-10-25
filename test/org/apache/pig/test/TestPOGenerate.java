@@ -39,6 +39,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.junit.Before;
+import org.junit.Test;
 
 public class TestPOGenerate {
 
@@ -133,6 +134,7 @@ public class TestPOGenerate {
 
     }
 
+    @Test
     public void testJoin() throws Exception {
         ExpressionOperator prj1 = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
         ExpressionOperator prj2 = new POProject(new OperatorKey("", r.nextLong()), -1, 1);
@@ -166,6 +168,7 @@ public class TestPOGenerate {
 
     }
 
+    @Test
     public void testPartialJoin() throws Exception {
         ExpressionOperator prj1 = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
         ExpressionOperator prj2 = new POProject(new OperatorKey("", r.nextLong()), -1, 1);
@@ -205,6 +208,7 @@ public class TestPOGenerate {
 
     }
 
+    @Test
     public void testSimpleGenerate() throws Exception {
         ExpressionOperator prj1 = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
         ExpressionOperator prj2 = new POProject(new OperatorKey("", r.nextLong()), -1, 1);

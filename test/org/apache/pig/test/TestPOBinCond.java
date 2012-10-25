@@ -40,9 +40,10 @@ import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.joda.time.DateTime;
 import org.junit.Before;
+import org.junit.Test;
 
 public class TestPOBinCond {
-    Random r = new Random();
+    Random r = new Random(42L);
     DataBag bag = BagFactory.getInstance().newDefaultBag();
     DataBag bagDefault = BagFactory.getInstance().newDefaultBag();
     DataBag bagWithNull = BagFactory.getInstance().newDefaultBag();
@@ -184,6 +185,7 @@ public class TestPOBinCond {
     }
   */
 
+    @Test
     public void testPOBinCondWithBoolean() throws ExecException, PlanException {
         bag = getBag(DataType.BOOLEAN);
         TestPoBinCondHelper testHelper = new TestPoBinCondHelper(
@@ -201,6 +203,7 @@ public class TestPOBinCond {
         }
     }
 
+    @Test
     public void testPOBinCondWithInteger() throws  ExecException, PlanException {
 
 	    bag= getBag(DataType.INTEGER);
@@ -217,6 +220,7 @@ public class TestPOBinCond {
 
     }
 
+    @Test
     public void testPOBinCondWithLong() throws  ExecException, PlanException {
         bag= getBag(DataType.LONG);
        	TestPoBinCondHelper testHelper= new TestPoBinCondHelper(DataType.LONG, new Long(1L) );
@@ -232,6 +236,7 @@ public class TestPOBinCond {
         }
     }
 
+    @Test
     public void testPOBinCondWithFloat() throws  ExecException, PlanException {
 
 		bag= getBag(DataType.FLOAT);
@@ -250,6 +255,7 @@ public class TestPOBinCond {
 
 	}
 
+    @Test
     public void testPOBinCondWithDouble() throws  ExecException, PlanException {
 
 		bag= getBag(DataType.DOUBLE);
@@ -267,6 +273,7 @@ public class TestPOBinCond {
 
     }
 
+    @Test
     public void testPOBinCondWithDateTime() throws  ExecException, PlanException {
         bag= getBag(DataType.DATETIME);
         TestPoBinCondHelper testHelper= new TestPoBinCondHelper(DataType.DATETIME, new DateTime(1L) );
@@ -282,6 +289,7 @@ public class TestPOBinCond {
         }
     }
 
+    @Test
     public void testPOBinCondIntWithNull() throws  ExecException, PlanException {
 
     	bag= getBagWithNulls(DataType.INTEGER);
@@ -312,6 +320,7 @@ public class TestPOBinCond {
 
    }
 
+    @Test
     public void testPOBinCondLongWithNull() throws  ExecException, PlanException {
 
 	    bag= getBagWithNulls(DataType.LONG);
@@ -338,6 +347,7 @@ public class TestPOBinCond {
 	       }
 	}
 
+    @Test
     public void testPOBinCondDoubleWithNull() throws  ExecException, PlanException {
 
 	    bag= getBagWithNulls(DataType.DOUBLE);
@@ -368,6 +378,7 @@ public class TestPOBinCond {
 
 	}
 
+    @Test
     public void testPOBinCondDateTimeWithNull() throws  ExecException, PlanException {
 
         bag= getBagWithNulls(DataType.DATETIME);

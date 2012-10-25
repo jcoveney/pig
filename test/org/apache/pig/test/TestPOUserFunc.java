@@ -47,7 +47,7 @@ import org.apache.pig.test.utils.GenRandomData;
 import org.junit.Test;
 
 public class TestPOUserFunc {
-	Random r = new Random();
+	Random r = new Random(42L);
 	int MAX_TUPLES = 10;
 
 	public static class ARITY extends EvalFunc<Integer> {
@@ -301,7 +301,7 @@ public class TestPOUserFunc {
 	public void testAlgebraicAVG() throws IOException, ExecException {
 
 	     Integer input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-             algebraicAVG( input, 55, 10, 110, 20, 5.5 );
+             algebraicAVG( input, 55.0, 10L, 110.0, 20L, 5.5 );
 
         }
 
@@ -316,16 +316,15 @@ public class TestPOUserFunc {
 	public void testAlgebraicAVGWithNulls() throws IOException, ExecException {
 
 	     Integer input[] = { 1, 2, 3, 4, null, 6, 7, 8, 9, 10 };
-             algebraicAVG( input, 50, 10, 100, 20, 5 );
+             algebraicAVG( input, 50.0, 10L, 100.0, 20L, 5.0 );
 
         }
 
-	@Test
 	public void algebraicAVG(
                  Integer[] input
-               , double initialExpectedSum, long initialExpectedCount
-               , double intermedExpectedSum, long intermedExpectedCount
-               , double expectedAvg
+               , Double initialExpectedSum, Long initialExpectedCount
+               , Double intermedExpectedSum, Long intermedExpectedCount
+               , Double expectedAvg
          ) throws IOException, ExecException {
 
                 // generate data
@@ -354,8 +353,8 @@ public class TestPOUserFunc {
 				: null;
 		System.out.println(outputInitial1 + " " + outputInitial2);
 		assertEquals(outputInitial1, outputInitial2);
-		double sum = (Double) outputInitial1.get(0);
-		long count = (Long) outputInitial1.get(1);
+		Double sum = (Double) outputInitial1.get(0);
+		Long count = (Long) outputInitial1.get(1);
 		assertEquals(initialExpectedSum, sum);
 		assertEquals(initialExpectedCount, count);
 

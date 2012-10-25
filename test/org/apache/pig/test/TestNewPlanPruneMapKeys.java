@@ -144,7 +144,7 @@ public class TestNewPlanPruneMapKeys {
         LOLoad load = (LOLoad) newLogicalPlan.getSources().get(0);
         Map<Long,Set<String>> annotation =
             (Map<Long, Set<String>>) load.getAnnotation(MapKeysPruneHelper.REQUIRED_MAPKEYS);
-        assertNull(annotation);
+        assertNotNull(annotation);
         assertEquals( 1, annotation.keySet().size() );
         Integer[] keySet = annotation.keySet().toArray( new Integer[0] );
         assertEquals( new Integer(0), keySet[0] );

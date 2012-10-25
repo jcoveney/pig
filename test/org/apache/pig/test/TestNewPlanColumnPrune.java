@@ -70,7 +70,7 @@ public class TestNewPlanColumnPrune {
         "store b into 'empty';";
         LogicalPlan expected = buildPlan(query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // no schema
         query = "a = load 'd.txt';" +
@@ -85,7 +85,7 @@ public class TestNewPlanColumnPrune {
         "b = foreach a generate $0, $1;"+
         "store b into 'empty';";
         expected = buildPlan(query);
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
     }
 
     @Test
@@ -104,7 +104,7 @@ public class TestNewPlanColumnPrune {
         "store b into 'empty';";
         LogicalPlan expected = buildPlan(query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // with filter
         query = "a = load 'd.txt' as (id, v1, v5, v3, v4, v2);"+
@@ -121,7 +121,7 @@ public class TestNewPlanColumnPrune {
         "c = foreach b generate id;" +
         "store c into 'empty';";
         expected = buildPlan(query);
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // with 2 foreach
         query = "a = load 'd.txt' as (id, v1, v5, v3, v4, v2);" +
@@ -155,7 +155,7 @@ public class TestNewPlanColumnPrune {
         "c = foreach b generate v5, v4;" +
         "store c into 'empty';";
         expected = buildPlan(query);
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // with 2 foreach and filter in between
         query = "a =load 'd.txt' as (id, v1, v5, v3, v4, v2);" +
@@ -174,7 +174,7 @@ public class TestNewPlanColumnPrune {
         "d = foreach c generate v5, v4;" +
         "store d into 'empty';";
         expected = buildPlan(query);
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // with 2 foreach after join
         query = "a =load 'd.txt' as (id, v1, v2, v3);" +
@@ -193,7 +193,7 @@ public class TestNewPlanColumnPrune {
         "d = foreach c generate a::id, v5, v3, v4;" +
         "store d into 'empty';";
         expected = buildPlan(query);
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // with BinStorage, insert foreach after load
         query = "a =load 'd.txt' using BinStorage() as (id, v1, v5, v3, v4, v2);" +
@@ -211,7 +211,7 @@ public class TestNewPlanColumnPrune {
         "d = foreach c generate v5, v4;" +
         "store d into 'empty';";
         expected = buildPlan(query);
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
        // with BinStorage, not to insert foreach after load if there is already one
         query = "a =load 'd.txt' using BinStorage() as (id, v1, v5, v3, v4, v2);" +
@@ -230,7 +230,7 @@ public class TestNewPlanColumnPrune {
         "d = foreach c generate v5;" +
         "store d into 'empty';";
         expected = buildPlan(query);
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
        // with BinStorage, not to insert foreach after load if there is already one
         query = "a =load 'd.txt' using BinStorage() as (id, v1, v5, v3, v4, v2);" +
@@ -249,7 +249,7 @@ public class TestNewPlanColumnPrune {
         "d = foreach c generate v5;" +
         "store d into 'empty';";
         expected = buildPlan(query);
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
     }
 
     @Test
@@ -269,7 +269,7 @@ public class TestNewPlanColumnPrune {
         "store b into 'empty';";
         LogicalPlan expected = buildPlan(query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         LOLoad op = (LOLoad)newLogicalPlan.getSources().get(0);
         Map<Integer,Set<String>> annotation =
@@ -299,7 +299,7 @@ public class TestNewPlanColumnPrune {
         "store e into 'empty';";
         expected = buildPlan(query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         List<Operator> ll = newLogicalPlan.getSources();
         assertEquals(2, ll.size());
@@ -350,7 +350,7 @@ public class TestNewPlanColumnPrune {
         "store d into 'empty';";
         LogicalPlan expected = buildPlan(query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
     }
 
     @Test
@@ -371,7 +371,7 @@ public class TestNewPlanColumnPrune {
         "store c into 'empty';";
         LogicalPlan expected = buildPlan(query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
 
         // join with foreach
         query = "a =load 'd.txt' as (id, v1, v2);" +
@@ -394,7 +394,7 @@ public class TestNewPlanColumnPrune {
         "store f into 'empty';";
         expected = buildPlan(query);
 
-        assertEquals(expected, newLogicalPlan);
+        assertTrue(expected.isEqual(newLogicalPlan));
     }
 
     public class MyPlanOptimizer extends LogicalPlanOptimizer {

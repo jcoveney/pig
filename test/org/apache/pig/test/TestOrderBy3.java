@@ -29,10 +29,12 @@ import java.util.Random;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.test.utils.GenRandomData;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,15 +47,13 @@ public class TestOrderBy3 {
 
     private static final int MAX = 10;
 
-    private PigServer pig;
-
     @Before
     public void setUp() throws Exception {
         ArrayList<Tuple> tuples = new ArrayList<Tuple>();
 
         log.info("Setting up");
 
-        pigServer = new PigServer("local");
+        pigServer = new PigServer(ExecType.LOCAL);
         data = resetData(pigServer);
 
         Random r = new Random();
@@ -61,13 +61,16 @@ public class TestOrderBy3 {
             tuples.add(tuple(i,GenRandomData.genRandString(r)));
         }
 
-        data.set("test", tuples);
+        Schema s = new Schema();
+        s.add(new Schema.FieldSchema("index", DataType.INTEGER));
+        s.add(new Schema.FieldSchema("name", DataType.CHARARRAY));
+        data.set("test", s, tuples);
     }
 
     public void testNames(boolean ascOrdering) throws Exception {
         String order = (ascOrdering) ? "ASC" : "DESC";
 
-        String query = "A = load 'test' USING mock.Storage() as (index:int, name:chararray);" +
+        String query = "A = load 'test' USING mock.Storage();" +
         "B = order A by name " + order + ";" +
         "store B into 'result' using mock.Storage();";
 
@@ -106,7 +109,7 @@ public class TestOrderBy3 {
 
         String order = (ascOrdering) ? "ASC" : "DESC";
 
-        String query = "A = load 'test' USING mock.Storage() as (index:int, name:chararray);" +
+        String query = "A = load 'test' USING mock.Storage();" +
         "B = order A by index " + order + ";" +
         "store B into 'result' using mock.Storage();";
 

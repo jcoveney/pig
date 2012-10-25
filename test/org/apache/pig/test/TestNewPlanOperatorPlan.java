@@ -938,7 +938,7 @@ public class TestNewPlanOperatorPlan {
 
         }
 
-        assertEquals(lp, lp1);
+        assertTrue(lp.isEqual(lp1));
     }
 
     @Test
@@ -1048,7 +1048,7 @@ public class TestNewPlanOperatorPlan {
             new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "y"})), null, lp, conf);
         lp.add(load8);
 
-        assertEquals(load7, load8);
+        assertTrue(load7.isEqual(load8));
     }
 
     @Test
@@ -1560,7 +1560,7 @@ public class TestNewPlanOperatorPlan {
         lp2.add(D2);
         lp2.connect(A2, D2);
 
-        assertEquals(D1, D2);
+        assertTrue(D1.isEqual(D2));
     }
 
     @Test

@@ -32,9 +32,9 @@ import org.junit.Test;
 public class TestPinOptions {
 
     protected PigServer pigServer;
-    @Before
 
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         pigServer = new PigServer(LOCAL);
     }
 

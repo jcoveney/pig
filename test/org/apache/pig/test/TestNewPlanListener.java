@@ -64,7 +64,7 @@ public class TestNewPlanListener {
      * @see junit.framework.TestCase#setUp()
      */
     @Before
-    protected void setUp() throws Exception {
+    public void setUp() throws Exception {
         // Build a plan that looks like it has just been transformed
         // It is roughly the logical plan for
         // A = load 'bla' as (x);

@@ -44,7 +44,7 @@ import org.apache.pig.test.utils.GenRandomData;
 import org.junit.Test;
 
 public class TestPOSort {
-	Random r = new Random();
+	Random r = new Random(42L);
 	int MAX_TUPLES = 10;
 
 	@Test

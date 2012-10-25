@@ -41,7 +41,7 @@ import org.apache.pig.impl.plan.PlanException;
 import org.junit.Test;
 public class TestPONegative {
     DataBag bag = BagFactory.getInstance().newDefaultBag();
-    Random r = new Random();
+    Random r = new Random(100L);
     TupleFactory tf = TupleFactory.getInstance();
     final int MAX = 10;
 

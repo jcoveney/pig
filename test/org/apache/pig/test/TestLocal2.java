@@ -32,6 +32,7 @@ import java.util.Iterator;
 import junit.framework.Assert;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -41,12 +42,10 @@ import org.junit.Test;
 
 public class TestLocal2 {
 
-    private String initString = "local";
-
     private PigServer pig ;
 
     public TestLocal2() throws Throwable {
-        pig = new PigServer(initString) ;
+        pig = new PigServer(ExecType.LOCAL) ;
     }
 
 
