@@ -47,12 +47,12 @@ public class TestStreamingLocal {
     }
 
     @Before
-    protected void setUp() throws Exception {
-        pigServer = new PigServer("local");
+    public void setUp() throws Exception {
+        pigServer = new PigServer(ExecType.LOCAL);
     }
 
     @After
-    protected void tearDown() throws Exception {
+    public void tearDown() throws Exception {
         pigServer.shutdown();
     }
 

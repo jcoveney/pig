@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.Tuple;
@@ -42,7 +43,7 @@ public class TestRank1 {
 
     @Before
     public void setUp() throws Exception {
-        pigServer = new PigServer("local");
+        pigServer = new PigServer(ExecType.LOCAL);
 
         data = resetData(pigServer);
         data.set("test01", tuple("A", 1, "N"), tuple("B", 2, "N"),
