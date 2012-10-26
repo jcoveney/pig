@@ -137,7 +137,7 @@ public class TestInputOutputMiniClusterFileValidator {
      * {@link PigServer#store(String, String)}
      * @throws Exception
      */
-    @Test
+    @Test(expected = PigException.class)
     public void testPigServerStoreNeg() throws Exception {
         String input = "input.txt";
         String output= "output.txt";
@@ -153,7 +153,7 @@ public class TestInputOutputMiniClusterFileValidator {
                     fail("Expected exception to be caught");
                 } catch (Exception e) {
                     assertEquals(6000, LogUtils.getPigException(e).getErrorCode());
-                    assertTrue(LogUtils.getPigException(e).getMessage().contains("Output Location Validation Failed for"));
+                    throw e;
                 }
             } finally {
                 Util.deleteFile(pig.getPigContext(), input);

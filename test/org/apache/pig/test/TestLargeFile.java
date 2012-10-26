@@ -90,7 +90,7 @@ public class TestLargeFile {
     }
 
     @After
-    public void oneTime() throws Exception {
+    public void tearDown() throws Exception {
         pig.shutdown();
     }
 

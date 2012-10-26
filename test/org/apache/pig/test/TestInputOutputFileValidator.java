@@ -20,8 +20,6 @@ package org.apache.pig.test;
 import static org.apache.pig.newplan.logical.relational.LOTestHelper.newLOLoad;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -32,6 +30,7 @@ import java.util.Properties;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.StoreFuncInterface;
@@ -43,6 +42,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOStore;
@@ -72,7 +72,7 @@ public class TestInputOutputFileValidator {
         executor.validate() ;
     }
 
-    @Test
+    @Test(expected = VisitorException.class) //should expect an exception
     public void testLocalModeNegative2() throws Throwable {
         String inputfile = generateTempFile().getAbsolutePath() ;
         String outputfile = generateTempFile().getAbsolutePath() ;
@@ -80,12 +80,7 @@ public class TestInputOutputFileValidator {
         LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;
 
         InputOutputFileValidator executor = new InputOutputFileValidator(plan, ctx) ;
-        try {
-            executor.validate() ;
-            fail("Expected Exception to be thrown.");
-        } catch (Exception pve) {
-            //good
-        }
+        executor.validate() ;
     }
 
     /**
@@ -126,7 +121,7 @@ public class TestInputOutputFileValidator {
      * {@link PigServer#store(String, String)}
      * @throws Exception
      */
-    @Test
+    @Test(expected = PigException.class)
     public void testPigServerStoreNeg() throws Exception {
         String input = "input.txt";
         String output= "output.txt";
@@ -139,10 +134,9 @@ public class TestInputOutputFileValidator {
                 try {
                     pig.registerQuery("a = load '" + input + "';");
                     pig.store("a", output);
-                    fail("Expected exception to be caught");
                 } catch (Exception e) {
                     assertEquals(6000, LogUtils.getPigException(e).getErrorCode());
-                    assertTrue(LogUtils.getPigException(e).getMessage().contains("Output Location Validation Failed for"));
+                    throw e;
                 }
             } finally {
                 Util.deleteFile(pig.getPigContext(), input);

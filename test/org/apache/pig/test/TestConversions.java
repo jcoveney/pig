@@ -299,7 +299,7 @@ public class TestConversions {
             Tuple t2 = (Tuple)iter2.next();
             for (int j=0;j<5;j++) {
                 assertTrue(t2.get(j) instanceof Integer);
-                Integer expectedValue = Integer.valueOf(((Float)t1.get(j)).intValue());
+                Integer expectedValue = ((Float)t1.get(j)).intValue();
                 assertEquals(expectedValue, t2.get(j));
             }
         }
