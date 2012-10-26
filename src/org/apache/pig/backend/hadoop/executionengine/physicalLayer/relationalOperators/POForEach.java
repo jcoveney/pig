@@ -108,7 +108,7 @@ public class POForEach extends PhysicalOperator {
     }
 
     public POForEach(OperatorKey k, List inp) {
-        this(k,-1,inp,null);
+        this(-1,k,inp,null);
     }
 
     private final static Function<Boolean,FlattenStates> booleanToFlattenStates = new Function<Boolean,FlattenStates>() {
@@ -119,6 +119,9 @@ public class POForEach extends PhysicalOperator {
     };
 
     private static List<FlattenStates> convertBooleanToFlattenStates(List<Boolean> isToBeFlattened) {
+        if (isToBeFlattened == null) {
+            return null;
+        }
         return Lists.transform(isToBeFlattened, booleanToFlattenStates);
     }
 

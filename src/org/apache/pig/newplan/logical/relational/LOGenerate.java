@@ -18,6 +18,7 @@
 package org.apache.pig.newplan.logical.relational;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -44,7 +45,12 @@ public class LOGenerate extends LogicalRelationalOperator {
     public LOGenerate(OperatorPlan plan, List<LogicalExpressionPlan> ps, FlattenStates[] flatten) {
         this( plan );
         outputPlans = ps;
-        flattenFlags = flatten;
+        flattenFlags = Arrays.copyOf(flatten, flatten.length);
+        for (int i = 0; i < flattenFlags.length; i++) {
+            if (flattenFlags[i] == null) {
+                flattenFlags[i] = FlattenStates.DO_NOTHING;
+            }
+        }
     }
 
     public void setOutputPlans(List<LogicalExpressionPlan> plans) {
@@ -216,7 +222,12 @@ public class LOGenerate extends LogicalRelationalOperator {
     }
 
     public void setFlattenFlags(FlattenStates[] flatten) {
-        flattenFlags = flatten;
+        flattenFlags = Arrays.copyOf(flatten, flatten.length);
+        for (int i = 0; i < flattenFlags.length; i++) {
+            if (flattenFlags[i] == null) {
+                flattenFlags[i] = FlattenStates.DO_NOTHING;
+            }
+        }
     }
 
     @Override
