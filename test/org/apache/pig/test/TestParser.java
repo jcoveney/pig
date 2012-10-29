@@ -20,11 +20,10 @@ package org.apache.pig.test;
 
 import static org.apache.pig.ExecType.LOCAL;
 import static org.apache.pig.ExecType.MAPREDUCE;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Properties;
-
-import junit.framework.TestCase;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -39,11 +38,8 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class TestParser extends TestCase {
+public class TestParser {
 
 protected final Log log = LogFactory.getLog(getClass());
 
@@ -53,9 +49,7 @@ protected final Log log = LogFactory.getLog(getClass());
     protected PigServer pigServer;
 
     @Before
-    @Override
     public void setUp() throws Exception {
-
         String execTypeString = System.getProperty("test.exectype");
         if(execTypeString!=null && execTypeString.length()>0){
             execType = ExecType.fromString(execTypeString);
@@ -68,7 +62,6 @@ protected final Log log = LogFactory.getLog(getClass());
         }
     }
 
-    @Override
     @After
     public void tearDown() throws Exception {
         pigServer.shutdown();

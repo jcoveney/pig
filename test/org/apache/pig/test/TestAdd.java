@@ -23,26 +23,25 @@ import java.util.Random;
 
 import junit.framework.TestCase;
 
-import org.joda.time.DateTime;
-
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Add;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Add;
 import org.apache.pig.test.utils.GenRandomData;
+import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
 
 
 public class TestAdd extends TestCase{
 
-    Random r = new Random();
+    Random r = new Random(42L);
     ConstantExpression lt, rt;
     Add op = new Add(new OperatorKey("", r.nextLong()));
 
@@ -55,7 +54,7 @@ public class TestAdd extends TestCase{
     @Test
     public void testOperator() throws ExecException{
         //int TRIALS = 10;
-        byte[] types = { DataType.BAG, DataType.BOOLEAN, DataType.BYTEARRAY, DataType.CHARARRAY, 
+        byte[] types = { DataType.BAG, DataType.BOOLEAN, DataType.BYTEARRAY, DataType.CHARARRAY,
                 DataType.DOUBLE, DataType.FLOAT, DataType.INTEGER, DataType.LONG, DataType.DATETIME, DataType.MAP, DataType.TUPLE};
         //Map<Byte,String> map = GenRandomData.genTypeToNameMap();
         System.out.println("Testing Add operator");
@@ -73,7 +72,7 @@ public class TestAdd extends TestCase{
                 rt.setValue(inpdb2);
                 Result resdb = op.getNext(inpdb1);
                 assertEquals(resdb.returnStatus, POStatus.STATUS_ERR);
-                
+
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpdb2);
@@ -92,7 +91,7 @@ public class TestAdd extends TestCase{
                 rt.setValue(inpb2);
                 Result resb = op.getNext(inpb1);
                 assertEquals(resb.returnStatus, POStatus.STATUS_ERR);
-                
+
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpb2);
@@ -113,7 +112,7 @@ public class TestAdd extends TestCase{
                 //DataByteArray expected = new DataByteArray(inpba1.toString() + inpba2.toString());
                 //assertEquals(expected, (DataByteArray)resba.result);
                 assertEquals(POStatus.STATUS_ERR, resba.returnStatus);
-                
+
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpba2);
@@ -135,7 +134,7 @@ public class TestAdd extends TestCase{
                 /*String expected = new String(inps1 + inps2);
                 assertEquals(expected, (String)ress.result);*/
                 assertEquals(POStatus.STATUS_ERR, ress.returnStatus);
-                
+
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inps2);
@@ -156,7 +155,7 @@ public class TestAdd extends TestCase{
                 Result resd = op.getNext(inpd1);
                 Double expected = new Double(inpd1 + inpd2);
                 assertEquals(expected, (Double)resd.result);
-                
+
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpd2);
@@ -239,7 +238,7 @@ public class TestAdd extends TestCase{
                 rt.setValue(inpdt2);
                 Result resdt = op.getNext(inpdt1);
                 assertEquals(resdt.returnStatus, POStatus.STATUS_ERR);
-                
+
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpdt2);

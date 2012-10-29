@@ -12,12 +12,13 @@
  */
 package org.apache.pig.test.pigunit;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-
-import junit.framework.TestCase;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
@@ -47,7 +48,7 @@ public class TestPigTest {
   private static Cluster cluster;
   private static final String PIG_SCRIPT = "test/data/pigunit/top_queries.pig";
   private static final Log LOG = LogFactory.getLog(TestPigTest.class);
-  
+
   @BeforeClass
   public static void setUpOnce() throws IOException {
     cluster = PigTest.getCluster();
@@ -243,7 +244,7 @@ public class TestPigTest {
         "(facebook,15)\n" +
         "(twitter,7)";
 
-    TestCase.assertEquals(expected, StringUtils.join(test.getAlias("queries_limit"), "\n"));
+     assertEquals(expected, StringUtils.join(test.getAlias("queries_limit"), "\n"));
   }
 
   @Test
@@ -284,7 +285,7 @@ public class TestPigTest {
 
     test.runScript();
 
-    TestCase.assertTrue(cluster.delete(new Path("top_3_queries")));
+    assertTrue(cluster.delete(new Path("top_3_queries")));
   }
 
   @Ignore("Not ready yet")
@@ -327,7 +328,7 @@ public class TestPigTest {
 
 	  String[] script = {
 			  //The following line is commented as the test creates a bootup file which contains it instead. PigTests (and Pig scripts in general) will read the bootup file to load default statements
-			  //"data = LOAD 'top_queries_input_data.txt' AS (query:CHARARRAY, count:INT);",   
+			  //"data = LOAD 'top_queries_input_data.txt' AS (query:CHARARRAY, count:INT);",
 			  "queries_group = GROUP data BY query PARALLEL 1;",
 			  "queries_sum = FOREACH queries_group GENERATE group AS query, SUM(data.count) AS count;",
 			  "queries_ordered = ORDER queries_sum BY count DESC PARALLEL 1;",

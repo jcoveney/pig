@@ -18,13 +18,14 @@
 package org.apache.pig.test;
 
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Iterator;
-
-import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -34,11 +35,8 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class TestPoissonSampleLoader extends TestCase{
+public class TestPoissonSampleLoader {
     private static final String INPUT_FILE1 = "SkewedJoinInput1.txt";
 
     private PigServer pigServer;
@@ -46,7 +44,7 @@ public class TestPoissonSampleLoader extends TestCase{
 
     public TestPoissonSampleLoader() throws ExecException, IOException{
         pigServer = new PigServer(ExecType.LOCAL);
-        pigServer.getPigContext().getProperties().setProperty("pig.skewedjoin.reduce.maxtuple", "5");     
+        pigServer.getPigContext().getProperties().setProperty("pig.skewedjoin.reduce.maxtuple", "5");
         pigServer.getPigContext().getProperties().setProperty("pig.skewedjoin.reduce.memusage", "0.0001");
         pigServer.getPigContext().getProperties().setProperty("mapred.child.java.opts", "-Xmx512m");
 
@@ -58,7 +56,7 @@ public class TestPoissonSampleLoader extends TestCase{
     public void setUp() throws Exception {
         createFiles();
     }
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
@@ -74,7 +72,7 @@ public class TestPoissonSampleLoader extends TestCase{
             w.println("200:orange1:bbb" + k);
             k++;
             w.println("300:strawberry:ccc" + k);
-            k++;    	        	    
+            k++;
         }
 
         w.close();
@@ -135,7 +133,7 @@ public class TestPoissonSampleLoader extends TestCase{
         pigServer.registerQuery("A = Load '"+INPUT_FILE1+"' Using PoissonSampleLoader('PigStorage(\\\\\\':\\\\\\')', '100');");
         Iterator<Tuple> iter = pigServer.openIterator("A");
         assertTrue(iter.hasNext());
-        
+
         Tuple t = iter.next();
         //Check the tuple size. It has to be 3.
         assertEquals(3, t.size());
@@ -145,7 +143,7 @@ public class TestPoissonSampleLoader extends TestCase{
         }
         // Last tuple's size has to be 5
         // 3 datum  (ex: 100:apple1:aaa)
-        // + PoissonSampleLoader.NUMROWS_TUPLE_MARKER ??_pig_inTeRnal-spEcial_roW_num_tuple3kt579CFLehkblah 
+        // + PoissonSampleLoader.NUMROWS_TUPLE_MARKER ??_pig_inTeRnal-spEcial_roW_num_tuple3kt579CFLehkblah
         // + numRow 300
         assertEquals(5, t.size());
     }

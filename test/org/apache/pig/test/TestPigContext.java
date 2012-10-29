@@ -19,33 +19,17 @@
 package org.apache.pig.test;
 
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Properties;
 import java.util.Random;
-
-import javax.tools.Diagnostic;
-import javax.tools.DiagnosticCollector;
-import javax.tools.JavaCompiler;
-import javax.tools.JavaFileManager;
-import javax.tools.JavaFileObject;
-import javax.tools.SimpleJavaFileObject;
-import javax.tools.ToolProvider;
-import javax.tools.JavaFileObject.Kind;
-
-import com.google.common.collect.Lists;
-
-import junit.framework.TestCase;
 
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.log4j.Logger;
@@ -60,8 +44,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 public class TestPigContext {
     private static final Logger LOG = Logger.getLogger(TestPigContext.class);
@@ -72,72 +54,72 @@ public class TestPigContext {
     private File input;
     private PigContext pigContext;
     static MiniCluster cluster = null;
-    
-    @BeforeClass 
+
+    @BeforeClass
     public static void oneTimeSetup(){
         cluster = MiniCluster.buildCluster();
     }
-    
+
     @Before
     public void setUp() throws Exception {
         pigContext = new PigContext(ExecType.LOCAL, getProperties());
         input = File.createTempFile("PigContextTest-", ".txt");
     }
-    
+
     /**
-     * Passing an already configured pigContext in PigServer constructor. 
+     * Passing an already configured pigContext in PigServer constructor.
      */
     @Test
     public void testSetProperties_way_num01() throws Exception {
         PigServer pigServer = new PigServer(pigContext);
         registerAndStore(pigServer);
-        
+
         check_asserts(pigServer);
     }
 
     /**
-     * Setting properties through PigServer constructor directly. 
+     * Setting properties through PigServer constructor directly.
      */
     @Test
     public void testSetProperties_way_num02() throws Exception {
         PigServer pigServer = new PigServer(ExecType.LOCAL, getProperties());
         registerAndStore(pigServer);
-        
+
         check_asserts(pigServer);
     }
 
     /**
-     * using connect() method. 
+     * using connect() method.
      */
     @Test
     public void testSetProperties_way_num03() throws Exception {
         pigContext.connect();
         PigServer pigServer = new PigServer(pigContext);
         registerAndStore(pigServer);
-        
+
         check_asserts(pigServer);
     }
-    
+
     @Test
     public void testHadoopExceptionCreation() throws Exception {
     	Object object = PigContext.instantiateFuncFromSpec("org.apache.hadoop.mapred.FileAlreadyExistsException");
     	assertTrue(object instanceof FileAlreadyExistsException);
     }
-    
+
     @Test
     // See PIG-832
     public void testImportList() throws Exception {
-        
+
         String FILE_SEPARATOR = System.getProperty("file.separator");
         File tmpDir = File.createTempFile("test", "");
         tmpDir.delete();
         tmpDir.mkdir();
-        
+
         File udf1Dir = new File(tmpDir.getAbsolutePath()+FILE_SEPARATOR+"com"+FILE_SEPARATOR+"xxx"+FILE_SEPARATOR+"udf1");
         udf1Dir.mkdirs();
         File udf2Dir = new File(tmpDir.getAbsolutePath()+FILE_SEPARATOR+"com"+FILE_SEPARATOR+"xxx"+FILE_SEPARATOR+"udf2");
         udf2Dir.mkdirs();
-        
+
         String udf1Src = new String("package com.xxx.udf1;\n"+
                 "import java.io.IOException;\n"+
                 "import org.apache.pig.EvalFunc;\n"+
@@ -146,39 +128,39 @@ public class TestPigContext {
                 "public Integer exec(Tuple input) throws IOException {\n"+
                 "return 1;}\n"+
                 "}");
-        
+
         String udf2Src = new String("package com.xxx.udf2;\n"+
                 "import org.apache.pig.builtin.PigStorage;\n" +
                 "public class TestUDF2 extends PigStorage { }\n");
-        
+
         // compile
         JavaCompilerHelper javaCompilerHelper = new JavaCompilerHelper();
         javaCompilerHelper.compile(tmpDir.getAbsolutePath(),
                 new JavaCompilerHelper.JavaSourceFromString("com.xxx.udf1.TestUDF1", udf1Src),
                 new JavaCompilerHelper.JavaSourceFromString("com.xxx.udf2.TestUDF2", udf2Src));
-                
+
         // generate jar file
         String jarName = "TestUDFJar.jar";
         String jarFile = tmpDir.getAbsolutePath() + FILE_SEPARATOR + jarName;
-        int status = Util.executeJavaCommand("jar -cf " + jarFile + 
+        int status = Util.executeJavaCommand("jar -cf " + jarFile +
                               " -C " + tmpDir.getAbsolutePath() + " " + "com");
-        assertTrue(status==0);
+        assertEquals(0, status);
         Properties properties = cluster.getProperties();
         PigContext localPigContext = new PigContext(ExecType.MAPREDUCE, properties);
-        
+
         //register jar using properties
         localPigContext.getProperties().setProperty("pig.additional.jars", jarFile);
         PigServer pigServer = new PigServer(localPigContext);
 
         PigContext.initializeImportList("com.xxx.udf1:com.xxx.udf2.");
         ArrayList<String> importList = PigContext.getPackageImportList();
-        assertTrue(importList.size()==5);
-        assertTrue(importList.get(0).equals("com.xxx.udf1."));
-        assertTrue(importList.get(1).equals("com.xxx.udf2."));
-        assertTrue(importList.get(2).equals(""));
-        assertTrue(importList.get(3).equals("org.apache.pig.builtin."));
-        assertTrue(importList.get(4).equals("org.apache.pig.impl.builtin."));
-        
+        assertEquals(5, importList.size());
+        assertEquals("com.xxx.udf1.", importList.get(0));
+        assertEquals("com.xxx.udf2.", importList.get(1));
+        assertEquals("", importList.get(2));
+        assertEquals("org.apache.pig.builtin.", importList.get(3));
+        assertEquals("org.apache.pig.impl.builtin.", importList.get(4));
+
         Object udf = PigContext.instantiateFuncFromSpec("TestUDF1");
         assertTrue(udf.getClass().toString().endsWith("com.xxx.udf1.TestUDF1"));
 
@@ -192,7 +174,7 @@ public class TestPigContext {
             rand = r.nextInt(100);
             localInput[i] = Integer.toString(rand);
         }
-        Util.createInputFile(cluster, tmpFile.getCanonicalPath(), localInput);        
+        Util.createInputFile(cluster, tmpFile.getCanonicalPath(), localInput);
         FileLocalizer.deleteTempFiles();
         pigServer.registerQuery("A = LOAD '" + tmpFile.getCanonicalPath() + "' using TestUDF2() AS (num:chararray);");
         pigServer.registerQuery("B = foreach A generate TestUDF1(num);");
@@ -201,7 +183,7 @@ public class TestPigContext {
         while(iter.hasNext()){
             Tuple t = iter.next();
             assertTrue(t.get(0) instanceof Integer);
-            assertTrue((Integer)t.get(0) == 1);
+            assertEquals(Integer.valueOf(1), (Integer)t.get(0));
         }
         Util.deleteFile(cluster, tmpFile.getCanonicalPath());
         Util.deleteDirectory(tmpDir);
@@ -220,7 +202,7 @@ public class TestPigContext {
         pc.addScriptFile("path-1824", "test/path-1824");
         assertEquals("test/path-1824", pc.getScriptFiles().get("path-1824").toString());
         assertEquals("script files should not be populated", n, pc.scriptFiles.size());
-        
+
         // last add wins when using an alias
         pc.addScriptFile("path-1824", "test/some/other/path-1824");
         assertEquals("test/some/other/path-1824", pc.getScriptFiles().get("path-1824").toString());
@@ -235,13 +217,13 @@ public class TestPigContext {
     public void tearDown() throws Exception {
         input.delete();
     }
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
-    
+
+
     private static Properties getProperties() {
         Properties props = new Properties();
         props.put("mapred.job.tracker", JOB_TRACKER);

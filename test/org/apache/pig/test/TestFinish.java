@@ -17,14 +17,13 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Iterator;
-
-import junit.framework.TestCase;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -41,30 +40,27 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 public class TestFinish {
-
     private PigServer pigServer;
 
     TupleFactory mTf = TupleFactory.getInstance();
     BagFactory mBf = BagFactory.getInstance();
     File f1;
-    
+
     static MiniCluster cluster = MiniCluster.buildCluster();
-    
+
     static public class MyEvalFunction extends EvalFunc<Tuple>{
-        
         String execType;
         String expectedFileName;
         /**
-         * 
+         *
          */
         public MyEvalFunction(String execType, String expectedFileName) {
             this.execType = execType;
             this.expectedFileName = expectedFileName;
         }
-        
+
         @Override
         public Tuple exec(Tuple input) throws IOException {
             return input;
@@ -80,7 +76,7 @@ public class TestFinish {
             }
         }
     }
-    
+
     @Before
     public void setUp() throws Exception {
         // re initialize FileLocalizer so that each test runs correctly without
@@ -88,12 +84,12 @@ public class TestFinish {
         // tests are in mapred and some in local mode
         FileLocalizer.setInitialized(false);
     }
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     private String setUp(ExecType execType) throws Exception{
         String inputFileName;
         if(execType == ExecType.LOCAL) {
@@ -119,7 +115,7 @@ public class TestFinish {
         }
         return inputFileName;
     }
-    
+
     private void checkAndCleanup(ExecType execType, String expectedFileName,
             String inputFileName) throws IOException {
         if(execType == ExecType.MAPREDUCE) {
@@ -137,7 +133,7 @@ public class TestFinish {
                     toString());
         }
     }
-    
+
     @Test
     public void testFinishInMapMR() throws Exception{
         String inputFileName = setUp(ExecType.MAPREDUCE);
@@ -150,11 +146,11 @@ public class TestFinish {
         while(iter.hasNext()){
             iter.next();
         }
-        
+
         checkAndCleanup(ExecType.MAPREDUCE, expectedFileName, inputFileName);
-        
+
     }
-    
+
     @Test
     public void testFinishInReduceMR() throws Exception{
         String inputFileName = setUp(ExecType.MAPREDUCE);
@@ -168,10 +164,10 @@ public class TestFinish {
         while(iter.hasNext()){
             iter.next();
         }
-        
+
         checkAndCleanup(ExecType.MAPREDUCE, expectedFileName, inputFileName);
     }
-    
+
     @Test
     public void testFinishInMapLoc() throws Exception{
         String inputFileName = setUp(ExecType.LOCAL);
@@ -183,7 +179,7 @@ public class TestFinish {
         pigServer.openIterator("b");
         checkAndCleanup(ExecType.LOCAL, expectedFileName, inputFileName);
     }
-    
+
     @Test
     public void testFinishInReduceLoc() throws Exception{
         String inputFileName = setUp(ExecType.LOCAL);
@@ -196,5 +192,4 @@ public class TestFinish {
         pigServer.openIterator("b");
         checkAndCleanup(ExecType.LOCAL, expectedFileName, inputFileName);
     }
-
 }

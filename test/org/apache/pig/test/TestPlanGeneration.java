@@ -17,15 +17,16 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
 import java.io.IOException;
 import java.util.Properties;
-
-import junit.framework.Assert;
 
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
 import org.apache.pig.Expression;
-import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadMetadata;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceStatistics;
@@ -39,7 +40,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.Operator;
@@ -54,66 +54,64 @@ import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 import org.apache.pig.parser.ParserException;
-import org.apache.pig.test.TestPartitionFilterPushDown.TestLoader;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class TestPlanGeneration extends junit.framework.TestCase {
-    
-    PigContext pc;
-    
-    @Override
+public class TestPlanGeneration {
+
+    static PigContext pc;
+
     @BeforeClass
-    public void setUp() throws ExecException {
+    public static void setUp() throws ExecException {
         pc = new PigContext(ExecType.LOCAL, new Properties());
         pc.connect();
     }
-    
+
     @Test
     public void testGenerateStar() throws Exception  {
         String query = "a = load 'x';" +
             "b = foreach a generate *;" +
             "store b into '111';";
-        
+
         LogicalPlan lp = Util.parseAndPreprocess(query, pc);
         Util.optimizeNewLP(lp);
         LOStore loStore = (LOStore)lp.getSinks().get(0);
         LOForEach loForEach = (LOForEach)lp.getPredecessors(loStore).get(0);
-        assert(loForEach.getSchema()==null);
+        assertNull(loForEach.getSchema());
     }
-    
+
     @Test
     public void testEmptyBagDereference() throws Exception  {
         String query = "A = load 'x' as ( u:bag{} );" +
             "B = foreach A generate u.$100;" +
             "store B into '111';";
-        
+
         LogicalPlan lp = Util.parseAndPreprocess(query, pc);
         Util.optimizeNewLP(lp);
         LOStore loStore = (LOStore)lp.getSinks().get(0);
         LOForEach loForEach = (LOForEach)lp.getPredecessors(loStore).get(0);
         LogicalSchema schema = loForEach.getSchema();
-        Assert.assertTrue(schema.size()==1);
+        assertEquals(1, schema.size());
         LogicalFieldSchema bagFieldSchema = schema.getField(0);
-        Assert.assertTrue(bagFieldSchema.type==DataType.BAG);
-        LogicalFieldSchema tupleFieldSchema = bagFieldSchema.schema.getField(0); 
-        Assert.assertTrue(tupleFieldSchema.schema.size()==1);
-        Assert.assertTrue(tupleFieldSchema.schema.getField(0).type==DataType.BYTEARRAY);
+        assertEquals(DataType.BAG, bagFieldSchema.type);
+        LogicalFieldSchema tupleFieldSchema = bagFieldSchema.schema.getField(0);
+        assertEquals(1, tupleFieldSchema.schema.size());
+        assertEquals(DataType.BYTEARRAY, tupleFieldSchema.schema.getField(0).type);
     }
-    
+
     @Test
     public void testEmptyTupleDereference() throws Exception  {
         String query = "A = load 'x' as ( u:tuple() );" +
             "B = foreach A generate u.$100;" +
             "store B into '111';";
-        
+
         LogicalPlan lp = Util.parseAndPreprocess(query, pc);
         Util.optimizeNewLP(lp);
         LOStore loStore = (LOStore)lp.getSinks().get(0);
         LOForEach loForEach = (LOForEach)lp.getPredecessors(loStore).get(0);
         LogicalSchema schema = loForEach.getSchema();
-        Assert.assertTrue(schema.size()==1);
-        Assert.assertTrue(schema.getField(0).type==DataType.BYTEARRAY);
+        assertEquals(1, schema.size());
+        assertEquals(DataType.BYTEARRAY, schema.getField(0).type);
     }
 
     @Test
@@ -121,76 +119,76 @@ public class TestPlanGeneration extends junit.framework.TestCase {
         String query = "A = load 'x' as ( u:bag{} );" +
             "B = foreach A { B1 = filter u by $1==0; generate B1;};" +
             "store B into '111';";
-        
+
         LogicalPlan lp = Util.parseAndPreprocess(query, pc);
         Util.optimizeNewLP(lp);
         LOStore loStore = (LOStore)lp.getSinks().get(0);
         LOForEach loForEach = (LOForEach)lp.getPredecessors(loStore).get(0);
         LogicalSchema schema = loForEach.getSchema();
-        Assert.assertTrue(schema.size()==1);
+        assertEquals(1, schema.size());
         LogicalFieldSchema bagFieldSchema = schema.getField(0);
-        Assert.assertTrue(bagFieldSchema.type==DataType.BAG);
-        LogicalFieldSchema tupleFieldSchema = bagFieldSchema.schema.getField(0); 
-        Assert.assertTrue(tupleFieldSchema.schema==null);
+        assertEquals(DataType.BAG, bagFieldSchema.type);
+        LogicalFieldSchema tupleFieldSchema = bagFieldSchema.schema.getField(0);
+        assertNull(tupleFieldSchema.schema);
     }
-    
+
     @Test
     public void testOrderByNullFieldSchema() throws Exception  {
         String query = "A = load 'x';" +
             "B = order A by *;" +
             "store B into '111';";
-        
+
         LogicalPlan lp = Util.parseAndPreprocess(query, pc);
         Util.optimizeNewLP(lp);
         LOStore loStore = (LOStore)lp.getSinks().get(0);
         LOSort loSort = (LOSort)lp.getPredecessors(loStore).get(0);
         Operator sortPlanLeaf = loSort.getSortColPlans().get(0).getSources().get(0);
         LogicalFieldSchema sortPlanFS = ((LogicalExpression)sortPlanLeaf).getFieldSchema();
-        Assert.assertTrue(sortPlanFS==null);
-        
+        assertNull(sortPlanFS);
+
         PhysicalPlan pp = Util.buildPhysicalPlanFromNewLP(lp, pc);
         POStore poStore = (POStore)pp.getLeaves().get(0);
         POSort poSort = (POSort)pp.getPredecessors(poStore).get(0);
         POProject poProject = (POProject)poSort.getSortPlans().get(0).getLeaves().get(0);
-        Assert.assertTrue(poProject.getResultType()==DataType.TUPLE);
+        assertEquals(DataType.TUPLE, poProject.getResultType());
     }
-    
+
     @Test
     public void testGroupByNullFieldSchema() throws Exception  {
         String query = "A = load 'x';" +
             "B = group A by *;" +
             "store B into '111';";
-        
+
         LogicalPlan lp = Util.parseAndPreprocess(query, pc);
         Util.optimizeNewLP(lp);
         LOStore loStore = (LOStore)lp.getSinks().get(0);
         LOCogroup loCoGroup = (LOCogroup)lp.getPredecessors(loStore).get(0);
         LogicalFieldSchema groupFieldSchema = loCoGroup.getSchema().getField(0);
-        Assert.assertTrue(groupFieldSchema.type==DataType.TUPLE);
-        Assert.assertTrue(groupFieldSchema.schema==null);
+        assertEquals(DataType.TUPLE, groupFieldSchema.type);
+        assertNull(groupFieldSchema.schema);
     }
-    
+
     @Test
     public void testStoreAlias() throws Exception  {
         String query = "A = load 'data' as (a0, a1);" +
             "B = filter A by a0 > 1;" +
             "store B into 'output';";
-        
+
         LogicalPlan lp = Util.parse(query, pc);
         Util.optimizeNewLP(lp);
         LOStore loStore = (LOStore)lp.getSinks().get(0);
-        assert(loStore.getAlias().equals("B"));
-        
+        assertEquals("B", loStore.getAlias());
+
         PhysicalPlan pp = Util.buildPhysicalPlanFromNewLP(lp, pc);
         POStore poStore = (POStore)pp.getLeaves().get(0);
-        assert(poStore.getAlias().equals("B"));
-        
+        assertEquals("B", poStore.getAlias());
+
         MROperPlan mrp = Util.buildMRPlanWithOptimizer(pp, pc);
         MapReduceOper mrOper = mrp.getLeaves().get(0);
         poStore = (POStore)mrOper.mapPlan.getLeaves().get(0);
-        assert(poStore.getAlias().equals("B"));
+        assertEquals("B", poStore.getAlias());
     }
-    
+
     // See PIG-2119
     @Test
     public void testDanglingNestedNode() throws Exception  {
@@ -202,11 +200,11 @@ public class TestPlanGeneration extends junit.framework.TestCase {
             "  e = limit d 1;" +
             "  generate n;" +
             "};";
-        
+
         LogicalPlan lp = Util.parse(query, pc);
         Util.optimizeNewLP(lp);
     }
-    
+
     public static class SchemaLoader extends PigStorage implements LoadMetadata {
 
         Schema schema;
@@ -236,7 +234,7 @@ public class TestPlanGeneration extends junit.framework.TestCase {
                 throws IOException {
         }
     }
-    
+
     @Test
     public void testLoaderWithSchema() throws Exception {
         String query = "a = load 'foo' using " + SchemaLoader.class.getName() + "('name,age,gpa');\n"
@@ -244,21 +242,21 @@ public class TestPlanGeneration extends junit.framework.TestCase {
                 + "store b into 'output';";
         LogicalPlan lp = Util.parse(query, pc);
         Util.optimizeNewLP(lp);
-        
+
         LOLoad loLoad = (LOLoad)lp.getSources().get(0);
         LOFilter loFilter = (LOFilter)lp.getSuccessors(loLoad).get(0);
         LOStore loStore = (LOStore)lp.getSuccessors(loFilter).get(0);
-        
-        Assert.assertTrue(lp.getSuccessors(loStore)==null);
+
+        assertNull(lp.getSuccessors(loStore));
     }
-    
+
     public static class PartitionedLoader extends PigStorage implements LoadMetadata {
 
         Schema schema;
         String[] partCols;
         static Expression partFilter = null;
-        
-        public PartitionedLoader(String schemaString, String commaSepPartitionCols) 
+
+        public PartitionedLoader(String schemaString, String commaSepPartitionCols)
         throws ParserException {
             schema = Utils.getSchemaFromString(schemaString);
             partCols = commaSepPartitionCols.split(",");
@@ -279,7 +277,7 @@ public class TestPlanGeneration extends junit.framework.TestCase {
         @Override
         public void setPartitionFilter(Expression partitionFilter)
         throws IOException {
-            partFilter = partitionFilter;            
+            partFilter = partitionFilter;
         }
 
         @Override
@@ -287,27 +285,27 @@ public class TestPlanGeneration extends junit.framework.TestCase {
                 throws IOException {
             return partCols;
         }
-        
+
         public Expression getPartFilter() {
             return partFilter;
         }
 
     }
-    
+
     @Test
     // See PIG-2339
     public void testPartitionFilterOptimizer() throws Exception {
-        String query = "a = load 'foo' using " + PartitionedLoader.class.getName() + 
+        String query = "a = load 'foo' using " + PartitionedLoader.class.getName() +
                 "('name:chararray, dt:chararray', 'dt');\n" +
             "b = filter a by dt=='2011';\n" +
             "store b into 'output';";
-            
+
         LogicalPlan lp = Util.parse(query, pc);
         Util.optimizeNewLP(lp);
-        
+
         LOLoad loLoad = (LOLoad)lp.getSources().get(0);
         LOStore loStore = (LOStore)lp.getSuccessors(loLoad).get(0);
-        Assert.assertTrue(((PartitionedLoader)loLoad.getLoadFunc()).getPartFilter()!=null);
-        Assert.assertTrue(loStore.getAlias().equals("b"));
+        assertNotNull(((PartitionedLoader)loLoad.getLoadFunc()).getPartFilter());
+        assertEquals("b", loStore.getAlias());
     }
 }

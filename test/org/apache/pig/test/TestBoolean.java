@@ -17,26 +17,30 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
-import java.util.Map;
 import java.util.Random;
 
-import junit.framework.TestCase;
-
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.DataType;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.BinaryExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.*;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POAnd;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PONot;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POOr;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.UnaryExpressionOperator;
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.junit.Before;
 import org.junit.Test;
 
 
-public class TestBoolean extends TestCase{
+public class TestBoolean {
 
-    Random r = new Random();
+    Random r = new Random(42L);
     ConstantExpression lt, rt;
     BinaryExpressionOperator bop;
     UnaryExpressionOperator uop;
@@ -72,14 +76,14 @@ public class TestBoolean extends TestCase{
     public void testAndNull() throws ExecException {
     	setupAnd();
     	Boolean[] testWith = new Boolean[] { false, true, null};
-    	
-    	// truth table for AND 
+
+    	// truth table for AND
         // t = true, n = null, f = false
         // AND  t n f
         // t    t n f
         // n    n n f
         // f    f f f
-    	
+
     	// test with first operand set to null
     	for (int i = 0; i < testWith.length; i++) {
     		lt.setValue(null);
@@ -91,10 +95,10 @@ public class TestBoolean extends TestCase{
 			    assertEquals(new Boolean(false), (Boolean) res.result);
 			} else {
 			    // else result is null
-			    assertEquals(null, (Boolean)res.result);    
+			    assertEquals(null, (Boolean)res.result);
 			}
 		}
-    	
+
     	// test with second operand set to null
     	for (int i = 0; i < testWith.length; i++) {
 			lt.setValue(testWith[i]);
@@ -106,22 +110,22 @@ public class TestBoolean extends TestCase{
                 assertEquals(new Boolean(false), (Boolean) res.result);
             } else {
                 // else result is null
-                assertEquals(null, (Boolean)res.result);    
+                assertEquals(null, (Boolean)res.result);
             }
 		}
     }
-    
+
     @Test
     public void testOrNull() throws ExecException {
     	setupOr();
     	Boolean[] testWith = new Boolean[] { false, true, null};
-    	// truth table for OR 
+    	// truth table for OR
         // t = true, n = null, f = false
         // OR   t n f
         // t    t t t
         // n    t n n
         // f    t n f
-    	
+
     	// test with first operand set to null
     	for (int i = 0; i < testWith.length; i++) {
     		lt.setValue(null);
@@ -133,10 +137,10 @@ public class TestBoolean extends TestCase{
                 assertEquals(new Boolean(true), (Boolean) res.result);
             } else {
                 // else result is null
-                assertEquals(null, (Boolean)res.result);    
+                assertEquals(null, (Boolean)res.result);
             }
 		}
-    	
+
     	// test with second operand set to null
     	for (int i = 0; i < testWith.length; i++) {
 			lt.setValue(testWith[i]);
@@ -148,11 +152,11 @@ public class TestBoolean extends TestCase{
                 assertEquals(new Boolean(true), (Boolean) res.result);
             } else {
                 // else result is null
-                assertEquals(null, (Boolean)res.result);    
+                assertEquals(null, (Boolean)res.result);
             }
 		}
     }
-    
+
     @Test
     public void testAndFirstFalse() throws ExecException{
         setupAnd();
@@ -160,7 +164,7 @@ public class TestBoolean extends TestCase{
         rt.setValue(new Boolean(true));
         Result res = bop.getNext(dummy);
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
-        assertFalse((Boolean)res.result);        
+        assertFalse((Boolean)res.result);
     }
 
     @Test
@@ -250,7 +254,7 @@ public class TestBoolean extends TestCase{
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertTrue((Boolean)res.result);
     }
-    
+
     @Test
     public void testNotNull() throws ExecException{
         setupNot();

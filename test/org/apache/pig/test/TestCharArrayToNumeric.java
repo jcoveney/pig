@@ -18,18 +18,16 @@
 
 package org.apache.pig.test;
 
-import java.io.File;
-import java.io.FileOutputStream;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-
-import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -45,8 +43,6 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
 
 public class TestCharArrayToNumeric {
 
@@ -73,16 +69,16 @@ public class TestCharArrayToNumeric {
 	private Integer MaxInteger = Integer.MAX_VALUE;
 
 	private Integer MinInteger = Integer.MIN_VALUE;
-	
+
 	static MiniCluster cluster = MiniCluster.buildCluster();
 	PigServer pig;
-	
+
 
 	@Before
 	public void setUp() throws Exception {
 	    pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 	}
-	
+
 	@AfterClass
 	public static void oneTimeTearDown() throws Exception {
 	    cluster.shutDown();
@@ -228,9 +224,6 @@ public class TestCharArrayToNumeric {
 					}
 				}
 			}
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail();
 		} finally {
 			Util.deleteFile(cluster, "pig_jira_893-input1.txt");
 		}
@@ -244,7 +237,6 @@ public class TestCharArrayToNumeric {
 		String[] numbers = new String[size + 1];
 		Random rand = new Random();
 		Map<Integer, Long> map = new HashMap<Integer, Long>();
-		File inputFile = null;
 
 		try {
 			for (int i = 0; i < numbers.length; ++i) {
@@ -296,9 +288,6 @@ public class TestCharArrayToNumeric {
 					}
 				}
 			}
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail();
 		} finally {
 			Util.deleteFile(cluster, "pig_jira_893-input2.txt");
 		}

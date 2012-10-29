@@ -17,45 +17,47 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.EqualToExpr;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.GreaterThanExpr;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POAnd;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
-import org.apache.pig.test.PORead;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.*;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.TestHelper;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestFilter extends junit.framework.TestCase {
+public class TestFilter {
+    Random r = new Random(42L);
     POFilter pass;
-
     POFilter fail;
-
     Tuple t;
-
     DataBag inp;
-
     POFilter projFil;
 
     boolean[] nullFlags = new boolean[] { false, true };
-    
+
     @Before
     public void setUp() throws Exception {
         pass = GenPhyOp.topFilterOpWithExPlan(50, 25);
@@ -63,7 +65,6 @@ public class TestFilter extends junit.framework.TestCase {
     }
 
     private void setUpProjFil(boolean withNulls) throws Exception{
-        Random r = new Random();
         if(withNulls)
             inp = GenRandomData.genRandSmallTupDataBagWithNulls(r, 10, 100);
         else
@@ -80,10 +81,6 @@ public class TestFilter extends junit.framework.TestCase {
         List<PhysicalOperator> inputs = new ArrayList<PhysicalOperator>();
         inputs.add(inpPrj);
         projFil.setInputs(inputs);
-    }
-    
-    @After
-    public void tearDown() throws Exception {
     }
 
     @Test
@@ -109,44 +106,43 @@ public class TestFilter extends junit.framework.TestCase {
                 assertEquals("Running testGetNextTuple with nullFlags set to "+ nullFlags[i] + ":", true, (Integer) ((Tuple) res.result).get(1) > 50);
             }
             assertEquals("Running testGetNextTuple with nullFlags set to "+ nullFlags[i] + ":", getExpCount(inp), count);
-            
+
         }
     }
 
     /**
      * @param inp2
      * @return
-     * @throws ExecException 
+     * @throws ExecException
      */
     private int getExpCount(DataBag inp2) throws ExecException {
         // TODO Auto-generated method stub
         int count = 0;
         for(Iterator<Tuple> it = inp2.iterator(); it.hasNext();){
-            
+
             Tuple t = it.next();
             if(t.get(1) != null && (Integer)t.get(1) > 50)
                 count++;
         }
-            
+
         return count;
     }
 
     @Test
     public void testSimpleFilter() throws Exception {
         for (int i = 0; i < nullFlags.length; i++) {
-    
             // Build the inner expression
             POProject p1 = GenPhyOp.exprProject(0);
             POProject p2 = GenPhyOp.exprProject(1);
             GreaterThanExpr gt = GenPhyOp.compGreaterThanExpr(p1, p2, DataType.INTEGER);
-    
+
             PhysicalPlan ip = new PhysicalPlan();
             ip.add(p1);
             ip.add(p2);
             ip.add(gt);
             ip.connect(p1, gt);
             ip.connect(p2, gt);
-    
+
             int[] ints = {0, 1, 1, 0, 1, 1};
             TupleFactory tf = TupleFactory.getInstance();
             DataBag inbag = BagFactory.getInstance().newDefaultBag();
@@ -178,16 +174,16 @@ public class TestFilter extends junit.framework.TestCase {
                 t.set(1, new Integer(ints[j+1]));
                 inbag.add(t);
             }
-    
+
             PORead read = GenPhyOp.topReadOp(inbag);
             POFilter filter = GenPhyOp.connectedFilterOp(read);
             filter.setPlan(ip);
-    
+
             PhysicalPlan op = new PhysicalPlan();
             op.add(filter);
             op.add(read);
             op.connect(read, filter);
-    
+
             DataBag outbag = BagFactory.getInstance().newDefaultBag();
             Result res;
             Tuple t = tf.newTuple();
@@ -197,37 +193,36 @@ public class TestFilter extends junit.framework.TestCase {
                     outbag.add((Tuple)res.result);
                 }
             } while (res.returnStatus == POStatus.STATUS_OK);
-            assertEquals("Running " + this.getName() + "with nullFlags set to "+ nullFlags[i] + ":", POStatus.STATUS_EOP, res.returnStatus);
-            assertEquals("Running " + this.getName() + "with nullFlags set to "+ nullFlags[i] + ":", 1, outbag.size());
+            assertEquals("Running " + this.getClass().getName() + "with nullFlags set to "+ nullFlags[i] + ":", POStatus.STATUS_EOP, res.returnStatus);
+            assertEquals("Running " + this.getClass().getName() + "with nullFlags set to "+ nullFlags[i] + ":", 1, outbag.size());
             Iterator<Tuple> it = outbag.iterator();
-            assertTrue("Running " + this.getName() + "with nullFlags set to "+ nullFlags[i] + ":", it.hasNext());
+            assertTrue("Running " + this.getClass().getName() + "with nullFlags set to "+ nullFlags[i] + ":", it.hasNext());
             t = it.next();
-            assertEquals("Running " + this.getName() + "with nullFlags set to "+ nullFlags[i] + ":", 2, t.size());
-            assertTrue("Running " + this.getName() + "with nullFlags set to "+ nullFlags[i] + ":", t.get(0) instanceof Integer);
-            assertTrue("Running " + this.getName() + "with nullFlags set to "+ nullFlags[i] + ":", t.get(1) instanceof Integer);
+            assertEquals("Running " + this.getClass().getName() + "with nullFlags set to "+ nullFlags[i] + ":", 2, t.size());
+            assertTrue("Running " + this.getClass().getName() + "with nullFlags set to "+ nullFlags[i] + ":", t.get(0) instanceof Integer);
+            assertTrue("Running " + this.getClass().getName() + "with nullFlags set to "+ nullFlags[i] + ":", t.get(1) instanceof Integer);
             Integer i1 = (Integer)t.get(0);
             Integer i2 = (Integer)t.get(1);
-            assertEquals("Running " + this.getName() + "with nullFlags set to "+ nullFlags[i] + ":", 1, (int)i1);
-            assertEquals("Running " + this.getName() + "with nullFlags set to "+ nullFlags[i] + ":", 0, (int)i2);
+            assertEquals("Running " + this.getClass().getName() + "with nullFlags set to "+ nullFlags[i] + ":", 1, (int)i1);
+            assertEquals("Running " + this.getClass().getName() + "with nullFlags set to "+ nullFlags[i] + ":", 0, (int)i2);
         }
     }
 
     @Test
     public void testAndFilter() throws Exception {
-        
         for (int i = 0; i < nullFlags.length; i++) {
             // Build the inner expression
             POProject p1 = GenPhyOp.exprProject(0);
             ConstantExpression c2 = GenPhyOp.exprConst();
             c2.setValue(new Integer(0));
             GreaterThanExpr gt = GenPhyOp.compGreaterThanExpr(p1, c2, DataType.INTEGER);
-        
+
             POProject p3 = GenPhyOp.exprProject(1);
             ConstantExpression c = GenPhyOp.exprConst();
             c.setValue(new Integer(1));
             EqualToExpr eq = GenPhyOp.compEqualToExpr(p3, c, DataType.INTEGER);
             POAnd and = GenPhyOp.compAndExpr(gt, eq);
-        
+
             PhysicalPlan ip = new PhysicalPlan();
             ip.add(p1);
             ip.add(c2);
@@ -242,7 +237,7 @@ public class TestFilter extends junit.framework.TestCase {
             ip.connect(c, eq);
             ip.connect(eq, and);
             ip.connect(gt, and);
-        
+
             int[] ints = {0, 1, 1, 0, 1, 1};
             TupleFactory tf = TupleFactory.getInstance();
             DataBag inbag = BagFactory.getInstance().newDefaultBag();
@@ -274,16 +269,16 @@ public class TestFilter extends junit.framework.TestCase {
                 t.set(1, new Integer(ints[j+1]));
                 inbag.add(t);
             }
-        
+
             PORead read = GenPhyOp.topReadOp(inbag);
             POFilter filter = GenPhyOp.connectedFilterOp(read);
             filter.setPlan(ip);
-        
+
             PhysicalPlan op = new PhysicalPlan();
             op.add(filter);
             op.add(read);
             op.connect(read, filter);
-        
+
             DataBag outbag = BagFactory.getInstance().newDefaultBag();
             Result res;
             Tuple t = tf.newTuple();
@@ -305,15 +300,6 @@ public class TestFilter extends junit.framework.TestCase {
             Integer i2 = (Integer)t.get(1);
             assertEquals(1, (int)i1);
             assertEquals(1, (int)i2);
-        }
-    }
-
-    public static void main(String[] args) {
-        TestFilter tf = new TestFilter();
-        try {
-            tf.testAndFilter();
-        } catch (Exception e) {
-            System.out.println("Caught exception: " + e.getMessage());
         }
     }
 }

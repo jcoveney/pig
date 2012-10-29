@@ -17,38 +17,26 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
 import java.util.Random;
 
-import org.joda.time.DateTime;
-
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POIsNull;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POIsNull;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.GenRandomData;
-import org.junit.After;
-import org.junit.Before;
+import org.joda.time.DateTime;
 import org.junit.Test;
 
-public class TestNull extends junit.framework.TestCase {
-
-    @Before
-    public void setUp() throws Exception {
-    }
-
-    @After
-    public void tearDown() throws Exception {
-    }
-
+public class TestNull {
     public static boolean test(byte type) throws ExecException {
         Random r = new Random();
         ConstantExpression lt = (ConstantExpression) GenPhyOp.exprConst();
@@ -257,12 +245,10 @@ public class TestNull extends junit.framework.TestCase {
         long t1 = System.currentTimeMillis();
 
         for (byte b : types) {
-            boolean succ = true;
             // System.out.print("\t With " + map.get(b) + ": ");
             for (int i = 0; i < TRIALS; i++) {
-                succ &= test(b);
+                assertTrue(test(b));
             }
-            assertEquals(true, succ);
             /*
              * if (succ) System.out.println("Success!!"); else
              * System.out.println("Failure");

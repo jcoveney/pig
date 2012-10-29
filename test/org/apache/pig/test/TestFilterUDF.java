@@ -18,7 +18,9 @@
 package org.apache.pig.test;
 
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -27,28 +29,23 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.Iterator;
 
-import junit.framework.TestCase;
-
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.test.utils.FILTERFROMFILE;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 public class TestFilterUDF {
     private PigServer pigServer;
     private static MiniCluster cluster = MiniCluster.buildCluster();
     private File tmpFile;
-    
+
     TupleFactory tf = TupleFactory.getInstance();
 
     public TestFilterUDF() throws ExecException, IOException{
@@ -60,7 +57,7 @@ public class TestFilterUDF {
         }
         ps.close();
     }
-    
+
     @Before
     public void setUp() throws Exception {
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -77,12 +74,12 @@ public class TestFilterUDF {
     public void tearDown() throws Exception {
         tmpFile.delete();
     }
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     private File createFile(String[] data) throws Exception{
         File f = File.createTempFile("tmp", "");
         PrintWriter pw = new PrintWriter(f);
@@ -92,7 +89,7 @@ public class TestFilterUDF {
         pw.close();
         return f;
     }
-    
+
     static public class MyFilterFunction extends EvalFunc<Boolean>{
 
         @Override
@@ -107,14 +104,14 @@ public class TestFilterUDF {
             }
             return false;
         }
-        
+
     }
-    
+
     @Test
     public void testFilterUDF() throws Exception{
-        
-        pigServer.registerQuery("A = LOAD '" 
-                + Util.generateURI(tmpFile.toString(), pigServer.getPigContext()) 
+
+        pigServer.registerQuery("A = LOAD '"
+                + Util.generateURI(tmpFile.toString(), pigServer.getPigContext())
                 + "' as (x:int);");
         pigServer.registerQuery("B = filter A by " + MyFilterFunction.class.getName() + "($0);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
@@ -131,7 +128,7 @@ public class TestFilterUDF {
     @Test
     public void testFilterUDFusingDefine() throws Exception{
         File inputFile= createFile(
-                    new String[]{ 
+                    new String[]{
                         "www.paulisageek.com\t4",
                         "www.yahoo.com\t12344",
                         "google.com\t1",
@@ -140,7 +137,7 @@ public class TestFilterUDF {
                 );
 
         File filterFile = createFile(
-                    new String[]{ 
+                    new String[]{
                         "12344"
                     }
                 );
@@ -170,7 +167,7 @@ public class TestFilterUDF {
     @Test
     public void testFilterUDFusingDefine2() throws Exception{
         File inputFile= createFile(
-                    new String[]{ 
+                    new String[]{
                         "www.paulisageek.com\t4",
                         "www.yahoo.com\t12344",
                         "google.com\t1",
@@ -179,7 +176,7 @@ public class TestFilterUDF {
                 );
 
         File filterFile = createFile(
-                    new String[]{ 
+                    new String[]{
                         "12344"
                     }
                 );

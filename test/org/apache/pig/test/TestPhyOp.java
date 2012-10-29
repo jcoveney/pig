@@ -17,27 +17,23 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.GreaterThanExpr;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.GenRandomData;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestPhyOp extends junit.framework.TestCase {
+public class TestPhyOp {
     PhysicalOperator op;
 
     PhysicalOperator inpOp;
@@ -49,10 +45,6 @@ public class TestPhyOp extends junit.framework.TestCase {
         op = GenPhyOp.topFilterOp();
         inpOp = GenPhyOp.topFilterOpWithExPlan(25, 10);
         t = GenRandomData.genRandSmallBagTuple(new Random(), 10, 100);
-    }
-
-    @After
-    public void tearDown() throws Exception {
     }
 
     @Test
@@ -83,5 +75,4 @@ public class TestPhyOp extends junit.framework.TestCase {
         res = op.processInput();
         assertEquals(POStatus.STATUS_EOP, res.returnStatus);
     }
-
 }
