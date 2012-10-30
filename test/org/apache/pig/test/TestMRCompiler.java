@@ -72,10 +72,13 @@ import org.apache.pig.impl.builtin.GFCross;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.Utils;
+import org.apache.pig.test.junit.OrderedJUnit4Runner;
+import org.apache.pig.test.junit.OrderedJUnit4Runner.TestOrder;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 /**
  * Test cases to test the MRCompiler.
@@ -88,7 +91,37 @@ import org.junit.Test;
  * that follow it since the operator keys that will be generated through
  * Random will be different.
  */
-
+@RunWith(OrderedJUnit4Runner.class)
+@TestOrder({
+    "testRun1",
+    "testRun2",
+    "testSpl1",
+    "testSpl2",
+    "testSpl3",
+    "testSim1",
+    "testSim2",
+    "testSim3",
+    "testSim5",
+    "testSim6",
+    "testSim7",
+    "testSim8",
+    "testSim9",
+    "testSortUDF1",
+    "testDistinct1",
+    "testLimit",
+    "testMRCompilerErr",
+    "testMRCompilerErr1",
+    "testNumReducersInLimit",
+    "testNumReducersInLimitWithParallel",
+    "testUDFInJoin",
+    "testMergeJoin",
+    "testMergeJoinWithIndexableLoadFunc",
+    "testCastFuncShipped",
+    "testLimitAdjusterFuncShipped",
+    "testSortedDistinctInForeach",
+    "testUDFInMergedCoGroup",
+    "testUDFInMergedJoin",
+    "testSchemaInStoreForDistinctLimit" })
 public class TestMRCompiler {
     static MiniCluster cluster = MiniCluster.buildCluster();
 
