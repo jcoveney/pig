@@ -35,6 +35,9 @@ import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -50,9 +53,6 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tar.TarUtils;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.tools.tar.TarEntry;
-import org.apache.tools.tar.TarInputStream;
-import org.apache.tools.tar.TarOutputStream;
 import org.jruby.CompatVersion;
 import org.jruby.Ruby;
 import org.jruby.RubyArray;
@@ -163,7 +163,7 @@ public class JrubyScriptEngine extends ScriptEngine {
         File fout = File.createTempFile("tmp", ".tar.gz");
         fout.delete();
         //TODO do I need to buffer as well or does GZIP already?
-        TarOutputStream os = new TarOutputStream(new GZIPOutputStream(new FileOutputStream(fout)));
+        TarArchiveOutputStream os = new TarArchiveOutputStream(new GZIPOutputStream(new FileOutputStream(fout)));
 
         for (File f : gems) {
             LOG.debug("Shipping gem: " + f);
@@ -219,9 +219,9 @@ public class JrubyScriptEngine extends ScriptEngine {
         File gemDir = Files.createTempDir();
         gemDir.deleteOnExit();
         LOG.debug("Temporary gem location: " + gemDir);
-        TarInputStream is = new TarInputStream(new GZIPInputStream(new FileInputStream(gemTar)));
-        TarEntry entry;
-        while ((entry = is.getNextEntry()) != null) {
+        TarArchiveInputStream is = new TarArchiveInputStream(new GZIPInputStream(new FileInputStream(gemTar)));
+        TarArchiveEntry entry;
+        while ((entry = is.getNextTarEntry()) != null) {
             LOG.debug("Processing next entry: " + entry.getName());
             File fileToWriteTo = new File(gemDir, entry.getName());
             File parent = fileToWriteTo.getParentFile();
@@ -231,7 +231,18 @@ public class JrubyScriptEngine extends ScriptEngine {
             LOG.debug("Attempting to write to temporary location: " + fileToWriteTo);
             //TODO may have to make all of the parents between fileToWriteTo and gemDir
             OutputStream os = new BufferedOutputStream(new FileOutputStream(fileToWriteTo));
-            is.copyEntryContents(os);
+            byte[] buf = new byte[1024 * 1024];
+
+            while (true) {
+                int numRead = is.read(buf, 0, buf.length);
+
+                if (numRead == -1) {
+                    break;
+                }
+
+                os.write(buf, 0, numRead);
+            }
+
             os.close();
         }
         is.close();

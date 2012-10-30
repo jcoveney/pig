@@ -5,16 +5,15 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.apache.tools.tar.TarEntry;
-import org.apache.tools.tar.TarOutputStream;
-
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 public class TarUtils {
     private static final Log LOG = LogFactory.getLog(TarUtils.class);
 
-    public static void tarFile(String prefix, File baseDir, File file, TarOutputStream os) throws IOException {
+    public static void tarFile(String prefix, File baseDir, File file, TarArchiveOutputStream os) throws IOException {
         File absBase = baseDir.getAbsoluteFile();
         File absFile = file.getAbsoluteFile();
 
@@ -30,12 +29,12 @@ public class TarUtils {
                 tarFile(prefix, baseDir, f, os);
             }
         } else {
-            TarEntry entry = new TarEntry(file);
+            TarArchiveEntry entry = new TarArchiveEntry(file);
 
             String name = absFile.getAbsolutePath().substring(absBase.getAbsolutePath().length() + 1);
             entry.setName((prefix != null ? prefix + "/" : "") + name);
 
-            os.putNextEntry(entry);
+            os.putArchiveEntry(entry);
 
             InputStream in = new FileInputStream(file);
 
@@ -46,7 +45,7 @@ public class TarUtils {
             }
 
             in.close();
-            os.closeEntry();
+            os.closeArchiveEntry();
             os.flush();
         }
     }

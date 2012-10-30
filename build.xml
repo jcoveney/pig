@@ -695,7 +695,7 @@
                 <include name="log4j*.jar" />
                 <include name="jsp-api*.jar" />
                 <include name="jansi-${jansi.version}.jar" />
-                <include name="ant-*.jar" />
+                <include name="commons-compress-*.jar" />
             </zipgroupfileset>
             <fileset file="${basedir}/src/pig-default.properties" />
             <fileset file="${basedir}/src/main/jruby/pigudf.rb" />
@@ -782,7 +782,7 @@
                 <include name="guava-${guava.version}.jar" />
                 <include name="automaton-${automaton.version}.jar" />
                 <include name="jansi-${jansi.version}.jar" />
-                <include name="ant-*.jar" />
+                <include name="commons-compress-*.jar" />
             </zipgroupfileset>
             <fileset file="${basedir}/src/pig-default.properties" />
             <fileset file="${basedir}/src/main/jruby/pigudf.rb" />
