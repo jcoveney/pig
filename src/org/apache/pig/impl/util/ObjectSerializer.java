@@ -28,6 +28,7 @@ import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -61,6 +62,8 @@ public class ObjectSerializer {
     }
 
     public static String encodeBytes(byte[] bytes) {
+        return Base64.encodeBase64URLSafeString(bytes);
+        /*
         StringBuffer strBuf = new StringBuffer();
 
         for (int i = 0; i < bytes.length; i++) {
@@ -69,9 +72,12 @@ public class ObjectSerializer {
         }
 
         return strBuf.toString();
+        */
     }
 
     public static byte[] decodeBytes(String str) {
+        return Base64.decodeBase64(str);
+        /*
         byte[] bytes = new byte[str.length() / 2];
         for (int i = 0; i < str.length(); i+=2) {
             char c = str.charAt(i);
@@ -80,6 +86,7 @@ public class ObjectSerializer {
             bytes[i/2] += (c - 'a');
         }
         return bytes;
+        */
     }
 
 }
