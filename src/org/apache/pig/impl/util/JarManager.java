@@ -86,12 +86,12 @@ public class JarManager {
 
     final static String pigPackagesToSend[] = { "org/apache/pig","org/apache/tools/bzip2r",
         "dk/brics/automaton", "org/antlr/runtime", "com/google/common", "org/codehaus/jackson",
-        "org/joda/time", "org/apache/tools/tar/"};
-    
+        "org/joda/time", "org/apache/commons/compress/archivers/tar"};
+
     /**
      * Create a jarfile in a temporary path, that is a merge of all the jarfiles containing the
      * functions and the core pig classes.
-     * 
+     *
      * @param funcs
      *            the functions that will be used in a job and whose jar files need to be included
      *            in the final merged jar file.
@@ -104,7 +104,7 @@ public class JarManager {
         for(String toSend: pigPackagesToSend) {
             addContainingJar(jarList, PigMapReduce.class, toSend, pigContext);
         }
-        
+
         for (String func: funcs) {
             Class clazz = pigContext.getClassForAlias(func);
             if (clazz != null) {
@@ -157,7 +157,7 @@ public class JarManager {
 
     /**
      * Creates a Classloader based on the passed jarFile and any extra jar files.
-     * 
+     *
      * @param jarFile
      *            the jar file to be part of the newly created Classloader. This jar file plus any
      *            jars in the extraJars list will constitute the classpath.
@@ -176,11 +176,11 @@ public class JarManager {
         }
         return new URLClassLoader(urls, PigMapReduce.class.getClassLoader());
     }
-    
+
 
     /**
      * Merge one Jar file into another.
-     * 
+     *
      * @param jarFile
      *            the stream of the target jar file.
      * @param jar
@@ -198,7 +198,7 @@ public class JarManager {
         log.debug("Adding jar " + jar + (prefix != null ? " for prefix "+prefix : "" ) + " to job jar" );
         mergeJar(jarFile, jarInput, prefix, contents);
     }
-    
+
     private static void mergeJar(JarOutputStream jarFile, URL jar, String prefix, Map<String, String> contents)
     throws FileNotFoundException, IOException {
         JarInputStream jarInput = new JarInputStream(jar.openStream());
@@ -218,7 +218,7 @@ public class JarManager {
     }
         /**
      * Adds a stream to a Jar file.
-     * 
+     *
      * @param os
      *            the OutputStream of the Jar file to which the stream will be added.
      * @param name
@@ -245,10 +245,10 @@ public class JarManager {
     }
 
 
-    
+
     /**
      * Adds the Jar file containing the given class to the list of jar files to be merged.
-     * 
+     *
      * @param jarList
      *            the list of jar files to be merged.
      * @param clazz
@@ -276,7 +276,7 @@ public class JarManager {
     /**
      * Find a jar that contains a class of the same name, if any. It will return a jar file, even if
      * that is not the first thing on the class path that has a class with the same name.
-     * 
+     *
      * @param my_class
      *            the class to find
      * @return a jar file that contains the class, or null
