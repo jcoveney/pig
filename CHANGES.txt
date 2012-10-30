@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3004: Improve exceptions messages when a RuntimeException is raised in Physical Operators (julien)
+
 PIG-2990: the -secretDebugCmd shouldn't be a secret and should just be...a command (jcoveney)
 
 PIG-2941: Ivy resolvers in pig don't have consistent chaining and don't have a kitchen sink option for novices (jgordon via azaroth)
@@ -333,6 +335,8 @@ PIG-2337: Provide UDF with input schema (xutingz via daijy)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-2968: ColumnMapKeyPrune fails to prune a subtree inside foreach (knoguchi via cheolsoo)
 
 PIG-2999: Regression after PIG-2975: BinInterSedesTupleRawComparator secondary sort failing (knoguchi via azaroth)
 
