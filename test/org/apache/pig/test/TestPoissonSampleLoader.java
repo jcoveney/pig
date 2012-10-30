@@ -1,14 +1,12 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
+ * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarding copyright ownership. The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * with the License. You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,7 +14,6 @@
  * limitations under the License.
  */
 package org.apache.pig.test;
-
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -42,15 +39,16 @@ public class TestPoissonSampleLoader {
     private PigServer pigServer;
     private static MiniCluster cluster = MiniCluster.buildCluster();
 
-    public TestPoissonSampleLoader() throws ExecException, IOException{
+    public TestPoissonSampleLoader() throws ExecException, IOException {
         pigServer = new PigServer(ExecType.LOCAL);
-        pigServer.getPigContext().getProperties().setProperty("pig.skewedjoin.reduce.maxtuple", "5");
-        pigServer.getPigContext().getProperties().setProperty("pig.skewedjoin.reduce.memusage", "0.0001");
+        pigServer.getPigContext().getProperties()
+                .setProperty("pig.skewedjoin.reduce.maxtuple", "5");
+        pigServer.getPigContext().getProperties()
+                .setProperty("pig.skewedjoin.reduce.memusage", "0.0001");
         pigServer.getPigContext().getProperties().setProperty("mapred.child.java.opts", "-Xmx512m");
 
         pigServer.getPigContext().getProperties().setProperty("pig.mapsplits.count", "5");
     }
-
 
     @Before
     public void setUp() throws Exception {
@@ -66,7 +64,7 @@ public class TestPoissonSampleLoader {
         PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE1));
 
         int k = 0;
-        for(int j=0; j<100; j++) {
+        for (int j = 0; j < 100; j++) {
             w.println("100:apple1:aaa" + k);
             k++;
             w.println("200:orange1:bbb" + k);
@@ -80,7 +78,6 @@ public class TestPoissonSampleLoader {
         Util.copyFromLocalToCluster(cluster, INPUT_FILE1, INPUT_FILE1);
     }
 
-
     @After
     public void tearDown() throws Exception {
         new File(INPUT_FILE1).delete();
@@ -89,63 +86,43 @@ public class TestPoissonSampleLoader {
     }
 
     private int testNumSamples(String memUsage, String sampleRate) throws IOException {
-        pigServer.getPigContext().getProperties().setProperty("pig.skewedjoin.reduce.memusage", memUsage);
-        pigServer.getPigContext().getProperties().setProperty("pig.sksampler.samplerate", sampleRate);
-        pigServer.registerQuery("A = Load '"+INPUT_FILE1+"' Using PoissonSampleLoader('PigStorage()', '100');");
+        pigServer.getPigContext().getProperties()
+                .setProperty("pig.skewedjoin.reduce.memusage", memUsage);
+        pigServer.getPigContext().getProperties()
+                .setProperty("pig.sksampler.samplerate", sampleRate);
+        pigServer.registerQuery("A = Load '" + INPUT_FILE1
+                + "' Using PoissonSampleLoader('PigStorage()', '100');");
         Iterator<Tuple> iter = pigServer.openIterator("A");
         int count = 0;
-        while(iter.hasNext()){
+        while (iter.hasNext()) {
             count++;
             iter.next();
         }
         return count;
     }
-/*
-// This test has been removed because the results are platform dependent.
-// See: PIG-2926
-    @Test
-    public void testNumSamples() throws IOException {
-        //PoissonSampleLoader.DEFAULT_SAMPLE_RATE is 17
-        int count = testNumSamples("0.0001", "17");
-        assertEquals(count, 12);
 
-        count = testNumSamples("0.001", "17");
-        assertEquals(count, 6);
-
-        count = testNumSamples("0.001", "10");
-        assertEquals(count, 4);
-
-        count = testNumSamples("0.001", "100");
-        assertEquals(count, 9);
-
-        count = testNumSamples("0.005", "17");
-        assertEquals(count, 2);
-
-        count = testNumSamples("0.0001", "100");
-        assertEquals(count, 42);
-    }
-*/
     /*
      * Test use of LoadFunc with parameters as argument to PoissonSampleLoader
      */
     @Test
     public void testInstantiation() throws IOException {
-        pigServer.registerQuery("A = Load '"+INPUT_FILE1+"' Using PoissonSampleLoader('PigStorage(\\\\\\':\\\\\\')', '100');");
+        pigServer.registerQuery("A = Load '" + INPUT_FILE1
+                + "' Using PoissonSampleLoader('PigStorage(\\\\\\':\\\\\\')', '100');");
         Iterator<Tuple> iter = pigServer.openIterator("A");
         assertTrue(iter.hasNext());
 
         Tuple t = iter.next();
-        //Check the tuple size. It has to be 3.
+        // Check the tuple size. It has to be 3.
         assertEquals(3, t.size());
 
-        while(iter.hasNext()){
+        while (iter.hasNext()) {
             t = iter.next();
         }
         // Last tuple's size has to be 5
-        // 3 datum  (ex: 100:apple1:aaa)
-        // + PoissonSampleLoader.NUMROWS_TUPLE_MARKER ??_pig_inTeRnal-spEcial_roW_num_tuple3kt579CFLehkblah
+        // 3 datum (ex: 100:apple1:aaa)
+        // + PoissonSampleLoader.NUMROWS_TUPLE_MARKER
+        // ??_pig_inTeRnal-spEcial_roW_num_tuple3kt579CFLehkblah
         // + numRow 300
         assertEquals(5, t.size());
     }
-
 }

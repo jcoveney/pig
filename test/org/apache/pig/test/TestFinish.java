@@ -1,14 +1,12 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
+ * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarding copyright ownership. The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * with the License. You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -50,9 +48,10 @@ public class TestFinish {
 
     static MiniCluster cluster = MiniCluster.buildCluster();
 
-    static public class MyEvalFunction extends EvalFunc<Tuple>{
+    static public class MyEvalFunction extends EvalFunc<Tuple> {
         String execType;
         String expectedFileName;
+
         /**
          *
          */
@@ -90,16 +89,16 @@ public class TestFinish {
         cluster.shutDown();
     }
 
-    private String setUp(ExecType execType) throws Exception{
+    private String setUp(ExecType execType) throws Exception {
         String inputFileName;
-        if(execType == ExecType.LOCAL) {
+        if (execType == ExecType.LOCAL) {
             pigServer = new PigServer(ExecType.LOCAL);
             f1 = File.createTempFile("test", "txt");
             f1.deleteOnExit();
             inputFileName = f1.getAbsolutePath();
             PrintStream ps = new PrintStream(new FileOutputStream(f1));
-            for(int i = 0; i < 3; i++) {
-                ps.println('a'+i + ":1");
+            for (int i = 0; i < 3; i++) {
+                ps.println('a' + i + ":1");
             }
             ps.close();
         } else {
@@ -108,8 +107,8 @@ public class TestFinish {
             f1.deleteOnExit();
             inputFileName = f1.getAbsolutePath();
             String input[] = new String[3];
-            for(int i = 0; i < 3; i++) {
-                input[i] = ('a'+i + ":1");
+            for (int i = 0; i < 3; i++) {
+                input[i] = ('a' + i + ":1");
             }
             Util.createInputFile(cluster, inputFileName, input);
         }
@@ -118,7 +117,7 @@ public class TestFinish {
 
     private void checkAndCleanup(ExecType execType, String expectedFileName,
             String inputFileName) throws IOException {
-        if(execType == ExecType.MAPREDUCE) {
+        if (execType == ExecType.MAPREDUCE) {
             FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(
                     cluster.getProperties()));
             assertTrue(fs.exists(new Path(expectedFileName)));
@@ -135,15 +134,17 @@ public class TestFinish {
     }
 
     @Test
-    public void testFinishInMapMR() throws Exception{
+    public void testFinishInMapMR() throws Exception {
         String inputFileName = setUp(ExecType.MAPREDUCE);
         // this file will be created on the cluster if finish() is called
         String expectedFileName = "testFinishInMapMR-finish.txt";
-        pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('MAPREDUCE','" + expectedFileName + "');");
-        pigServer.registerQuery("a = load '" + inputFileName + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('MAPREDUCE','"
+                + expectedFileName + "');");
+        pigServer.registerQuery("a = load '" + inputFileName + "' using "
+                + PigStorage.class.getName() + "(':');");
         pigServer.registerQuery("b = foreach a generate MYUDF" + "(*);");
         Iterator<Tuple> iter = pigServer.openIterator("b");
-        while(iter.hasNext()){
+        while (iter.hasNext()) {
             iter.next();
         }
 
@@ -152,16 +153,18 @@ public class TestFinish {
     }
 
     @Test
-    public void testFinishInReduceMR() throws Exception{
+    public void testFinishInReduceMR() throws Exception {
         String inputFileName = setUp(ExecType.MAPREDUCE);
         // this file will be created on the cluster if finish() is called
         String expectedFileName = "testFinishInReduceMR-finish.txt";
-        pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('MAPREDUCE','" + expectedFileName + "');");
-        pigServer.registerQuery("a = load '" + inputFileName + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('MAPREDUCE','"
+                + expectedFileName + "');");
+        pigServer.registerQuery("a = load '" + inputFileName + "' using "
+                + PigStorage.class.getName() + "(':');");
         pigServer.registerQuery("a1 = group a by $1;");
         pigServer.registerQuery("b = foreach a1 generate MYUDF" + "(*);");
         Iterator<Tuple> iter = pigServer.openIterator("b");
-        while(iter.hasNext()){
+        while (iter.hasNext()) {
             iter.next();
         }
 
@@ -169,24 +172,28 @@ public class TestFinish {
     }
 
     @Test
-    public void testFinishInMapLoc() throws Exception{
+    public void testFinishInMapLoc() throws Exception {
         String inputFileName = setUp(ExecType.LOCAL);
         // this file will be created on the cluster if finish() is called
         String expectedFileName = "testFinishInMapLoc-finish.txt";
-        pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('LOCAL','" + expectedFileName + "');");
-        pigServer.registerQuery("a = load '" + inputFileName + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('LOCAL','"
+                + expectedFileName + "');");
+        pigServer.registerQuery("a = load '" + inputFileName + "' using "
+                + PigStorage.class.getName() + "(':');");
         pigServer.registerQuery("b = foreach a generate MYUDF" + "(*);");
         pigServer.openIterator("b");
         checkAndCleanup(ExecType.LOCAL, expectedFileName, inputFileName);
     }
 
     @Test
-    public void testFinishInReduceLoc() throws Exception{
+    public void testFinishInReduceLoc() throws Exception {
         String inputFileName = setUp(ExecType.LOCAL);
         // this file will be created on the cluster if finish() is called
         String expectedFileName = "testFinishInReduceLoc-finish.txt";
-        pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('LOCAL','" + expectedFileName + "');");
-        pigServer.registerQuery("a = load '" + inputFileName + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('LOCAL','"
+                + expectedFileName + "');");
+        pigServer.registerQuery("a = load '" + inputFileName + "' using "
+                + PigStorage.class.getName() + "(':');");
         pigServer.registerQuery("a1 = group a by $1;");
         pigServer.registerQuery("b = foreach a1 generate MYUDF" + "(*);");
         pigServer.openIterator("b");

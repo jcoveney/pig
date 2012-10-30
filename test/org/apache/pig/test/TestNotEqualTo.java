@@ -1,14 +1,12 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
+ * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarding copyright ownership. The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * with the License. You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -51,7 +49,7 @@ public class TestNotEqualTo {
         g.setOperandType(DataType.BOOLEAN);
         Result r = g.getNext(new Boolean(true));
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
-        assertTrue((Boolean) r.result);
+        assertTrue((Boolean)r.result);
     }
 
     @Test
@@ -106,12 +104,12 @@ public class TestNotEqualTo {
     }
 
     @Test
-	public void testIntegerAndNullValues() throws Exception {
+    public void testIntegerAndNullValues() throws Exception {
 
-		checkNullValues( DataType.INTEGER,  new Integer(1) );
-	}
+        checkNullValues(DataType.INTEGER, new Integer(1));
+    }
 
-	@Test
+    @Test
     public void testLongNe() throws Exception {
         ConstantExpression lt = GenPhyOp.exprConst();
         lt.setValue(new Long(1L));
@@ -141,11 +139,10 @@ public class TestNotEqualTo {
         assertFalse((Boolean)r.result);
     }
 
-
     @Test
     public void testLongAndNullValues() throws Exception {
 
-    	checkNullValues( DataType.LONG,  new Long(1L) );
+        checkNullValues(DataType.LONG, new Long(1L));
     }
 
     @Test
@@ -178,11 +175,10 @@ public class TestNotEqualTo {
         assertFalse((Boolean)r.result);
     }
 
-
     @Test
     public void testFloatAndNullValues() throws Exception {
 
-    	checkNullValues( DataType.FLOAT,  new Float(1.0f) );
+        checkNullValues(DataType.FLOAT, new Float(1.0f));
     }
 
     @Test
@@ -215,11 +211,10 @@ public class TestNotEqualTo {
         assertFalse((Boolean)r.result);
     }
 
-
     @Test
     public void testDoubleAndNullValues() throws Exception {
 
-    	checkNullValues( DataType.DOUBLE,  new Double(1.0) );
+        checkNullValues(DataType.DOUBLE, new Double(1.0));
     }
 
     @Test
@@ -252,11 +247,10 @@ public class TestNotEqualTo {
         assertFalse((Boolean)r.result);
     }
 
-
     @Test
     public void testDateTimeAndNullValues() throws Exception {
 
-        checkNullValues( DataType.DATETIME,  new DateTime(1L) );
+        checkNullValues(DataType.DATETIME, new DateTime(1L));
     }
 
     @Test
@@ -292,7 +286,7 @@ public class TestNotEqualTo {
     @Test
     public void testStringAndNullValues() throws Exception {
 
-    	checkNullValues( DataType.CHARARRAY,  new String("b") );
+        checkNullValues(DataType.CHARARRAY, new String("b"));
     }
 
     @Test
@@ -326,9 +320,9 @@ public class TestNotEqualTo {
     }
 
     @Test
-    public void testTupleEq() throws ExecException{
-        Tuple tuple_1=TupleFactory.getInstance().newTuple("item_1");
-        Tuple tuple_2=TupleFactory.getInstance().newTuple("item_1");
+    public void testTupleEq() throws ExecException {
+        Tuple tuple_1 = TupleFactory.getInstance().newTuple("item_1");
+        Tuple tuple_2 = TupleFactory.getInstance().newTuple("item_1");
         ConstantExpression lt = GenPhyOp.exprConst();
         lt.setValue(tuple_1);
         ConstantExpression rt = GenPhyOp.exprConst();
@@ -343,9 +337,9 @@ public class TestNotEqualTo {
     }
 
     @Test
-    public void testTupleNe() throws ExecException{
-        Tuple tuple_1=TupleFactory.getInstance().newTuple("item_1");
-        Tuple tuple_2=TupleFactory.getInstance().newTuple("item_2");
+    public void testTupleNe() throws ExecException {
+        Tuple tuple_1 = TupleFactory.getInstance().newTuple("item_1");
+        Tuple tuple_2 = TupleFactory.getInstance().newTuple("item_2");
         ConstantExpression lt = GenPhyOp.exprConst();
         lt.setValue(tuple_1);
         ConstantExpression rt = GenPhyOp.exprConst();
@@ -360,10 +354,10 @@ public class TestNotEqualTo {
     }
 
     @Test
-    public void testMapEq() throws ExecException{
-        Map map_1=new HashMap();
+    public void testMapEq() throws ExecException {
+        Map map_1 = new HashMap();
         map_1.put("key_1", "value_1");
-        Map map_2=new HashMap();
+        Map map_2 = new HashMap();
         map_2.put("key_1", "value_1");
 
         ConstantExpression lt = GenPhyOp.exprConst();
@@ -380,13 +374,13 @@ public class TestNotEqualTo {
     }
 
     @Test
-    public void testMapNe() throws ExecException{
-        Map map_1=new HashMap();
+    public void testMapNe() throws ExecException {
+        Map map_1 = new HashMap();
         map_1.put("key_1", "value_1");
-        Map map_2=new HashMap();
+        Map map_2 = new HashMap();
         map_2.put("key_1", "value_2");
 
-        Tuple tuple_2=TupleFactory.getInstance().newTuple("item_2");
+        Tuple tuple_2 = TupleFactory.getInstance().newTuple("item_2");
         ConstantExpression lt = GenPhyOp.exprConst();
         lt.setValue(map_1);
         ConstantExpression rt = GenPhyOp.exprConst();
@@ -403,10 +397,10 @@ public class TestNotEqualTo {
     @Test
     public void testDataByteArrayAndNullValues() throws Exception {
 
-    	checkNullValues( DataType.BYTEARRAY,  new DataByteArray("b") );
+        checkNullValues(DataType.BYTEARRAY, new DataByteArray("b"));
     }
 
-	public <U> void checkNullValues( byte operandType, U value ) throws Exception {
+    public <U> void checkNullValues(byte operandType, U value) throws Exception {
 
         ConstantExpression lt = GenPhyOp.exprConst();
         ConstantExpression rt = GenPhyOp.exprConst();
@@ -415,7 +409,7 @@ public class TestNotEqualTo {
         // test with null in lhs
         g.setOperandType(operandType);
         lt.setValue(null);
-        rt.setValue( value );
+        rt.setValue(value);
         g.setLhs(lt);
         g.setRhs(rt);
 
@@ -425,7 +419,7 @@ public class TestNotEqualTo {
 
         // test with null in rhs
         g.setOperandType(operandType);
-        lt.setValue( value );
+        lt.setValue(value);
         rt.setValue(null);
         g.setLhs(lt);
         g.setRhs(rt);
@@ -433,7 +427,6 @@ public class TestNotEqualTo {
         r = g.getNext(new Boolean(true));
         assertEquals(POStatus.STATUS_NULL, r.returnStatus);
         assertNull(r.result);
-
 
         // test with null in lhs and rhs
         g.setOperandType(operandType);

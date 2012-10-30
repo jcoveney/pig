@@ -1,14 +1,12 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
+ * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarding copyright ownership. The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * with the License. You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -64,8 +62,8 @@ public class TestFilter {
         fail = GenPhyOp.topFilterOpWithExPlan(25, 50);
     }
 
-    private void setUpProjFil(boolean withNulls) throws Exception{
-        if(withNulls)
+    private void setUpProjFil(boolean withNulls) throws Exception {
+        if (withNulls)
             inp = GenRandomData.genRandSmallTupDataBagWithNulls(r, 10, 100);
         else
             inp = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
@@ -101,11 +99,16 @@ public class TestFilter {
                     break;
                 count++;
                 assertEquals(POStatus.STATUS_OK, res.returnStatus);
-                Tuple output = (Tuple) res.result;
-                assertEquals("Running testGetNextTuple with nullFlags set to "+ nullFlags[i] + ":", true, TestHelper.bagContains(inp, output));
-                assertEquals("Running testGetNextTuple with nullFlags set to "+ nullFlags[i] + ":", true, (Integer) ((Tuple) res.result).get(1) > 50);
+                Tuple output = (Tuple)res.result;
+                assertEquals(
+                        "Running testGetNextTuple with nullFlags set to " + nullFlags[i] + ":",
+                        true, TestHelper.bagContains(inp, output));
+                assertEquals(
+                        "Running testGetNextTuple with nullFlags set to " + nullFlags[i] + ":",
+                        true, (Integer)((Tuple)res.result).get(1) > 50);
             }
-            assertEquals("Running testGetNextTuple with nullFlags set to "+ nullFlags[i] + ":", getExpCount(inp), count);
+            assertEquals("Running testGetNextTuple with nullFlags set to " + nullFlags[i] + ":",
+                    getExpCount(inp), count);
 
         }
     }
@@ -118,10 +121,10 @@ public class TestFilter {
     private int getExpCount(DataBag inp2) throws ExecException {
         // TODO Auto-generated method stub
         int count = 0;
-        for(Iterator<Tuple> it = inp2.iterator(); it.hasNext();){
+        for (Iterator<Tuple> it = inp2.iterator(); it.hasNext();) {
 
             Tuple t = it.next();
-            if(t.get(1) != null && (Integer)t.get(1) > 50)
+            if (t.get(1) != null && (Integer)t.get(1) > 50)
                 count++;
         }
 
@@ -143,16 +146,16 @@ public class TestFilter {
             ip.connect(p1, gt);
             ip.connect(p2, gt);
 
-            int[] ints = {0, 1, 1, 0, 1, 1};
+            int[] ints = { 0, 1, 1, 0, 1, 1 };
             TupleFactory tf = TupleFactory.getInstance();
             DataBag inbag = BagFactory.getInstance().newDefaultBag();
             Random r = new Random();
-            for (int j = 0; j < ints.length; j+=2) {
+            for (int j = 0; j < ints.length; j += 2) {
                 // if we are testing with nulls
                 // introduce nulls randomly
-                if(nullFlags[i] == true) {
+                if (nullFlags[i] == true) {
                     int rand = r.nextInt(100);
-                    if(rand <= 20) {
+                    if (rand <= 20) {
                         Tuple t = tf.newTuple(2);
                         t.set(0, new Integer(ints[j]));
                         t.set(1, null);
@@ -160,7 +163,7 @@ public class TestFilter {
                     } else if (rand > 20 && rand <= 40) {
                         Tuple t = tf.newTuple(2);
                         t.set(0, null);
-                        t.set(1, new Integer(ints[j+1]));
+                        t.set(1, new Integer(ints[j + 1]));
                         inbag.add(t);
                     } else if (rand > 40 && rand <= 60) {
                         Tuple t = tf.newTuple(2);
@@ -171,7 +174,7 @@ public class TestFilter {
                 }
                 Tuple t = tf.newTuple(2);
                 t.set(0, new Integer(ints[j]));
-                t.set(1, new Integer(ints[j+1]));
+                t.set(1, new Integer(ints[j + 1]));
                 inbag.add(t);
             }
 
@@ -193,18 +196,26 @@ public class TestFilter {
                     outbag.add((Tuple)res.result);
                 }
             } while (res.returnStatus == POStatus.STATUS_OK);
-            assertEquals("Running " + this.getClass().getName() + "with nullFlags set to "+ nullFlags[i] + ":", POStatus.STATUS_EOP, res.returnStatus);
-            assertEquals("Running " + this.getClass().getName() + "with nullFlags set to "+ nullFlags[i] + ":", 1, outbag.size());
+            assertEquals("Running " + this.getClass().getName() + "with nullFlags set to "
+                    + nullFlags[i] + ":", POStatus.STATUS_EOP, res.returnStatus);
+            assertEquals("Running " + this.getClass().getName() + "with nullFlags set to "
+                    + nullFlags[i] + ":", 1, outbag.size());
             Iterator<Tuple> it = outbag.iterator();
-            assertTrue("Running " + this.getClass().getName() + "with nullFlags set to "+ nullFlags[i] + ":", it.hasNext());
+            assertTrue("Running " + this.getClass().getName() + "with nullFlags set to "
+                    + nullFlags[i] + ":", it.hasNext());
             t = it.next();
-            assertEquals("Running " + this.getClass().getName() + "with nullFlags set to "+ nullFlags[i] + ":", 2, t.size());
-            assertTrue("Running " + this.getClass().getName() + "with nullFlags set to "+ nullFlags[i] + ":", t.get(0) instanceof Integer);
-            assertTrue("Running " + this.getClass().getName() + "with nullFlags set to "+ nullFlags[i] + ":", t.get(1) instanceof Integer);
+            assertEquals("Running " + this.getClass().getName() + "with nullFlags set to "
+                    + nullFlags[i] + ":", 2, t.size());
+            assertTrue("Running " + this.getClass().getName() + "with nullFlags set to "
+                    + nullFlags[i] + ":", t.get(0) instanceof Integer);
+            assertTrue("Running " + this.getClass().getName() + "with nullFlags set to "
+                    + nullFlags[i] + ":", t.get(1) instanceof Integer);
             Integer i1 = (Integer)t.get(0);
             Integer i2 = (Integer)t.get(1);
-            assertEquals("Running " + this.getClass().getName() + "with nullFlags set to "+ nullFlags[i] + ":", 1, (int)i1);
-            assertEquals("Running " + this.getClass().getName() + "with nullFlags set to "+ nullFlags[i] + ":", 0, (int)i2);
+            assertEquals("Running " + this.getClass().getName() + "with nullFlags set to "
+                    + nullFlags[i] + ":", 1, (int)i1);
+            assertEquals("Running " + this.getClass().getName() + "with nullFlags set to "
+                    + nullFlags[i] + ":", 0, (int)i2);
         }
     }
 
@@ -238,16 +249,16 @@ public class TestFilter {
             ip.connect(eq, and);
             ip.connect(gt, and);
 
-            int[] ints = {0, 1, 1, 0, 1, 1};
+            int[] ints = { 0, 1, 1, 0, 1, 1 };
             TupleFactory tf = TupleFactory.getInstance();
             DataBag inbag = BagFactory.getInstance().newDefaultBag();
             Random r = new Random();
-            for (int j = 0; j < ints.length; j+=2) {
+            for (int j = 0; j < ints.length; j += 2) {
                 // if we are testing with nulls
                 // introduce nulls randomly
-                if(nullFlags[i] == true) {
+                if (nullFlags[i] == true) {
                     int rand = r.nextInt(100);
-                    if(rand <= 20) {
+                    if (rand <= 20) {
                         Tuple t = tf.newTuple(2);
                         t.set(0, new Integer(ints[j]));
                         t.set(1, null);
@@ -255,7 +266,7 @@ public class TestFilter {
                     } else if (rand > 20 && rand <= 40) {
                         Tuple t = tf.newTuple(2);
                         t.set(0, null);
-                        t.set(1, new Integer(ints[j+1]));
+                        t.set(1, new Integer(ints[j + 1]));
                         inbag.add(t);
                     } else if (rand > 40 && rand <= 60) {
                         Tuple t = tf.newTuple(2);
@@ -266,7 +277,7 @@ public class TestFilter {
                 }
                 Tuple t = tf.newTuple(2);
                 t.set(0, new Integer(ints[j]));
-                t.set(1, new Integer(ints[j+1]));
+                t.set(1, new Integer(ints[j + 1]));
                 inbag.add(t);
             }
 

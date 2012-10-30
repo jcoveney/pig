@@ -1,14 +1,12 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
+ * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarding copyright ownership. The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * with the License. You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -59,8 +57,8 @@ public class TestForEach {
     public void setUp() throws Exception {
         Random r = new Random();
         db = GenRandomData.genRandSmallTupDataBagWithNulls(r, 10, 100);
-        projDB = TestHelper.projectBag(db,0);
-        fe = GenPhyOp.topForEachOPWithPlan(0,db.iterator().next());
+        projDB = TestHelper.projectBag(db, 0);
+        fe = GenPhyOp.topForEachOPWithPlan(0, db.iterator().next());
         POProject proj = GenPhyOp.exprProject();
         proj.setColumn(0);
         proj.setResultType(DataType.TUPLE);
@@ -75,10 +73,11 @@ public class TestForEach {
 
     @Test
     public void testGetNextTuple() throws ExecException, IOException {
-        int size=0;
-        for (Result res = fe.getNext(t); res.returnStatus != POStatus.STATUS_EOP; res = fe.getNext(t)){
+        int size = 0;
+        for (Result res = fe.getNext(t); res.returnStatus != POStatus.STATUS_EOP; res = fe
+                .getNext(t)) {
             Tuple t = (Tuple)res.result;
-            assertTrue( TestHelper.bagContains(projDB, t));
+            assertTrue(TestHelper.bagContains(projDB, t));
             ++size;
         }
         assertEquals(size, db.size());

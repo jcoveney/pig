@@ -1,14 +1,12 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
+ * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarding copyright ownership. The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * with the License. You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -60,7 +58,7 @@ public class TestProject {
 
     @Test
     public void testGetNext() throws ExecException, IOException {
-    	t=tRandom;
+        t = tRandom;
         proj.attachInput(t);
         for (int j = 0; j < t.size(); j++) {
             proj.attachInput(t);
@@ -72,28 +70,26 @@ public class TestProject {
         }
     }
 
-
-
     @Test
     public void testGetNextTuple() throws IOException, ExecException {
-    	t=tRandom;
+        t = tRandom;
         proj.attachInput(t);
         proj.setColumn(0);
         proj.setOverloaded(true);
-        DataBag inpBag = (DataBag) t.get(0);
+        DataBag inpBag = (DataBag)t.get(0);
         int cntr = 0;
         boolean contains = true;
         while (true) {
             res = proj.getNext(t);
             if (res.returnStatus == POStatus.STATUS_EOP)
                 break;
-            if (!TestHelper.bagContains(inpBag, (Tuple) res.result)) {
+            if (!TestHelper.bagContains(inpBag, (Tuple)res.result)) {
                 contains = false;
                 break;
             }
             ++cntr;
         }
-        assertEquals((float) inpBag.size(), (float) cntr, 0.01f);
+        assertEquals((float)inpBag.size(), (float)cntr, 0.01f);
         assertTrue(contains);
 
         proj.attachInput(t);
@@ -104,38 +100,32 @@ public class TestProject {
         assertEquals(t.get(8), res.result);
     }
 
-
-
-
     @Test
     public void testGetNextMultipleProjections() throws ExecException, IOException {
-    	t=tRandom;
+        t = tRandom;
         ArrayList<Integer> cols = new ArrayList<Integer>();
         proj.attachInput(t);
         for (int j = 0; j < t.size() - 1; j++) {
             proj.attachInput(t);
             cols.add(j);
-            cols.add(j+1);
+            cols.add(j + 1);
             proj.setColumns(cols);
 
             res = proj.getNext();
-	        TupleFactory tupleFactory = TupleFactory.getInstance();
-	        ArrayList<Object> objList = new ArrayList<Object>();
+            TupleFactory tupleFactory = TupleFactory.getInstance();
+            ArrayList<Object> objList = new ArrayList<Object>();
             objList.add(t.get(j));
-            objList.add(t.get(j+1));
-		    Tuple expectedResult = tupleFactory.newTuple(objList);
+            objList.add(t.get(j + 1));
+            Tuple expectedResult = tupleFactory.newTuple(objList);
             assertEquals(POStatus.STATUS_OK, res.returnStatus);
             assertEquals(expectedResult, res.result);
             cols.clear();
         }
     }
 
-
-
-
     @Test
     public void testGetNextTupleMultipleProjections() throws IOException, ExecException {
-    	t=tRandom;
+        t = tRandom;
         proj.attachInput(t);
         proj.setOverloaded(true);
         int j = 0;
@@ -143,16 +133,16 @@ public class TestProject {
 
         while (true) {
             cols.add(j);
-            cols.add(j+1);
+            cols.add(j + 1);
             proj.setColumns(cols);
             res = proj.getNext(t);
             if (res.returnStatus == POStatus.STATUS_EOP)
                 break;
-	        TupleFactory tupleFactory = TupleFactory.getInstance();
-	        ArrayList<Object> objList = new ArrayList<Object>();
+            TupleFactory tupleFactory = TupleFactory.getInstance();
+            ArrayList<Object> objList = new ArrayList<Object>();
             objList.add(t.get(j));
-            objList.add(t.get(j+1));
-		    Tuple expectedResult = tupleFactory.newTuple(objList);
+            objList.add(t.get(j + 1));
+            Tuple expectedResult = tupleFactory.newTuple(objList);
             assertEquals(POStatus.STATUS_OK, res.returnStatus);
             assertEquals(expectedResult, res.result);
             ++j;
@@ -169,7 +159,7 @@ public class TestProject {
 
     @Test
     public void testGetNextWithNull() throws ExecException, IOException {
-    	t= tRandomAndNull;
+        t = tRandomAndNull;
         proj.attachInput(t);
         for (int j = 0; j < t.size(); j++) {
             proj.attachInput(t);
@@ -181,27 +171,26 @@ public class TestProject {
         }
     }
 
-
-	@Test
+    @Test
     public void testGetNextTupleWithNull() throws IOException, ExecException {
-    	t= tRandomAndNull;
+        t = tRandomAndNull;
         proj.attachInput(t);
         proj.setColumn(0);
         proj.setOverloaded(true);
-        DataBag inpBag = (DataBag) t.get(0);
+        DataBag inpBag = (DataBag)t.get(0);
         int cntr = 0;
         boolean contains = true;
         while (true) {
             res = proj.getNext(t);
             if (res.returnStatus == POStatus.STATUS_EOP)
                 break;
-            if (!TestHelper.bagContains(inpBag, (Tuple) res.result)) {
+            if (!TestHelper.bagContains(inpBag, (Tuple)res.result)) {
                 contains = false;
                 break;
             }
             ++cntr;
         }
-        assertEquals((float) inpBag.size(), (float) cntr, 0.01f);
+        assertEquals((float)inpBag.size(), (float)cntr, 0.01f);
         assertTrue(contains);
 
         proj.attachInput(t);
@@ -212,38 +201,32 @@ public class TestProject {
         assertEquals(t.get(8), res.result);
     }
 
-
-
-
     @Test
     public void testGetNextMultipleProjectionsWithNull() throws ExecException, IOException {
-    	t= tRandomAndNull;
+        t = tRandomAndNull;
         ArrayList<Integer> cols = new ArrayList<Integer>();
         proj.attachInput(t);
         for (int j = 0; j < t.size() - 1; j++) {
             proj.attachInput(t);
             cols.add(j);
-            cols.add(j+1);
+            cols.add(j + 1);
             proj.setColumns(cols);
 
             res = proj.getNext();
-	        TupleFactory tupleFactory = TupleFactory.getInstance();
-	        ArrayList<Object> objList = new ArrayList<Object>();
+            TupleFactory tupleFactory = TupleFactory.getInstance();
+            ArrayList<Object> objList = new ArrayList<Object>();
             objList.add(t.get(j));
-            objList.add(t.get(j+1));
-		    Tuple expectedResult = tupleFactory.newTuple(objList);
+            objList.add(t.get(j + 1));
+            Tuple expectedResult = tupleFactory.newTuple(objList);
             assertEquals(POStatus.STATUS_OK, res.returnStatus);
             assertEquals(expectedResult, res.result);
             cols.clear();
         }
     }
 
-
-
-
     @Test
     public void testGetNextTupleMultipleProjectionsWithNull() throws IOException, ExecException {
-    	t= tRandomAndNull;
+        t = tRandomAndNull;
         proj.attachInput(t);
         proj.setOverloaded(true);
         int j = 0;
@@ -251,16 +234,16 @@ public class TestProject {
 
         while (true) {
             cols.add(j);
-            cols.add(j+1);
+            cols.add(j + 1);
             proj.setColumns(cols);
             res = proj.getNext(t);
             if (res.returnStatus == POStatus.STATUS_EOP)
                 break;
-	        TupleFactory tupleFactory = TupleFactory.getInstance();
-	        ArrayList<Object> objList = new ArrayList<Object>();
+            TupleFactory tupleFactory = TupleFactory.getInstance();
+            ArrayList<Object> objList = new ArrayList<Object>();
             objList.add(t.get(j));
-            objList.add(t.get(j+1));
-		    Tuple expectedResult = tupleFactory.newTuple(objList);
+            objList.add(t.get(j + 1));
+            Tuple expectedResult = tupleFactory.newTuple(objList);
             assertEquals(POStatus.STATUS_OK, res.returnStatus);
             assertEquals(expectedResult, res.result);
             ++j;
@@ -280,22 +263,22 @@ public class TestProject {
         String inputFileName = "TestProject-testMissingCols1-input.txt";
         String input[] = { "hello\tworld", "good\tbye" };
         Util.createLocalInputFile(inputFileName, input);
-        String query = "a = load '" + inputFileName + "' as (s1:chararray, s2:chararray, extra:chararray);" +
-        		"b = foreach a generate s1, s2, extra;";
+        String query = "a = load '" + inputFileName
+                + "' as (s1:chararray, s2:chararray, extra:chararray);" +
+                "b = foreach a generate s1, s2, extra;";
 
         PigServer ps = new PigServer(ExecType.LOCAL);
         Util.registerMultiLineQuery(ps, query);
         Iterator<Tuple> it = ps.openIterator("b");
         Tuple[] expectedResults = new Tuple[] {
-                (Tuple) Util.getPigConstant("('hello', 'world', null)"),
-                (Tuple) Util.getPigConstant("('good', 'bye', null)")
+                        (Tuple)Util.getPigConstant("('hello', 'world', null)"),
+                        (Tuple)Util.getPigConstant("('good', 'bye', null)")
         };
         int i = 0;
-        while(it.hasNext()) {
+        while (it.hasNext()) {
             assertEquals(expectedResults[i++], it.next());
         }
     }
-
 
     @Test
     public void testMissingCols2() throws Exception {
@@ -305,18 +288,18 @@ public class TestProject {
         // in the script, PigStorage will return a null for the tuple field
         // since it does not comply with the schema
         String query = "a = load '" + inputFileName + "' as (i:int, " +
-        		"t:tuple(s1:chararray, s2:chararray, s3:chararray));" +
+                "t:tuple(s1:chararray, s2:chararray, s3:chararray));" +
                 "b = foreach a generate t.(s2,s3);";
 
         PigServer ps = new PigServer(ExecType.LOCAL);
         Util.registerMultiLineQuery(ps, query);
         Iterator<Tuple> it = ps.openIterator("b");
         Tuple[] expectedResults = new Tuple[] {
-                (Tuple) Util.getPigConstant("((null, null))"),
-                (Tuple) Util.getPigConstant("((null, null))")
+                        (Tuple)Util.getPigConstant("((null, null))"),
+                        (Tuple)Util.getPigConstant("((null, null))")
         };
         int i = 0;
-        while(it.hasNext()) {
+        while (it.hasNext()) {
             assertEquals(expectedResults[i++], it.next());
         }
     }
@@ -334,12 +317,12 @@ public class TestProject {
         Util.registerMultiLineQuery(ps, query);
         Iterator<Tuple> it = ps.openIterator("c");
         Tuple[] expectedResults = new Tuple[] {
-                (Tuple) Util.getPigConstant("('world', null, {(null),(null)})"),
-                (Tuple) Util.getPigConstant("('bye', null, {(null),(null)})")
+                        (Tuple)Util.getPigConstant("('world', null, {(null),(null)})"),
+                        (Tuple)Util.getPigConstant("('bye', null, {(null),(null)})")
         };
         boolean contains0 = false;
         boolean contains1 = false;
-        while(it.hasNext()) {
+        while (it.hasNext()) {
             String actualResult = it.next().toString();
             if (actualResult.equals(expectedResults[0].toString()))
                 contains0 = true;
@@ -359,21 +342,20 @@ public class TestProject {
         // second record since it does not comply with the schema and in the
         // third record since the field is absent
         String query = "a = load '" + inputFileName + "' as (i:int, " +
-        		"t:tuple(s1:chararray, s2:chararray));" +
+                "t:tuple(s1:chararray, s2:chararray));" +
                 "b = foreach a generate t.s1, t.s2;";
 
         PigServer ps = new PigServer(ExecType.LOCAL);
         Util.registerMultiLineQuery(ps, query);
         Iterator<Tuple> it = ps.openIterator("b");
         Tuple[] expectedResults = new Tuple[] {
-                (Tuple) Util.getPigConstant("('hello', 'world')"),
-                (Tuple) Util.getPigConstant("(null, null)"),
-                (Tuple) Util.getPigConstant("(null, null)")
+                        (Tuple)Util.getPigConstant("('hello', 'world')"),
+                        (Tuple)Util.getPigConstant("(null, null)"),
+                        (Tuple)Util.getPigConstant("(null, null)")
         };
         int i = 0;
-        while(it.hasNext()) {
+        while (it.hasNext()) {
             assertEquals(expectedResults[i++], it.next());
         }
     }
-
 }

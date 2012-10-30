@@ -1,14 +1,12 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
+ * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarding copyright ownership. The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * with the License. You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -82,20 +80,20 @@ public class TestDataModel {
 
         // copy equality
         /*
-        f2.copyFrom(f1);
-        assertTrue(f1.equals(f2));
-        */
+         * f2.copyFrom(f1);
+         * assertTrue(f1.equals(f2));
+         */
 
         // append function and equality
         int[] input4 = { 1, 2, 3 };
         int[] input5 = { 4, 5 };
         /*
-        f1 = Util.loadFlatTuple(tf.newTuple(input4.length), input4);
-        f2 = Util.loadFlatTuple(tf.newTuple(input5.length), input5);
-        f3 = Util.loadFlatTuple(tf.newTuple(input1.length), input1);
-        f1.appendTuple(f2);
-        assertTrue(f3.equals(f1));
-        */
+         * f1 = Util.loadFlatTuple(tf.newTuple(input4.length), input4);
+         * f2 = Util.loadFlatTuple(tf.newTuple(input5.length), input5);
+         * f3 = Util.loadFlatTuple(tf.newTuple(input1.length), input1);
+         * f1.appendTuple(f2);
+         * assertTrue(f3.equals(f1));
+         */
 
         // arity then value comparision behavior
         f1 = Util.loadFlatTuple(tf.newTuple(input1.length), input1); // 1,2,3,4,5
@@ -130,8 +128,9 @@ public class TestDataModel {
     public void testNestTuple() throws Exception {
         TupleFactory tf = TupleFactory.getInstance();
 
-        int[][] input1 = { { 1, 2, 3, 4, 5 }, { 1, 2, 3, 4, 5 }, { 1, 2, 3, 4, 5 }, { 1, 2, 3, 4, 5 },
-                { 1, 2, 3, 4, 5 } };
+        int[][] input1 = { { 1, 2, 3, 4, 5 }, { 1, 2, 3, 4, 5 }, { 1, 2, 3, 4, 5 },
+                        { 1, 2, 3, 4, 5 },
+                        { 1, 2, 3, 4, 5 } };
         int[][] input2 = { { 1, 2 }, { 1, 2 } };
 
         Tuple n1 = Util.loadNestTuple(tf.newTuple(input1.length), input1);
@@ -228,7 +227,7 @@ public class TestDataModel {
             assertTrue("isa String", o instanceof String);
             String s = (String)o;
             assertEquals("goodbye", s);
-         }
+        }
 
         file.delete();
     }
@@ -273,7 +272,10 @@ public class TestDataModel {
     public void testTupleToString() throws Exception {
         Tuple t = giveMeOneOfEach();
 
-        assertEquals("toString", "((3,3.0),{(4),(mary had a little lamb)},[hello#world,goodbye#all],42,5000000000,3.1415927,2.99792458E8,true,hello,goodbye,)", t.toString());
+        assertEquals(
+                "toString",
+                "((3,3.0),{(4),(mary had a little lamb)},[hello#world,goodbye#all],42,5000000000,3.1415927,2.99792458E8,true,hello,goodbye,)",
+                t.toString());
     }
 
     @Test
@@ -340,7 +342,7 @@ public class TestDataModel {
         t1.append(new Integer(3));
         t2.append(new Integer(3));
 
-        assertEquals("same data equal", 0,  t1.compareTo(t2));
+        assertEquals("same data equal", 0, t1.compareTo(t2));
 
         t2 = tf.newTuple();
         t2.append(new Integer(2));
@@ -371,7 +373,7 @@ public class TestDataModel {
         t2.append(new DataByteArray("bbb"));
         t2.append(new DataByteArray("bbb"));
 
-        assertEquals("same data equal", 0,  t1.compareTo(t2));
+        assertEquals("same data equal", 0, t1.compareTo(t2));
 
         t2 = tf.newTuple();
         t2.append(new DataByteArray("aaa"));
@@ -458,71 +460,71 @@ public class TestDataModel {
         assertTrue("same data", ba1.compareTo(ba2) == 0);
 
         assertTrue("different length lexically lower value less than",
-            ba3.compareTo(ba1) < 0);
+                ba3.compareTo(ba1) < 0);
         assertTrue("different length lexically higher value greater than",
-            ba1.compareTo(ba3) > 0);
+                ba1.compareTo(ba3) > 0);
 
         ba2 = new DataByteArray("hello worlc");
         assertTrue("same length lexically lower value less than",
-            ba2.compareTo(ba1) < 0);
+                ba2.compareTo(ba1) < 0);
         assertTrue("same length lexically higher value greater than",
-            ba1.compareTo(ba2) > 0);
+                ba1.compareTo(ba2) > 0);
 
         ba2 = new DataByteArray("hello worlds");
         assertTrue("shorter lexically same value less than",
-            ba1.compareTo(ba2) < 0);
+                ba1.compareTo(ba2) < 0);
         assertTrue("longer lexically same value greater than",
-            ba2.compareTo(ba1) > 0);
+                ba2.compareTo(ba1) > 0);
 
     }
 
     @Test(expected = ExecException.class)
     public void testIntegerConversionErr() throws Exception {
-    	List list = new ArrayList();
-    	try {
-    		DataType.toInteger(list);
-    	} catch (ExecException ee) {
-    		assertEquals(1071, ee.getErrorCode());
-    		throw ee;
-    	}
+        List list = new ArrayList();
+        try {
+            DataType.toInteger(list);
+        } catch (ExecException ee) {
+            assertEquals(1071, ee.getErrorCode());
+            throw ee;
+        }
     }
 
     @Test(expected = ExecException.class)
     public void testIntegerConversionErr1() throws Exception {
-    	DataByteArray ba = new DataByteArray("hello world");
-    	try {
-    		DataType.toInteger(ba);
-    	} catch (ExecException ee) {
-    		assertEquals(1074, ee.getErrorCode());
-    		throw ee;
-    	}
+        DataByteArray ba = new DataByteArray("hello world");
+        try {
+            DataType.toInteger(ba);
+        } catch (ExecException ee) {
+            assertEquals(1074, ee.getErrorCode());
+            throw ee;
+        }
     }
 
     @Test(expected = ExecException.class)
     public void testTupleConversionErr() throws Exception {
-    	List list = new ArrayList();
-    	try {
-    		DataType.toTuple(list);
-    	} catch (ExecException ee) {
-    	    assertEquals(1074, ee.getErrorCode());
-    		throw ee;
-    	}
+        List list = new ArrayList();
+        try {
+            DataType.toTuple(list);
+        } catch (ExecException ee) {
+            assertEquals(1071, ee.getErrorCode());
+            throw ee;
+        }
     }
 
     @Test(expected = ExecException.class)
     public void testTupleConversionErr1() throws Exception {
-    	DataByteArray ba = new DataByteArray("hello world");
-    	try {
-    		DataType.toTuple(ba);
-    	} catch (ExecException ee) {
-    	    assertEquals(1074, ee.getErrorCode());
+        DataByteArray ba = new DataByteArray("hello world");
+        try {
+            DataType.toTuple(ba);
+        } catch (ExecException ee) {
+            assertEquals(1071, ee.getErrorCode());
             throw ee;
-    	}
+        }
     }
 
     @Test
     public void testByteArrayAppend() throws Exception {
-    	DataByteArray expected = new DataByteArray("hello world");
+        DataByteArray expected = new DataByteArray("hello world");
         DataByteArray db1 = new DataByteArray("hello ");
         DataByteArray db2 = new DataByteArray("world");
         db1.append(db2);
@@ -558,31 +560,31 @@ public class TestDataModel {
 
     @Test(expected = ExecException.class)
     public void testMapConversionErr() throws Exception {
-    	List list = new ArrayList();
-    	try {
-    		DataType.toMap(list);
-    	} catch (ExecException ee) {
-    		assertEquals(1071, ee.getErrorCode());
-    		throw ee;
-    	}
+        List list = new ArrayList();
+        try {
+            DataType.toMap(list);
+        } catch (ExecException ee) {
+            assertEquals(1071, ee.getErrorCode());
+            throw ee;
+        }
     }
 
     @Test
     public void testMapConversion() throws Exception {
-    	Map<Integer, Float> map = new HashMap<Integer, Float>();
-		DataType.toMap(map);
+        Map<Integer, Float> map = new HashMap<Integer, Float>();
+        DataType.toMap(map);
     }
 
     @Test(expected = ExecException.class)
     public void testDetermineFieldSchemaErr() throws Exception {
-    	List list = new ArrayList();
-    	try {
-    		DataType.determineFieldSchema(list);
-    		fail("Error expected.");
-    	} catch (ExecException ee) {
-    		assertEquals(1073, ee.getErrorCode());
-    		throw ee;
-    	}
+        List list = new ArrayList();
+        try {
+            DataType.determineFieldSchema(list);
+            fail("Error expected.");
+        } catch (ExecException ee) {
+            assertEquals(1073, ee.getErrorCode());
+            throw ee;
+        }
     }
 
     private Tuple giveMeOneOfEach() throws Exception {

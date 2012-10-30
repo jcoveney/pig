@@ -1,14 +1,12 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
+ * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarding copyright ownership. The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * with the License. You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,7 +14,6 @@
  * limitations under the License.
  */
 package org.apache.pig.test;
-
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -36,7 +33,6 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.junit.Before;
 import org.junit.Test;
 
-
 public class TestRegexp {
 
     Random r = new Random();
@@ -45,9 +41,9 @@ public class TestRegexp {
 
     @Before
     public void setUp() throws Exception {
-        lt = new ConstantExpression(new OperatorKey("",r.nextLong()));
+        lt = new ConstantExpression(new OperatorKey("", r.nextLong()));
         lt.setResultType(DataType.CHARARRAY);
-        rt = new ConstantExpression(new OperatorKey("",r.nextLong()));
+        rt = new ConstantExpression(new OperatorKey("", r.nextLong()));
         rt.setResultType(DataType.CHARARRAY);
         op = new PORegexp(new OperatorKey("", r.nextLong()));
         op.setLhs(lt);
@@ -56,9 +52,9 @@ public class TestRegexp {
     }
 
     @Test
-    public void testMatches() throws ExecException{
+    public void testMatches() throws ExecException {
         lt.setValue(new String(
-            "The quick sly fox jumped over the lazy brown dog"));
+                "The quick sly fox jumped over the lazy brown dog"));
         rt.setValue(".*s.y.*");
         Result res = op.getNext(new Boolean(true));
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
@@ -72,16 +68,16 @@ public class TestRegexp {
 
         // test with null in rhs
         lt.setValue(new String(
-        "The quick sly fox jumped over the lazy brown dog"));
+                "The quick sly fox jumped over the lazy brown dog"));
         rt.setValue(null);
         res = op.getNext(new Boolean(true));
         assertNull(res.result);
     }
 
     @Test
-    public void testDoesntMatch() throws ExecException{
+    public void testDoesntMatch() throws ExecException {
         lt.setValue(new String(
-            "The quick sly fox jumped over the lazy brown dog"));
+                "The quick sly fox jumped over the lazy brown dog"));
         rt.setValue(new String("zzz"));
         Result res = op.getNext(new Boolean(true));
         assertEquals(POStatus.STATUS_OK, res.returnStatus);

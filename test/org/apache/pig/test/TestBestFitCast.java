@@ -1,14 +1,12 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
+ * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarding copyright ownership. The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * with the License. You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -56,15 +54,15 @@ public class TestBestFitCast {
         inputFile = "TestBestFitCast-input.txt";
         String[] input = new String[LOOP_SIZE];
         long l = 0;
-        for(int i = 1; i <= LOOP_SIZE; i++) {
-            input[i-1] = (l + "\t" + i);
+        for (int i = 1; i <= LOOP_SIZE; i++) {
+            input[i - 1] = (l + "\t" + i);
         }
         Util.createInputFile(cluster, inputFile, input);
 
         inputFile2 = "TestBestFitCast-input2.txt";
         l = 0;
-        for(int i = 1; i <= LOOP_SIZE; i++) {
-            input[i-1] = (l + "\t" + i + "\t" + i);
+        for (int i = 1; i <= LOOP_SIZE; i++) {
+            input[i - 1] = (l + "\t" + i + "\t" + i);
         }
         Util.createInputFile(cluster, inputFile2, input);
     }
@@ -80,9 +78,10 @@ public class TestBestFitCast {
         cluster.shutDown();
     }
 
-    public static class UDF1 extends EvalFunc<Tuple>{
+    public static class UDF1 extends EvalFunc<Tuple> {
         /**
          * java level API
+         *
          * @param input expects a single numeric DataAtom value
          * @param output returns a single numeric DataAtom value, cosine value of the argument
          */
@@ -91,50 +90,68 @@ public class TestBestFitCast {
             return input;
         }
 
-        /* (non-Javadoc)
+        /*
+         * (non-Javadoc)
          * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
          */
         @Override
         public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
             List<FuncSpec> funcList = new ArrayList<FuncSpec>();
-            funcList.add(new FuncSpec(this.getClass().getName(), new Schema(Arrays.asList(new Schema.FieldSchema(null, DataType.FLOAT),new Schema.FieldSchema(null, DataType.FLOAT)))));
-            funcList.add(new FuncSpec(this.getClass().getName(), new Schema(Arrays.asList(new Schema.FieldSchema(null, DataType.LONG),new Schema.FieldSchema(null, DataType.DOUBLE)))));
-            funcList.add(new FuncSpec(this.getClass().getName(), new Schema(new Schema.FieldSchema(null, DataType.FLOAT))));
-            funcList.add(new FuncSpec(this.getClass().getName(), new Schema(new Schema.FieldSchema(null, DataType.INTEGER))));
-            funcList.add(new FuncSpec(this.getClass().getName(), new Schema(new Schema.FieldSchema(null, DataType.DOUBLE))));
-            /*funcList.add(new FuncSpec(DoubleMax.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.DOUBLE)));
-            funcList.add(new FuncSpec(FloatMax.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.FLOAT)));
-            funcList.add(new FuncSpec(IntMax.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.INTEGER)));
-            funcList.add(new FuncSpec(LongMax.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.LONG)));
-            funcList.add(new FuncSpec(StringMax.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.CHARARRAY)));*/
+            funcList.add(new FuncSpec(this.getClass().getName(), new Schema(Arrays.asList(
+                    new Schema.FieldSchema(null, DataType.FLOAT), new Schema.FieldSchema(null,
+                            DataType.FLOAT)))));
+            funcList.add(new FuncSpec(this.getClass().getName(), new Schema(Arrays.asList(
+                    new Schema.FieldSchema(null, DataType.LONG), new Schema.FieldSchema(null,
+                            DataType.DOUBLE)))));
+            funcList.add(new FuncSpec(this.getClass().getName(), new Schema(new Schema.FieldSchema(
+                    null, DataType.FLOAT))));
+            funcList.add(new FuncSpec(this.getClass().getName(), new Schema(new Schema.FieldSchema(
+                    null, DataType.INTEGER))));
+            funcList.add(new FuncSpec(this.getClass().getName(), new Schema(new Schema.FieldSchema(
+                    null, DataType.DOUBLE))));
+            /*
+             * funcList.add(new FuncSpec(DoubleMax.class.getName(),
+             * Schema.generateNestedSchema(DataType.BAG, DataType.DOUBLE)));
+             * funcList.add(new FuncSpec(FloatMax.class.getName(),
+             * Schema.generateNestedSchema(DataType.BAG, DataType.FLOAT)));
+             * funcList.add(new FuncSpec(IntMax.class.getName(),
+             * Schema.generateNestedSchema(DataType.BAG, DataType.INTEGER)));
+             * funcList.add(new FuncSpec(LongMax.class.getName(),
+             * Schema.generateNestedSchema(DataType.BAG, DataType.LONG)));
+             * funcList.add(new FuncSpec(StringMax.class.getName(),
+             * Schema.generateNestedSchema(DataType.BAG, DataType.CHARARRAY)));
+             */
             return funcList;
         }
 
     }
 
-    public static class UDF2 extends EvalFunc<String>{
+    public static class UDF2 extends EvalFunc<String> {
         /**
          * java level API
+         *
          * @param input expects a single numeric DataAtom value
          * @param output returns a single numeric DataAtom value, cosine value of the argument
          */
         @Override
         public String exec(Tuple input) throws IOException {
-            try{
+            try {
                 String str = (String)input.get(0);
                 return str.toUpperCase();
-            }catch (Exception e){
+            } catch (Exception e) {
                 return null;
             }
         }
 
-        /* (non-Javadoc)
+        /*
+         * (non-Javadoc)
          * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
          */
         @Override
         public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
             List<FuncSpec> funcList = new ArrayList<FuncSpec>();
-            funcList.add(new FuncSpec(this.getClass().getName(), new Schema(new Schema.FieldSchema(null, DataType.CHARARRAY))));
+            funcList.add(new FuncSpec(this.getClass().getName(), new Schema(new Schema.FieldSchema(
+                    null, DataType.CHARARRAY))));
             return funcList;
         }
 
@@ -143,7 +160,7 @@ public class TestBestFitCast {
     /**
      * For testing with input schemas which have byte arrays
      */
-    public static class UDF3 extends EvalFunc<Tuple>{
+    public static class UDF3 extends EvalFunc<Tuple> {
 
         /**
          * a UDF which simply returns its input as output
@@ -153,7 +170,8 @@ public class TestBestFitCast {
             return input;
         }
 
-        /* (non-Javadoc)
+        /*
+         * (non-Javadoc)
          * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
          */
         @Override
@@ -180,7 +198,6 @@ public class TestBestFitCast {
             funcList.add(new FuncSpec(this.getClass().getName(),
                     new Schema(Arrays.asList(new Schema.FieldSchema(null, DataType.FLOAT),
                             new Schema.FieldSchema(null, DataType.LONG)))));
-
 
             // The following two schemas will cause conflict when input schema is
             // {bytearray, int, int} since the two ints could be casted to long, double
@@ -210,17 +227,17 @@ public class TestBestFitCast {
 
     @Test
     public void testByteArrayCast1() throws IOException {
-        //Passing (float, bytearray)
-        //Ambiguous matches: (float, long) , (float, double)
+        // Passing (float, bytearray)
+        // Ambiguous matches: (float, long) , (float, double)
         boolean exceptionCaused = false;
         try {
             pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x:float, y);");
             pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y);");
             Iterator<Tuple> iter = pigServer.openIterator("B");
-        } catch(Exception e) {
+        } catch (Exception e) {
             exceptionCaused = true;
             PigException pe = LogUtils.getPigException(e);
-            String msg = (pe == null? e.getMessage(): pe.getMessage());
+            String msg = (pe == null ? e.getMessage() : pe.getMessage());
             assertTrue(msg.contains("Multiple matching functions"));
             assertTrue(msg.contains("{float,double}, {float,long}"));
         }
@@ -236,9 +253,10 @@ public class TestBestFitCast {
         pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x, y:int);");
         pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        if(!iter.hasNext()) fail("No Output received");
+        if (!iter.hasNext())
+            fail("No Output received");
         int cnt = 0;
-        while(iter.hasNext()){
+        while (iter.hasNext()) {
             Tuple t = iter.next();
             assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
             assertEquals((Float)((Tuple)t.get(1)).get(0), (Float)0.0f);
@@ -257,9 +275,10 @@ public class TestBestFitCast {
         pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x, y:long);");
         pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x, y);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        if(!iter.hasNext()) fail("No Output received");
+        if (!iter.hasNext())
+            fail("No Output received");
         int cnt = 0;
-        while(iter.hasNext()){
+        while (iter.hasNext()) {
             Tuple t = iter.next();
             assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
             assertEquals((Float)((Tuple)t.get(1)).get(0), (Float)0.0f);
@@ -278,9 +297,10 @@ public class TestBestFitCast {
         pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x, y:double);");
         pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        if(!iter.hasNext()) fail("No Output received");
+        if (!iter.hasNext())
+            fail("No Output received");
         int cnt = 0;
-        while(iter.hasNext()){
+        while (iter.hasNext()) {
             Tuple t = iter.next();
             assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
             assertEquals((Float)((Tuple)t.get(1)).get(0), (Float)0.0f);
@@ -300,12 +320,13 @@ public class TestBestFitCast {
         boolean exceptionCaused = false;
         try {
             pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x, y:int);");
-            pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y, y);");
+            pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName()
+                    + "(x,y, y);");
             Iterator<Tuple> iter = pigServer.openIterator("B");
-        }catch(Exception e) {
+        } catch (Exception e) {
             exceptionCaused = true;
             PigException pe = LogUtils.getPigException(e);
-            String msg = (pe == null? e.getMessage(): pe.getMessage());
+            String msg = (pe == null ? e.getMessage() : pe.getMessage());
             assertTrue(msg.contains("Multiple matching functions"));
             assertTrue(msg.contains("({float,double,long}, {float,long,double})"));
         }
@@ -321,12 +342,13 @@ public class TestBestFitCast {
         boolean exceptionCaused = false;
         try {
             pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x, y:long);");
-            pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y, y);");
+            pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName()
+                    + "(x,y, y);");
             Iterator<Tuple> iter = pigServer.openIterator("B");
-        }catch(Exception e) {
+        } catch (Exception e) {
             exceptionCaused = true;
             PigException pe = LogUtils.getPigException(e);
-            String msg = (pe == null? e.getMessage(): pe.getMessage());
+            String msg = (pe == null ? e.getMessage() : pe.getMessage());
             assertTrue(msg.contains("Multiple matching functions"));
             assertTrue(msg.contains("({float,double,long}, {float,long,double})"));
         }
@@ -342,12 +364,13 @@ public class TestBestFitCast {
         boolean exceptionCaused = false;
         try {
             pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x, y:double);");
-            pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y, y);");
+            pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName()
+                    + "(x,y, y);");
             Iterator<Tuple> iter = pigServer.openIterator("B");
-        }catch(Exception e) {
+        } catch (Exception e) {
             exceptionCaused = true;
             PigException pe = LogUtils.getPigException(e);
-            String msg = (pe == null? e.getMessage(): pe.getMessage());
+            String msg = (pe == null ? e.getMessage() : pe.getMessage());
             assertTrue(msg.contains("Could not infer the matching function"));
         }
         assertTrue(exceptionCaused);
@@ -361,9 +384,10 @@ public class TestBestFitCast {
         pigServer.registerQuery("A = LOAD '" + inputFile2 + "' as (x, y:long, z:double);");
         pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y,z);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        if(!iter.hasNext()) fail("No Output received");
+        if (!iter.hasNext())
+            fail("No Output received");
         int cnt = 0;
-        while(iter.hasNext()){
+        while (iter.hasNext()) {
             Tuple t = iter.next();
             assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
             assertEquals((Float)((Tuple)t.get(1)).get(0), (Float)0.0f);
@@ -384,9 +408,10 @@ public class TestBestFitCast {
         pigServer.registerQuery("A = LOAD '" + inputFile2 + "' as (x, y:double, z:long);");
         pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y,z);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        if(!iter.hasNext()) fail("No Output received");
+        if (!iter.hasNext())
+            fail("No Output received");
         int cnt = 0;
-        while(iter.hasNext()){
+        while (iter.hasNext()) {
             Tuple t = iter.next();
             assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
             assertEquals((Float)((Tuple)t.get(1)).get(0), (Float)0.0f);
@@ -407,9 +432,10 @@ public class TestBestFitCast {
         pigServer.registerQuery("A = LOAD '" + inputFile2 + "' as (x:float, y:long, z);");
         pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y,z);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        if(!iter.hasNext()) fail("No Output received");
+        if (!iter.hasNext())
+            fail("No Output received");
         int cnt = 0;
-        while(iter.hasNext()){
+        while (iter.hasNext()) {
             Tuple t = iter.next();
             assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
             assertEquals((Float)((Tuple)t.get(1)).get(0), (Float)0.0f);
@@ -430,9 +456,10 @@ public class TestBestFitCast {
         pigServer.registerQuery("A = LOAD '" + inputFile2 + "' as (x:float, y, z:long);");
         pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y,z);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        if(!iter.hasNext()) fail("No Output received");
+        if (!iter.hasNext())
+            fail("No Output received");
         int cnt = 0;
-        while(iter.hasNext()){
+        while (iter.hasNext()) {
             Tuple t = iter.next();
             assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
             assertEquals((Float)((Tuple)t.get(1)).get(0), (Float)0.0f);
@@ -454,12 +481,13 @@ public class TestBestFitCast {
         boolean exceptionCaused = false;
         try {
             pigServer.registerQuery("A = LOAD '" + inputFile2 + "' as (x:float, y, z:int);");
-            pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y, y);");
+            pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName()
+                    + "(x,y, y);");
             Iterator<Tuple> iter = pigServer.openIterator("B");
-        }catch(Exception e) {
+        } catch (Exception e) {
             exceptionCaused = true;
             PigException pe = LogUtils.getPigException(e);
-            String msg = (pe == null? e.getMessage(): pe.getMessage());
+            String msg = (pe == null ? e.getMessage() : pe.getMessage());
             assertTrue(msg.contains("Multiple matching functions"));
             assertTrue(msg.contains("({float,double,long}, {float,long,double}"));
         }
@@ -477,9 +505,10 @@ public class TestBestFitCast {
         pigServer.registerQuery("A = LOAD '" + inputFile2 + "' as (x, y:long, z:int);");
         pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y,z);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        if(!iter.hasNext()) fail("No Output received");
+        if (!iter.hasNext())
+            fail("No Output received");
         int cnt = 0;
-        while(iter.hasNext()){
+        while (iter.hasNext()) {
             Tuple t = iter.next();
             assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
             assertEquals((Float)((Tuple)t.get(1)).get(0), (Float)0.0f);
@@ -514,15 +543,16 @@ public class TestBestFitCast {
         pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x, y);");
         pigServer.registerQuery("B = FOREACH A generate " + UDF3.class.getName() + "(y);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        if(!iter.hasNext()) fail("No Output received");
+        if (!iter.hasNext())
+            fail("No Output received");
         int cnt = 0;
-        while(iter.hasNext()){
+        while (iter.hasNext()) {
             Tuple t = iter.next();
             assertTrue(((Tuple)t.get(0)).get(0) instanceof DataByteArray);
             byte[] expected = Integer.toString(cnt + 1).getBytes();
             byte[] actual = ((DataByteArray)((Tuple)t.get(0)).get(0)).get();
             assertEquals(expected.length, actual.length);
-            for(int i = 0; i < expected.length; i++) {
+            for (int i = 0; i < expected.length; i++) {
                 assertEquals(expected[i], actual[i]);
             }
             ++cnt;
@@ -538,9 +568,10 @@ public class TestBestFitCast {
         pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x, y:int);");
         pigServer.registerQuery("B = FOREACH A generate " + UDF3.class.getName() + "(y);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        if(!iter.hasNext()) fail("No Output received");
+        if (!iter.hasNext())
+            fail("No Output received");
         int cnt = 0;
-        while(iter.hasNext()){
+        while (iter.hasNext()) {
             Tuple t = iter.next();
             assertTrue(((Tuple)t.get(0)).get(0) instanceof Integer);
             assertEquals(new Integer(cnt + 1), (Integer)((Tuple)t.get(0)).get(0));
@@ -606,104 +637,111 @@ public class TestBestFitCast {
     }
 
     @Test
-    public void test1() throws Exception{
-        //Passing (long, int)
-        //Possible matches: (float, float) , (long, double)
-        //Chooses (long, double) as it has only one cast compared to two for (float, float)
+    public void test1() throws Exception {
+        // Passing (long, int)
+        // Possible matches: (float, float) , (long, double)
+        // Chooses (long, double) as it has only one cast compared to two for (float, float)
         pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x:long, y:int);");
         pigServer.registerQuery("B = FOREACH A generate x, " + UDF1.class.getName() + "(x,y);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        if(!iter.hasNext()) fail("No Output received");
+        if (!iter.hasNext())
+            fail("No Output received");
         int cnt = 0;
-        while(iter.hasNext()){
+        while (iter.hasNext()) {
             Tuple t = iter.next();
-            assertEquals(true,((Tuple)t.get(1)).get(0) instanceof Long);
-            assertEquals(true,((Tuple)t.get(1)).get(1) instanceof Double);
+            assertEquals(true, ((Tuple)t.get(1)).get(0) instanceof Long);
+            assertEquals(true, ((Tuple)t.get(1)).get(1) instanceof Double);
             ++cnt;
         }
         assertEquals(20, cnt);
     }
 
     @Test
-    public void test2() throws Exception{
-        //Passing (int, int)
-        //Possible matches: (float, float) , (long, double)
-        //Throws Exception as ambiguous definitions found
-        try{
+    public void test2() throws Exception {
+        // Passing (int, int)
+        // Possible matches: (float, float) , (long, double)
+        // Throws Exception as ambiguous definitions found
+        try {
             pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x:long, y:int);");
             pigServer.registerQuery("B = FOREACH A generate x, " + UDF1.class.getName() + "(y,y);");
             pigServer.openIterator("B");
-        }catch (Exception e) {
+        } catch (Exception e) {
             PigException pe = LogUtils.getPigException(e);
-            String msg = (pe == null? e.getMessage(): pe.getMessage());
-            assertEquals(true,msg.contains("as multiple or none of them fit"));
+            String msg = (pe == null ? e.getMessage() : pe.getMessage());
+            assertEquals(true, msg.contains("as multiple or none of them fit"));
         }
 
     }
 
     @Test
-    public void test3() throws Exception{
-        //Passing (int, int)
-        //Possible matches: (float, float) , (long, double)
-        //Chooses (float, float) as both options lead to same score and (float, float) occurs first.
+    public void test3() throws Exception {
+        // Passing (int, int)
+        // Possible matches: (float, float) , (long, double)
+        // Chooses (float, float) as both options lead to same score and (float, float) occurs
+        // first.
         pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x:long, y:int);");
-        pigServer.registerQuery("B = FOREACH A generate x, " + UDF1.class.getName() + "((float)y,(float)y);");
+        pigServer.registerQuery("B = FOREACH A generate x, " + UDF1.class.getName()
+                + "((float)y,(float)y);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        if(!iter.hasNext()) fail("No Output received");
+        if (!iter.hasNext())
+            fail("No Output received");
         int cnt = 0;
-        while(iter.hasNext()){
+        while (iter.hasNext()) {
             Tuple t = iter.next();
-            assertEquals(true,((Tuple)t.get(1)).get(0) instanceof Float);
-            assertEquals(true,((Tuple)t.get(1)).get(1) instanceof Float);
+            assertEquals(true, ((Tuple)t.get(1)).get(0) instanceof Float);
+            assertEquals(true, ((Tuple)t.get(1)).get(1) instanceof Float);
             ++cnt;
         }
         assertEquals(20, cnt);
     }
 
     @Test
-    public void test4() throws Exception{
-        //Passing (long)
-        //Possible matches: (float), (integer), (double)
-        //Chooses (float) as it leads to a better score that to (double)
+    public void test4() throws Exception {
+        // Passing (long)
+        // Possible matches: (float), (integer), (double)
+        // Chooses (float) as it leads to a better score that to (double)
         pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x:long, y:int);");
         pigServer.registerQuery("B = FOREACH A generate x, " + UDF1.class.getName() + "(x);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        if(!iter.hasNext()) fail("No Output received");
+        if (!iter.hasNext())
+            fail("No Output received");
         int cnt = 0;
-        while(iter.hasNext()){
+        while (iter.hasNext()) {
             Tuple t = iter.next();
-            assertEquals(true,((Tuple)t.get(1)).get(0) instanceof Float);
+            assertEquals(true, ((Tuple)t.get(1)).get(0) instanceof Float);
             ++cnt;
         }
         assertEquals(20, cnt);
     }
 
     @Test
-    public void test5() throws Exception{
-        //Passing bytearrays
-        //Possible matches: (float, float) , (long, double)
-        //Throws exception since more than one funcSpec and inp is bytearray
-        try{
+    public void test5() throws Exception {
+        // Passing bytearrays
+        // Possible matches: (float, float) , (long, double)
+        // Throws exception since more than one funcSpec and inp is bytearray
+        try {
             pigServer.registerQuery("A = LOAD '" + inputFile + "';");
-            pigServer.registerQuery("B = FOREACH A generate $0, " + UDF1.class.getName() + "($1,$1);");
+            pigServer.registerQuery("B = FOREACH A generate $0, " + UDF1.class.getName()
+                    + "($1,$1);");
             pigServer.openIterator("B");
-        }catch (Exception e) {
+        } catch (Exception e) {
             PigException pe = LogUtils.getPigException(e);
-            String msg = (pe == null? e.getMessage(): pe.getMessage());
-            assertEquals(true,msg.contains("Multiple matching functions"));
+            String msg = (pe == null ? e.getMessage() : pe.getMessage());
+            assertEquals(true, msg.contains("Multiple matching functions"));
         }
 
     }
 
     @Test
-    public void test6() throws Exception{
+    public void test6() throws Exception {
         // test UDF with single mapping function
         // where bytearray is passed in as input parameter
-        Util.createInputFile(cluster, "test6", new String[] {"abc"});
+        Util.createInputFile(cluster, "test6", new String[] { "abc" });
         pigServer.registerQuery("A = LOAD 'test6';");
         pigServer.registerQuery("B = FOREACH A GENERATE " + UDF2.class.getName() + "($0);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        if(!iter.hasNext()) fail("No Output received");
+        if (!iter.hasNext())
+            fail("No Output received");
         Tuple t = iter.next();
         assertEquals("ABC", t.get(0));
         Util.deleteFile(cluster, "test6");

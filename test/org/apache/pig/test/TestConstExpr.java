@@ -1,14 +1,12 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
+ * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarding copyright ownership. The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * with the License. You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,7 +33,7 @@ import org.junit.Test;
 
 public class TestConstExpr {
     Random r = new Random(42L);
-    ConstantExpression ce = (ConstantExpression) GenPhyOp.exprConst();
+    ConstantExpression ce = (ConstantExpression)GenPhyOp.exprConst();
 
     @Test
     public void testGetNextInteger() throws ExecException {
@@ -48,7 +46,7 @@ public class TestConstExpr {
         // test with null input
         ce.setValue(null);
         resi = ce.getNext(inp);
-        ret  = (Integer)resi.result;
+        ret = (Integer)resi.result;
         assertNull(ret);
     }
 
@@ -63,7 +61,7 @@ public class TestConstExpr {
         // test with null input
         ce.setValue(null);
         resl = ce.getNext(inp);
-        ret  = (Long)resl.result;
+        ret = (Long)resl.result;
         assertNull(ret);
     }
 
@@ -78,7 +76,7 @@ public class TestConstExpr {
         // test with null input
         ce.setValue(null);
         resd = ce.getNext(inp);
-        ret  = (Double)resd.result;
+        ret = (Double)resd.result;
         assertNull(ret);
     }
 
@@ -93,7 +91,7 @@ public class TestConstExpr {
         // test with null input
         ce.setValue(null);
         resf = ce.getNext(inp);
-        ret  = (Float)resf.result;
+        ret = (Float)resf.result;
         assertNull(ret);
     }
 
@@ -108,7 +106,7 @@ public class TestConstExpr {
         // test with null input
         ce.setValue(null);
         ress = ce.getNext(inp);
-        ret  = (String)ress.result;
+        ret = (String)ress.result;
         assertNull(ret);
     }
 
@@ -123,22 +121,22 @@ public class TestConstExpr {
         // test with null input
         ce.setValue(null);
         resba = ce.getNext(inp);
-        ret  = (DataByteArray)resba.result;
+        ret = (DataByteArray)resba.result;
         assertNull(ret);
     }
 
     @Test
     public void testGetNextMap() throws ExecException {
-        Map<String,Object> inp = GenRandomData.genRandMap(r, 10);
+        Map<String, Object> inp = GenRandomData.genRandMap(r, 10);
         ce.setValue(inp);
         Result resm = ce.getNext(inp);
-        Map<Integer,String> ret = (Map)resm.result;
+        Map<Integer, String> ret = (Map)resm.result;
         assertEquals(inp, ret);
 
         // test with null input
         ce.setValue(null);
         resm = ce.getNext(inp);
-        ret  = (Map)resm.result;
+        ret = (Map)resm.result;
         assertNull(ret);
     }
 
@@ -153,7 +151,7 @@ public class TestConstExpr {
         // test with null input
         ce.setValue(null);
         res = ce.getNext(inp);
-        ret  = (Boolean)res.result;
+        ret = (Boolean)res.result;
         assertNull(ret);
     }
 
@@ -168,7 +166,7 @@ public class TestConstExpr {
         // test with null input
         ce.setValue(null);
         rest = ce.getNext(inp);
-        ret  = (Tuple)rest.result;
+        ret = (Tuple)rest.result;
         assertNull(ret);
     }
 
@@ -183,7 +181,7 @@ public class TestConstExpr {
         // test with null input
         ce.setValue(null);
         res = ce.getNext(inp);
-        ret  = (DataBag)res.result;
+        ret = (DataBag)res.result;
         assertNull(ret);
     }
 

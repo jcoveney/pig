@@ -1,14 +1,12 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
+ * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarding copyright ownership. The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * with the License. You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -48,75 +46,73 @@ import org.junit.Test;
  *
  */
 public class TestLOLoadDeterminedSchema {
+    PigContext pc;
+    PigServer server;
 
-	PigContext pc;
-	PigServer server;
+    File baseDir;
+    File inputFile;
 
-	File baseDir;
-	File inputFile;
+    /**
+     * Loads a test file using ScriptSchemaTestLoader with a user defined schema
+     * a,b,c.<br/>
+     * Then tests the the ScriptSchemaTestLoader found the schema.
+     *
+     * @throws IOException
+     */
+    @Test
+    public void testDeterminedSchema() throws IOException {
+        FuncSpec funcSpec = new FuncSpec(ScriptSchemaTestLoader.class.getName()
+                + "()");
 
-	/**
-	 * Loads a test file using ScriptSchemaTestLoader with a user defined schema
-	 * a,b,c.<br/>
-	 * Then tests the the ScriptSchemaTestLoader found the schema.
-	 *
-	 * @throws IOException
-	 */
-	@Test
-	public void testDeterminedSchema() throws IOException {
-		FuncSpec funcSpec = new FuncSpec(ScriptSchemaTestLoader.class.getName()
-				+ "()");
+        server.registerFunction(ScriptSchemaTestLoader.class.getName(),
+                funcSpec);
 
-		server.registerFunction(ScriptSchemaTestLoader.class.getName(),
-				funcSpec);
+        server.registerQuery("a = LOAD '" + inputFile.getAbsolutePath()
+                + "' using " + ScriptSchemaTestLoader.class.getName()
+                + "() as (a, b, c) ;");
 
-		server.registerQuery("a = LOAD '" + inputFile.getAbsolutePath()
-				+ "' using " + ScriptSchemaTestLoader.class.getName()
-				+ "() as (a, b, c) ;");
+        server.openIterator("a");
 
-		server.openIterator("a");
+        Schema scriptSchema = ScriptSchemaTestLoader.getScriptSchema();
 
-		Schema scriptSchema = ScriptSchemaTestLoader.getScriptSchema();
+        assertNotNull(scriptSchema);
+        assertEquals(3, scriptSchema.size());
 
-		assertNotNull(scriptSchema);
-		assertEquals(3, scriptSchema.size());
+        assertNotNull(scriptSchema.getField("a"));
+        assertNotNull(scriptSchema.getField("b"));
+        assertNotNull(scriptSchema.getField("c"));
+    }
 
-		assertNotNull(scriptSchema.getField("a"));
-		assertNotNull(scriptSchema.getField("b"));
-		assertNotNull(scriptSchema.getField("c"));
+    @Before
+    public void setUp() throws Exception {
+        FileLocalizer.deleteTempFiles();
+        server = new PigServer(ExecType.LOCAL, new Properties());
 
-	}
+        baseDir = new File("build/testLoLoadDeterminedSchema");
 
-	@Before
-	public void setUp() throws Exception {
-		FileLocalizer.deleteTempFiles();
-		server = new PigServer(ExecType.LOCAL, new Properties());
+        if (baseDir.exists()) {
+            FileUtil.fullyDelete(baseDir);
+        }
 
-		baseDir = new File("build/testLoLoadDeterminedSchema");
+        assertTrue(baseDir.mkdirs());
 
-		if (baseDir.exists()) {
-			FileUtil.fullyDelete(baseDir);
-		}
+        inputFile = new File(baseDir, "testInput.txt");
+        inputFile.createNewFile();
 
-		assertTrue(baseDir.mkdirs());
+        // write a short input
+        FileWriter writer = new FileWriter(inputFile);
+        try {
+            writer.write("a\tb\tc");
+        } finally {
+            writer.close();
+        }
+    }
 
-		inputFile = new File(baseDir, "testInput.txt");
-		inputFile.createNewFile();
+    @After
+    public void tearDown() throws Exception {
+        if (baseDir.exists())
+            FileUtil.fullyDelete(baseDir);
 
-		// write a short input
-		FileWriter writer = new FileWriter(inputFile);
-		try {
-			writer.write("a\tb\tc");
-		} finally {
-			writer.close();
-		}
-	}
-
-	@After
-	public void tearDown() throws Exception {
-		if (baseDir.exists())
-			FileUtil.fullyDelete(baseDir);
-
-		server.shutdown();
-	}
+        server.shutdown();
+    }
 }

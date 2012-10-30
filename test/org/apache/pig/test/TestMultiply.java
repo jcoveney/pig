@@ -1,14 +1,12 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
+ * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarding copyright ownership. The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * with the License. You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -39,31 +37,31 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestMultiply {
-
     Random r = new Random(42L);
     ConstantExpression lt, rt;
     Multiply op = new Multiply(new OperatorKey("", r.nextLong()));
 
     @Before
     public void setUp() throws Exception {
-        lt = new ConstantExpression(new OperatorKey("",r.nextLong()));
-        rt = new ConstantExpression(new OperatorKey("",r.nextLong()));
+        lt = new ConstantExpression(new OperatorKey("", r.nextLong()));
+        rt = new ConstantExpression(new OperatorKey("", r.nextLong()));
     }
 
     @Test
-    public void testOperator() throws ExecException{
-        //int TRIALS = 10;
+    public void testOperator() throws ExecException {
+        // int TRIALS = 10;
         byte[] types = { DataType.BAG, DataType.BOOLEAN, DataType.BYTEARRAY, DataType.CHARARRAY,
-                DataType.DOUBLE, DataType.FLOAT, DataType.INTEGER, DataType.LONG, DataType.DATETIME, DataType.MAP, DataType.TUPLE};
-        //Map<Byte,String> map = GenRandomData.genTypeToNameMap();
+                        DataType.DOUBLE, DataType.FLOAT, DataType.INTEGER, DataType.LONG,
+                        DataType.DATETIME, DataType.MAP, DataType.TUPLE };
+        // Map<Byte,String> map = GenRandomData.genTypeToNameMap();
         System.out.println("Testing Multiply operator");
-        for(byte type : types) {
+        for (byte type : types) {
             lt.setResultType(type);
             rt.setResultType(type);
             op.setLhs(lt);
             op.setRhs(rt);
 
-            switch(type){
+            switch (type) {
             case DataType.BAG:
                 DataBag inpdb1 = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
                 DataBag inpdb2 = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
@@ -108,8 +106,9 @@ public class TestMultiply {
                 lt.setValue(inpba1);
                 rt.setValue(inpba2);
                 Result resba = op.getNext(inpba1);
-                //DataByteArray expected = new DataByteArray(inpba1.toString() + inpba2.toString());
-                //assertEquals(expected, (DataByteArray)resba.result);
+                // DataByteArray expected = new DataByteArray(inpba1.toString() +
+                // inpba2.toString());
+                // assertEquals(expected, (DataByteArray)resba.result);
                 assertEquals(POStatus.STATUS_ERR, resba.returnStatus);
 
                 // test with null in lhs
@@ -130,8 +129,10 @@ public class TestMultiply {
                 lt.setValue(inps1);
                 rt.setValue(inps2);
                 Result ress = op.getNext(inps1);
-                /*String expected = new String(inps1 + inps2);
-                assertEquals(expected, (String)ress.result);*/
+                /*
+                 * String expected = new String(inps1 + inps2);
+                 * assertEquals(expected, (String)ress.result);
+                 */
                 assertEquals(POStatus.STATUS_ERR, ress.returnStatus);
 
                 // test with null in lhs
@@ -195,7 +196,7 @@ public class TestMultiply {
                 rt.setValue(inpi2);
                 Result resi = op.getNext(inpi1);
                 Integer expected = new Integer(inpi1 * inpi2);
-                assertEquals(expected, (Integer) resi.result);
+                assertEquals(expected, (Integer)resi.result);
 
                 // test with null in lhs
                 lt.setValue(null);
@@ -251,8 +252,8 @@ public class TestMultiply {
                 break;
             }
             case DataType.MAP: {
-                Map<String,Object> inpm1 = GenRandomData.genRandMap(r, 10);
-                Map<String,Object> inpm2 = GenRandomData.genRandMap(r, 10);
+                Map<String, Object> inpm1 = GenRandomData.genRandMap(r, 10);
+                Map<String, Object> inpm2 = GenRandomData.genRandMap(r, 10);
                 lt.setValue(inpm1);
                 rt.setValue(inpm2);
                 Result resm = op.getNext(inpm1);
@@ -294,4 +295,3 @@ public class TestMultiply {
         }
     }
 }
-

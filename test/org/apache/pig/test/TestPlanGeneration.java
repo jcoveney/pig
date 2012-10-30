@@ -1,14 +1,12 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
+ * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarding copyright ownership. The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * with the License. You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -68,10 +66,10 @@ public class TestPlanGeneration {
     }
 
     @Test
-    public void testGenerateStar() throws Exception  {
+    public void testGenerateStar() throws Exception {
         String query = "a = load 'x';" +
-            "b = foreach a generate *;" +
-            "store b into '111';";
+                "b = foreach a generate *;" +
+                "store b into '111';";
 
         LogicalPlan lp = Util.parseAndPreprocess(query, pc);
         Util.optimizeNewLP(lp);
@@ -81,10 +79,10 @@ public class TestPlanGeneration {
     }
 
     @Test
-    public void testEmptyBagDereference() throws Exception  {
+    public void testEmptyBagDereference() throws Exception {
         String query = "A = load 'x' as ( u:bag{} );" +
-            "B = foreach A generate u.$100;" +
-            "store B into '111';";
+                "B = foreach A generate u.$100;" +
+                "store B into '111';";
 
         LogicalPlan lp = Util.parseAndPreprocess(query, pc);
         Util.optimizeNewLP(lp);
@@ -100,10 +98,10 @@ public class TestPlanGeneration {
     }
 
     @Test
-    public void testEmptyTupleDereference() throws Exception  {
+    public void testEmptyTupleDereference() throws Exception {
         String query = "A = load 'x' as ( u:tuple() );" +
-            "B = foreach A generate u.$100;" +
-            "store B into '111';";
+                "B = foreach A generate u.$100;" +
+                "store B into '111';";
 
         LogicalPlan lp = Util.parseAndPreprocess(query, pc);
         Util.optimizeNewLP(lp);
@@ -115,10 +113,10 @@ public class TestPlanGeneration {
     }
 
     @Test
-    public void testEmptyBagInnerPlan() throws Exception  {
+    public void testEmptyBagInnerPlan() throws Exception {
         String query = "A = load 'x' as ( u:bag{} );" +
-            "B = foreach A { B1 = filter u by $1==0; generate B1;};" +
-            "store B into '111';";
+                "B = foreach A { B1 = filter u by $1==0; generate B1;};" +
+                "store B into '111';";
 
         LogicalPlan lp = Util.parseAndPreprocess(query, pc);
         Util.optimizeNewLP(lp);
@@ -133,10 +131,10 @@ public class TestPlanGeneration {
     }
 
     @Test
-    public void testOrderByNullFieldSchema() throws Exception  {
+    public void testOrderByNullFieldSchema() throws Exception {
         String query = "A = load 'x';" +
-            "B = order A by *;" +
-            "store B into '111';";
+                "B = order A by *;" +
+                "store B into '111';";
 
         LogicalPlan lp = Util.parseAndPreprocess(query, pc);
         Util.optimizeNewLP(lp);
@@ -154,10 +152,10 @@ public class TestPlanGeneration {
     }
 
     @Test
-    public void testGroupByNullFieldSchema() throws Exception  {
+    public void testGroupByNullFieldSchema() throws Exception {
         String query = "A = load 'x';" +
-            "B = group A by *;" +
-            "store B into '111';";
+                "B = group A by *;" +
+                "store B into '111';";
 
         LogicalPlan lp = Util.parseAndPreprocess(query, pc);
         Util.optimizeNewLP(lp);
@@ -169,10 +167,10 @@ public class TestPlanGeneration {
     }
 
     @Test
-    public void testStoreAlias() throws Exception  {
+    public void testStoreAlias() throws Exception {
         String query = "A = load 'data' as (a0, a1);" +
-            "B = filter A by a0 > 1;" +
-            "store B into 'output';";
+                "B = filter A by a0 > 1;" +
+                "store B into 'output';";
 
         LogicalPlan lp = Util.parse(query, pc);
         Util.optimizeNewLP(lp);
@@ -191,15 +189,15 @@ public class TestPlanGeneration {
 
     // See PIG-2119
     @Test
-    public void testDanglingNestedNode() throws Exception  {
+    public void testDanglingNestedNode() throws Exception {
         String query = "a = load 'b.txt' AS (id:chararray, num:int); " +
-            "b = group a by id;" +
-            "c = foreach b {" +
-            "  d = order a by num DESC;" +
-            "  n = COUNT(a);" +
-            "  e = limit d 1;" +
-            "  generate n;" +
-            "};";
+                "b = group a by id;" +
+                "c = foreach b {" +
+                "  d = order a by num DESC;" +
+                "  n = COUNT(a);" +
+                "  e = limit d 1;" +
+                "  generate n;" +
+                "};";
 
         LogicalPlan lp = Util.parse(query, pc);
         Util.optimizeNewLP(lp);
@@ -208,9 +206,11 @@ public class TestPlanGeneration {
     public static class SchemaLoader extends PigStorage implements LoadMetadata {
 
         Schema schema;
+
         public SchemaLoader(String schemaString) throws ParserException {
             schema = Utils.getSchemaFromString(schemaString);
         }
+
         @Override
         public ResourceSchema getSchema(String location, Job job)
                 throws IOException {
@@ -237,7 +237,8 @@ public class TestPlanGeneration {
 
     @Test
     public void testLoaderWithSchema() throws Exception {
-        String query = "a = load 'foo' using " + SchemaLoader.class.getName() + "('name,age,gpa');\n"
+        String query = "a = load 'foo' using " + SchemaLoader.class.getName()
+                + "('name,age,gpa');\n"
                 + "b = filter a by age==20;"
                 + "store b into 'output';";
         LogicalPlan lp = Util.parse(query, pc);
@@ -257,14 +258,14 @@ public class TestPlanGeneration {
         static Expression partFilter = null;
 
         public PartitionedLoader(String schemaString, String commaSepPartitionCols)
-        throws ParserException {
+                throws ParserException {
             schema = Utils.getSchemaFromString(schemaString);
             partCols = commaSepPartitionCols.split(",");
         }
 
         @Override
         public ResourceSchema getSchema(String location, Job job)
-        throws IOException {
+                throws IOException {
             return new ResourceSchema(schema);
         }
 
@@ -276,7 +277,7 @@ public class TestPlanGeneration {
 
         @Override
         public void setPartitionFilter(Expression partitionFilter)
-        throws IOException {
+                throws IOException {
             partFilter = partitionFilter;
         }
 
@@ -297,8 +298,8 @@ public class TestPlanGeneration {
     public void testPartitionFilterOptimizer() throws Exception {
         String query = "a = load 'foo' using " + PartitionedLoader.class.getName() +
                 "('name:chararray, dt:chararray', 'dt');\n" +
-            "b = filter a by dt=='2011';\n" +
-            "store b into 'output';";
+                "b = filter a by dt=='2011';\n" +
+                "store b into 'output';";
 
         LogicalPlan lp = Util.parse(query, pc);
         Util.optimizeNewLP(lp);

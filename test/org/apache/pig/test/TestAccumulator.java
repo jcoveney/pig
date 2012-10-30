@@ -478,7 +478,7 @@ public class TestAccumulator {
             assertEquals(v.doubleValue(), ((Number) t.get(1)).doubleValue(),
                 0.0001);
           } else {
-            assertEquals(null, t.get(1));
+            assertNull(t.get(1));
           }
         }
       }
@@ -535,11 +535,7 @@ public class TestAccumulator {
         pigServer.registerQuery("C = group A by id;");
         pigServer.registerQuery("D = foreach C generate group, COUNT_STAR(A.id);");
 
-        try {
-            Iterator<Tuple> iter = pigServer.openIterator("D");
-        } catch (Exception e) {
-            fail("COUNT_STAR should be supported by accumulator interface");
-        }
+        Iterator<Tuple> iter = pigServer.openIterator("D");
     }
 
     /**
@@ -598,7 +594,6 @@ public class TestAccumulator {
 
         checkAccumulatorOff("C");
         pigServer.getPigContext().getProperties().setProperty("opt.accumulator", "true");
-
     }
 
     private void checkAccumulatorOff(String alias) {
@@ -696,6 +691,4 @@ public class TestAccumulator {
                     });
         Util.checkQueryOutputsAfterSort(iter, expectedRes);
     }
-
-
 }
