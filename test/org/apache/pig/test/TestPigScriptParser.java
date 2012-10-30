@@ -19,7 +19,6 @@ package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -47,30 +46,29 @@ public class TestPigScriptParser {
     public void testParserWithEscapeCharacters() throws Exception {
 
         // All the needed variables
-        PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties()) ;
+        PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
         PigServer pigServer = new PigServer( pigContext );
         pigContext.connect();
 
-        String tempFile = this.prepareTempFile() ;
+        String tempFile = this.prepareTempFile();
 
-    	String query = String.format("A = LOAD '%s' ;", Util.encodeEscape(tempFile)) ;
+    	String query = String.format("A = LOAD '%s';", Util.encodeEscape(tempFile));
         // Start the real parsing job
-        {
-        	// Initial statement
-        	Util.buildLp(pigServer, query);
-        }
+
+    	// Initial statement
+    	Util.buildLp(pigServer, query);
 
         {
         	// Normal condition
-        	String q = query + "B = filter A by $0 eq 'This is a test string' ;" ;
-        	checkParsedConstContent(pigServer, pigContext, q, "This is a test string") ;
+        	String q = query + "B = filter A by $0 eq 'This is a test string';";
+        	checkParsedConstContent(pigServer, pigContext, q, "This is a test string");
         }
 
         {
         	// single-quote condition
-        	String q = query + "B = filter A by $0 eq 'This is a test \\'string' ;" ;
+        	String q = query + "B = filter A by $0 eq 'This is a test \\'string';";
         	checkParsedConstContent(pigServer, pigContext,
-        	                        q, "This is a test 'string") ;
+        	                        q, "This is a test 'string");
         }
 
         {
@@ -79,23 +77,23 @@ public class TestPigScriptParser {
             // since this is to be represented in a Java String, we escape each backslash with one more
             // backslash - hence 4. In a pig script in a file, this would be
             // \\.string
-            String q = query + "B = filter A by $0 eq 'This is a test \\\\.string' ;" ;
+            String q = query + "B = filter A by $0 eq 'This is a test \\\\.string';";
             checkParsedConstContent(pigServer, pigContext,
-                                    q, "This is a test \\.string") ;
+                                    q, "This is a test \\.string");
         }
 
         {
         	// newline condition
-        	String q = query + "B = filter A by $0 eq 'This is a test \\nstring' ;" ;
+        	String q = query + "B = filter A by $0 eq 'This is a test \\nstring';";
         	checkParsedConstContent(pigServer, pigContext,
-        	                        q, "This is a test \nstring") ;
+        	                        q, "This is a test \nstring");
         }
 
         {
         	// Unicode
-        	String q = query + "B = filter A by $0 eq 'This is a test \\uD30C\\uC774string' ;" ;
+        	String q = query + "B = filter A by $0 eq 'This is a test \\uD30C\\uC774string';";
         	checkParsedConstContent(pigServer, pigContext,
-        	                        q, "This is a test \uD30C\uC774string") ;
+        	                        q, "This is a test \uD30C\uC774string");
         }
     }
 
@@ -136,7 +134,7 @@ public class TestPigScriptParser {
 	    String defineQ = "define minelogs org.apache.pig.test.RegexGroupCount('www\\\\.xyz\\\\.com/sports');";
 	    String defineL = "a = load 'nosuchfile' " +
 	            " using PigStorage() as (source : chararray);";
-	    String defineSplit = "SPLIT a INTO a1 IF (minelogs(source) > 0 ), a2 IF (NOT (minelogs(source)>0));";//    (NOT ( minelogs(source) ) > 0) ;";
+	    String defineSplit = "SPLIT a INTO a1 IF (minelogs(source) > 0 ), a2 IF (NOT (minelogs(source)>0));";//    (NOT ( minelogs(source) ) > 0);";
 	    PigServer ps = new PigServer(ExecType.LOCAL);
 	    ps.registerQuery(defineQ);
 	    ps.registerQuery(defineL);
@@ -144,7 +142,7 @@ public class TestPigScriptParser {
 	}
 
 
-    @Test
+    @Test(expected = FrontendException.class)
     public void testErrorMessageUndefinedAliasInGroupByStatement() throws Exception {
         String queryA = "A = load 'nosuchfile'  using PigStorage() as (f1:chararray,f2:chararray);";
         String queryB = "B = GROUP B by f1;";
@@ -154,9 +152,8 @@ public class TestPigScriptParser {
             ps.registerQuery(queryB);
         }catch (FrontendException e) {
             assertTrue(e.getMessage().contains("Undefined alias:"));
-            return;
+            throw e;
         }
-        fail();
     }
 
 	private void checkParsedConstContent(PigServer pigServer,
@@ -177,21 +174,21 @@ public class TestPigScriptParser {
 
         // Here is the actual check logic
         if (compRootOne instanceof ConstantExpression) {
-            assertEquals("Must be equal",
-                        (String)((ConstantExpression)compRootOne).getValue(), expectedContent);
+            assertEquals("Must be equal", expectedContent,
+                        (String)((ConstantExpression)compRootOne).getValue());
         } else { // If not left, it must be right.
-            assertEquals("Must be equal",
-                        (String)((ConstantExpression)compRootTwo).getValue(), expectedContent);
+            assertEquals("Must be equal", expectedContent,
+                        (String)((ConstantExpression)compRootTwo).getValue());
         }
     }
 
     private String prepareTempFile() throws IOException {
         File inputFile = File.createTempFile("test", "txt");
-        inputFile.deleteOnExit() ;
+        inputFile.deleteOnExit();
         PrintStream ps = new PrintStream(new FileOutputStream(inputFile));
-        ps.println("hohoho") ;
+        ps.println("hohoho");
         ps.close();
-        return inputFile.getPath() ;
+        return inputFile.getPath();
     }
 
 }
