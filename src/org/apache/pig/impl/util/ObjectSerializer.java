@@ -1,14 +1,12 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
+ * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarding copyright ownership. The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * with the License. You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -33,15 +31,16 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 public class ObjectSerializer {
-
     private static final Log log = LogFactory.getLog(ObjectSerializer.class);
 
     public static String serialize(Serializable obj) throws IOException {
-        if (obj == null) return "";
+        if (obj == null)
+            return "";
         try {
             ByteArrayOutputStream serialObj = new ByteArrayOutputStream();
             Deflater def = new Deflater(Deflater.BEST_COMPRESSION);
-            ObjectOutputStream objStream = new ObjectOutputStream(new DeflaterOutputStream(serialObj, def));
+            ObjectOutputStream objStream = new ObjectOutputStream(new DeflaterOutputStream(
+                    serialObj, def));
             objStream.writeObject(obj);
             objStream.close();
             return encodeBytes(serialObj.toByteArray());
@@ -51,7 +50,8 @@ public class ObjectSerializer {
     }
 
     public static Object deserialize(String str) throws IOException {
-        if (str == null || str.length() == 0) return null;
+        if (str == null || str.length() == 0)
+            return null;
         try {
             ByteArrayInputStream serialObj = new ByteArrayInputStream(decodeBytes(str));
             ObjectInputStream objStream = new ObjectInputStream(new InflaterInputStream(serialObj));
@@ -63,30 +63,9 @@ public class ObjectSerializer {
 
     public static String encodeBytes(byte[] bytes) {
         return Base64.encodeBase64URLSafeString(bytes);
-        /*
-        StringBuffer strBuf = new StringBuffer();
-
-        for (int i = 0; i < bytes.length; i++) {
-            strBuf.append((char) (((bytes[i] >> 4) & 0xF) + ((int) 'a')));
-            strBuf.append((char) (((bytes[i]) & 0xF) + ((int) 'a')));
-        }
-
-        return strBuf.toString();
-        */
     }
 
     public static byte[] decodeBytes(String str) {
         return Base64.decodeBase64(str);
-        /*
-        byte[] bytes = new byte[str.length() / 2];
-        for (int i = 0; i < str.length(); i+=2) {
-            char c = str.charAt(i);
-            bytes[i/2] = (byte) ((c - 'a') << 4);
-            c = str.charAt(i+1);
-            bytes[i/2] += (c - 'a');
-        }
-        return bytes;
-        */
     }
-
 }
