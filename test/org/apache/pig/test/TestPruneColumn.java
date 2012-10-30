@@ -271,16 +271,16 @@ public class TestPruneColumn {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertEquals(t.size(), 2);
-        assertEquals(t.get(0), 2);
-        assertEquals(t.get(1), 3);
+        assertEquals(2, t.size());
+        assertEquals(2, t.get(0));
+        assertEquals(3, t.get(1));
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertEquals(t.size(), 2);
-        assertEquals(t.get(0), 5);
-        assertEquals(t.get(1), 2);
+        assertEquals(2, t.size());
+        assertEquals(5, t.get(0));
+        assertEquals(2, t.get(1));
 
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0"}));
     }
@@ -294,16 +294,16 @@ public class TestPruneColumn {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertEquals(t.size(), 2);
-        assertEquals(t.get(0), 1);
-        assertEquals(t.get(1), 3);
+        assertEquals(2, t.size());
+        assertEquals(1, t.get(0));
+        assertEquals(3, t.get(1));
 
         assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertEquals(t.size(), 2);
-        assertEquals(t.get(0), 2);
-        assertEquals(t.get(1), 2);
+        assertEquals(2, t.size());
+        assertEquals(2, t.get(0));
+        assertEquals(2, t.get(1));
 
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1"}));
     }
@@ -1962,7 +1962,7 @@ public class TestPruneColumn {
         line = reader1.readLine();
         assertEquals("2\t3\t4", line);
 
-        assertEquals(reader1.readLine(), null);
+        assertNull(reader1.readLine());
 
         BufferedReader reader2 = new BufferedReader(new InputStreamReader(FileLocalizer.openDFSFile(output2.toString(), pigServer.getPigContext().getProperties())));
         line = reader2.readLine();
@@ -1971,7 +1971,7 @@ public class TestPruneColumn {
         line = reader2.readLine();
         assertEquals("4", line);
 
-        assertEquals(reader2.readLine(), null);
+        assertNull(reader2.readLine());
 
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $3"}));
 
@@ -2045,9 +2045,9 @@ public class TestPruneColumn {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertEquals(t.size(), 2);
-        assertEquals(t.get(0), "a1");
-        assertEquals(t.get(1), "a2");
+        assertEquals(2, t.size());
+        assertEquals("a1", t.get(0));
+        assertEquals("a2", t.get(1));
 
         assertFalse(iter.hasNext());
     }

@@ -1,14 +1,12 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
+ * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarding copyright ownership. The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * with the License. You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,7 +21,6 @@ import static org.apache.pig.ExecType.MAPREDUCE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -62,10 +59,10 @@ public class TestPigSplit {
     @Before
     public void setUp() throws Exception {
         String execTypeString = System.getProperty("test.exectype");
-        if(execTypeString!=null && execTypeString.length()>0){
+        if (execTypeString != null && execTypeString.length() > 0) {
             execType = ExecType.fromString(execTypeString);
         }
-        if(execType == MAPREDUCE) {
+        if (execType == MAPREDUCE) {
             cluster = MiniCluster.buildCluster();
             pigServer = new PigServer(MAPREDUCE, cluster.getProperties());
         } else {
@@ -75,13 +72,12 @@ public class TestPigSplit {
 
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
-        if(cluster != null)
+        if (cluster != null)
             cluster.shutDown();
     }
 
-
     private void createInput(String[] data) throws IOException {
-        if(execType == ExecType.MAPREDUCE) {
+        if (execType == ExecType.MAPREDUCE) {
             Util.createInputFile(cluster, inputFileName, data);
         } else if (execType == ExecType.LOCAL) {
             Util.createLocalInputFile(inputFileName, data);
@@ -90,12 +86,13 @@ public class TestPigSplit {
         }
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
      * @see org.apache.pig.test.PigExecTestCase#tearDown()
      */
     @After
     public void tearDown() throws Exception {
-        if(execType == ExecType.MAPREDUCE) {
+        if (execType == ExecType.MAPREDUCE) {
             Util.deleteFile(cluster, inputFileName);
         } else if (execType == ExecType.LOCAL) {
             new File(inputFileName).delete();
@@ -105,24 +102,23 @@ public class TestPigSplit {
         pigServer.shutdown();
     }
 
-	public void notestLongEvalSpec() throws Exception{
-		inputFileName = "notestLongEvalSpec-input.txt";
-		createInput(new String[] {"0\ta"});
+    @Test
+    public void testLongEvalSpec2() throws Exception {
+        inputFileName = "notestLongEvalSpec-input.txt";
+        createInput(new String[] { "0\ta" });
 
-		pigServer.registerQuery("a = load '" + inputFileName + "';");
-		for (int i=0; i< 500; i++){
-			pigServer.registerQuery("a = filter a by $0 == '1';");
-		}
-		Iterator<Tuple> iter = pigServer.openIterator("a");
-		while (iter.hasNext()){
-			fail();
-		}
-	}
+        pigServer.registerQuery("a = load '" + inputFileName + "';");
+        for (int i = 0; i < 500; i++) {
+            pigServer.registerQuery("a = filter a by $0 == '1';");
+        }
+        Iterator<Tuple> iter = pigServer.openIterator("a");
+        assertFalse(iter.hasNext());
+    }
 
     @Test
     public void testSchemaWithSplit() throws Exception {
         inputFileName = "testSchemaWithSplit-input.txt";
-        String[] input = {"2","12","42"};
+        String[] input = { "2", "12", "42" };
         createInput(input);
         pigServer.registerQuery("a = load '" + inputFileName + "' as (value:chararray);");
         pigServer.registerQuery("split a into b if value < '20', c if value > '10';");
@@ -149,10 +145,10 @@ public class TestPigSplit {
     }
 
     @Test
-    public void testLongEvalSpec() throws Exception{
+    public void testLongEvalSpec() throws Exception {
         inputFileName = "testLongEvalSpec-input.txt";
         String[] input = new String[500];
-        for (int i=0; i< 500; i++) {
+        for (int i = 0; i < 500; i++) {
             input[i] = ("0\ta");
         }
         createInput(input);
@@ -160,8 +156,6 @@ public class TestPigSplit {
         pigServer.registerQuery("a = filter a by $0 == '1';");
 
         Iterator<Tuple> iter = pigServer.openIterator("a");
-        while (iter.hasNext()){
-            fail();
-        }
+        assertFalse(iter.hasNext());
     }
 }

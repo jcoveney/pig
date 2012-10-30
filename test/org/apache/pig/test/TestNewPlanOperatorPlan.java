@@ -1,14 +1,12 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
+ * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarding copyright ownership. The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * with the License. You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -81,10 +79,14 @@ public class TestNewPlanOperatorPlan {
     }
 
     static public class DummyLoad extends PigStorage {
-        public DummyLoad(String a, String b) {}
-        public DummyLoad(String a) {}
+        public DummyLoad(String a, String b) {
+        }
+
+        public DummyLoad(String a) {
+        }
 
     }
+
     private static class SillyOperator extends Operator {
         private String name;
 
@@ -102,7 +104,7 @@ public class TestNewPlanOperatorPlan {
 
         @Override
         public boolean isEqual(Operator operator) {
-            return ( name.compareTo(operator.getName()) == 0 );
+            return (name.compareTo(operator.getName()) == 0);
         }
     }
 
@@ -124,6 +126,7 @@ public class TestNewPlanOperatorPlan {
         }
 
     }
+
     Configuration conf = null;
 
     @Before
@@ -281,7 +284,7 @@ public class TestNewPlanOperatorPlan {
         plan.connect(bob, p1.first, fred, p1.second);
         plan.connect(jim, p2.first, bob, p2.second);
 
-         // Check that the roots and leaves came out right
+        // Check that the roots and leaves came out right
         list = plan.getSources();
         assertEquals(2, list.size());
         for (Operator op : list) {
@@ -420,7 +423,7 @@ public class TestNewPlanOperatorPlan {
         plan.connect(joe, bob);
 
         SillyVisitor v =
-            new SillyVisitor(plan, new DependencyOrderWalker(plan));
+                new SillyVisitor(plan, new DependencyOrderWalker(plan));
 
         v.visit();
 
@@ -450,7 +453,7 @@ public class TestNewPlanOperatorPlan {
         plan.connect(jane, jill);
 
         SillyVisitor v =
-            new SillyVisitor(plan, new DependencyOrderWalker(plan));
+                new SillyVisitor(plan, new DependencyOrderWalker(plan));
 
         v.visit();
 
@@ -486,7 +489,7 @@ public class TestNewPlanOperatorPlan {
         plan.connect(bob, jane);
 
         SillyVisitor v =
-            new SillyVisitor(plan, new DependencyOrderWalker(plan));
+                new SillyVisitor(plan, new DependencyOrderWalker(plan));
 
         v.visit();
 
@@ -518,7 +521,7 @@ public class TestNewPlanOperatorPlan {
         plan.connect(joe, bob);
 
         SillyVisitor v =
-            new SillyVisitor(plan, new DepthFirstWalker(plan));
+                new SillyVisitor(plan, new DepthFirstWalker(plan));
 
         v.visit();
 
@@ -548,7 +551,7 @@ public class TestNewPlanOperatorPlan {
         plan.connect(joe, jane);
 
         SillyVisitor v =
-            new SillyVisitor(plan, new DepthFirstWalker(plan));
+                new SillyVisitor(plan, new DepthFirstWalker(plan));
 
         v.visit();
 
@@ -578,7 +581,7 @@ public class TestNewPlanOperatorPlan {
         plan.connect(bob, jane);
 
         SillyVisitor v =
-            new SillyVisitor(plan, new DepthFirstWalker(plan));
+                new SillyVisitor(plan, new DepthFirstWalker(plan));
 
         v.visit();
 
@@ -608,7 +611,7 @@ public class TestNewPlanOperatorPlan {
         plan.connect(joe, bob);
 
         SillyVisitor v =
-            new SillyVisitor(plan, new ReverseDependencyOrderWalker(plan));
+                new SillyVisitor(plan, new ReverseDependencyOrderWalker(plan));
 
         v.visit();
 
@@ -638,7 +641,7 @@ public class TestNewPlanOperatorPlan {
         plan.connect(jane, jill);
 
         SillyVisitor v =
-            new SillyVisitor(plan, new ReverseDependencyOrderWalker(plan));
+                new SillyVisitor(plan, new ReverseDependencyOrderWalker(plan));
 
         v.visit();
 
@@ -678,7 +681,7 @@ public class TestNewPlanOperatorPlan {
         plan.connect(bob, jane);
 
         SillyVisitor v =
-            new SillyVisitor(plan, new ReverseDependencyOrderWalker(plan));
+                new SillyVisitor(plan, new ReverseDependencyOrderWalker(plan));
 
         v.visit();
 
@@ -716,8 +719,10 @@ public class TestNewPlanOperatorPlan {
     public void testLogicalPlanVisitor() throws FrontendException {
         LogicalPlan lp = new LogicalPlan();
         LOLoad load = newLOLoad(null, null, lp, conf);
-        /*lp.add((LogicalRelationalOperator)null, load,
-            (LogicalRelationalOperator)null);*/
+        /*
+         * lp.add((LogicalRelationalOperator)null, load,
+         * (LogicalRelationalOperator)null);
+         */
         lp.add(load);
 
         TestLogicalVisitor v = new TestLogicalVisitor(lp);
@@ -734,7 +739,6 @@ public class TestNewPlanOperatorPlan {
         EqualExpression e = new EqualExpression(ep, p, c);
         assertEquals(p, e.getLhs());
         assertEquals(c, e.getRhs());
-
     }
 
     private static class TestExpressionVisitor extends LogicalExpressionVisitor {
@@ -768,7 +772,6 @@ public class TestNewPlanOperatorPlan {
         String getVisitPlan() {
             return bf.toString();
         }
-
     }
 
     @Test
@@ -842,34 +845,35 @@ public class TestNewPlanOperatorPlan {
         {
             LogicalSchema aschema = new LogicalSchema();
             aschema.addField(new LogicalSchema.LogicalFieldSchema(
-                "x", null, DataType.INTEGER));
+                    "x", null, DataType.INTEGER));
             LOLoad A = newLOLoad(new FileSpec("/abc",
-                new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "y"})), aschema, lp, conf);
+                    new FuncSpec(DummyLoad.class.getName(), new String[] { "x", "y" })), aschema,
+                    lp, conf);
             lp.add(A);
 
             // B = load
             LogicalSchema bschema = new LogicalSchema();
             bschema.addField(new LogicalSchema.LogicalFieldSchema(
-                "y", null, DataType.INTEGER));
+                    "y", null, DataType.INTEGER));
             LOLoad B = newLOLoad(new FileSpec("/def",
-                new FuncSpec("PigStorage", "\t")), bschema, lp, conf);
+                    new FuncSpec("PigStorage", "\t")), bschema, lp, conf);
             lp.add(B);
 
             // C = join
             LogicalSchema cschema = new LogicalSchema();
             cschema.addField(new LogicalSchema.LogicalFieldSchema(
-                "x", null, DataType.INTEGER));
+                    "x", null, DataType.INTEGER));
             cschema.addField(new LogicalSchema.LogicalFieldSchema(
-                "y", null, DataType.INTEGER));
+                    "y", null, DataType.INTEGER));
             LogicalExpressionPlan aprojplan = new LogicalExpressionPlan();
             new ProjectExpression(aprojplan, 0, 0, null);
             LogicalExpressionPlan bprojplan = new LogicalExpressionPlan();
             new ProjectExpression(bprojplan, 1, 0, null);
             MultiMap<Integer, LogicalExpressionPlan> mm =
-                new MultiMap<Integer, LogicalExpressionPlan>();
+                    new MultiMap<Integer, LogicalExpressionPlan>();
             mm.put(0, aprojplan);
             mm.put(1, bprojplan);
-            LOJoin C = new LOJoin(lp, mm, JOINTYPE.HASH, new boolean[] {true, true});
+            LOJoin C = new LOJoin(lp, mm, JOINTYPE.HASH, new boolean[] { true, true });
             C.neverUseForRealSetSchema(cschema);
             lp.add(C);
             lp.connect(A, C);
@@ -892,39 +896,39 @@ public class TestNewPlanOperatorPlan {
         {
             LogicalSchema aschema = new LogicalSchema();
             aschema.addField(new LogicalSchema.LogicalFieldSchema(
-                "x", null, DataType.INTEGER));
+                    "x", null, DataType.INTEGER));
             LOLoad A = newLOLoad(new FileSpec("/abc",
-                new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "y"})), aschema, lp1, conf);
+                    new FuncSpec(DummyLoad.class.getName(), new String[] { "x", "y" })), aschema,
+                    lp1, conf);
             lp1.add(A);
 
             // B = load
             LogicalSchema bschema = new LogicalSchema();
             bschema.addField(new LogicalSchema.LogicalFieldSchema(
-                "y", null, DataType.INTEGER));
+                    "y", null, DataType.INTEGER));
             LOLoad B = newLOLoad(new FileSpec("/def",
-                new FuncSpec("PigStorage", "\t")), bschema, lp1, conf);
+                    new FuncSpec("PigStorage", "\t")), bschema, lp1, conf);
             lp1.add(B);
 
             // C = join
             LogicalSchema cschema = new LogicalSchema();
             cschema.addField(new LogicalSchema.LogicalFieldSchema(
-                "x", null, DataType.INTEGER));
+                    "x", null, DataType.INTEGER));
             cschema.addField(new LogicalSchema.LogicalFieldSchema(
-                "y", null, DataType.INTEGER));
+                    "y", null, DataType.INTEGER));
             LogicalExpressionPlan aprojplan = new LogicalExpressionPlan();
             new ProjectExpression(aprojplan, 0, 0, null);
             LogicalExpressionPlan bprojplan = new LogicalExpressionPlan();
             new ProjectExpression(bprojplan, 1, 0, null);
             MultiMap<Integer, LogicalExpressionPlan> mm =
-                new MultiMap<Integer, LogicalExpressionPlan>();
+                    new MultiMap<Integer, LogicalExpressionPlan>();
             mm.put(0, aprojplan);
             mm.put(1, bprojplan);
-            LOJoin C = new LOJoin(lp1, mm, JOINTYPE.HASH, new boolean[] {true, true});
+            LOJoin C = new LOJoin(lp1, mm, JOINTYPE.HASH, new boolean[] { true, true });
             C.neverUseForRealSetSchema(cschema);
             lp1.add(C);
             lp1.connect(A, C);
             lp1.connect(B, C);
-
 
             // D = filter
             LogicalExpressionPlan filterPlan = new LogicalExpressionPlan();
@@ -947,13 +951,15 @@ public class TestNewPlanOperatorPlan {
 
         LogicalSchema aschema1 = new LogicalSchema();
         aschema1.addField(new LogicalSchema.LogicalFieldSchema(
-            "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         LOLoad load1 = newLOLoad(new FileSpec("/abc",
-            new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "y"})), aschema1, lp, conf);
+                new FuncSpec(DummyLoad.class.getName(), new String[] { "x", "y" })), aschema1, lp,
+                conf);
         lp.add(load1);
 
         LOLoad load2 = newLOLoad(new FileSpec("/abc",
-            new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "z"})), aschema1, lp, conf);
+                new FuncSpec(DummyLoad.class.getName(), new String[] { "x", "z" })), aschema1, lp,
+                conf);
         lp.add(load2);
 
         assertFalse(load1.isEqual(load2));
@@ -965,13 +971,14 @@ public class TestNewPlanOperatorPlan {
 
         LogicalSchema aschema1 = new LogicalSchema();
         aschema1.addField(new LogicalSchema.LogicalFieldSchema(
-            "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         LOLoad load1 = newLOLoad(new FileSpec("/abc",
-            new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "y"})), aschema1, lp, conf);
+                new FuncSpec(DummyLoad.class.getName(), new String[] { "x", "y" })), aschema1, lp,
+                conf);
         lp.add(load1);
 
         LOLoad load3 = newLOLoad(new FileSpec("/abc",
-            new FuncSpec(DummyLoad.class.getName(), "x")), aschema1, lp, conf);
+                new FuncSpec(DummyLoad.class.getName(), "x")), aschema1, lp, conf);
         lp.add(load3);
 
         assertFalse(load1.isEqual(load3));
@@ -983,14 +990,16 @@ public class TestNewPlanOperatorPlan {
 
         LogicalSchema aschema1 = new LogicalSchema();
         aschema1.addField(new LogicalSchema.LogicalFieldSchema(
-            "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         LOLoad load1 = newLOLoad(new FileSpec("/abc",
-            new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "y"})), aschema1, lp, conf);
+                new FuncSpec(DummyLoad.class.getName(), new String[] { "x", "y" })), aschema1, lp,
+                conf);
         lp.add(load1);
 
-         // Different function names in FuncSpec
+        // Different function names in FuncSpec
         LOLoad load4 = newLOLoad(new FileSpec("/abc",
-            new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "z"})), aschema1, lp, conf);
+                new FuncSpec(DummyLoad.class.getName(), new String[] { "x", "z" })), aschema1, lp,
+                conf);
         lp.add(load4);
 
         assertFalse(load1.isEqual(load4));
@@ -1001,14 +1010,16 @@ public class TestNewPlanOperatorPlan {
         LogicalPlan lp = new LogicalPlan();
         LogicalSchema aschema1 = new LogicalSchema();
         aschema1.addField(new LogicalSchema.LogicalFieldSchema(
-            "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         LOLoad load1 = newLOLoad(new FileSpec("/abc",
-            new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "y"})), aschema1, lp, conf);
+                new FuncSpec(DummyLoad.class.getName(), new String[] { "x", "y" })), aschema1, lp,
+                conf);
         lp.add(load1);
 
         // Different file name
         LOLoad load5 = newLOLoad(new FileSpec("/def",
-            new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "z"})), aschema1, lp, conf);
+                new FuncSpec(DummyLoad.class.getName(), new String[] { "x", "z" })), aschema1, lp,
+                conf);
         lp.add(load5);
 
         assertFalse(load1.isEqual(load5));
@@ -1019,18 +1030,20 @@ public class TestNewPlanOperatorPlan {
         LogicalPlan lp = new LogicalPlan();
         LogicalSchema aschema1 = new LogicalSchema();
         aschema1.addField(new LogicalSchema.LogicalFieldSchema(
-            "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         LOLoad load1 = newLOLoad(new FileSpec("/abc",
-            new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "y"})), aschema1, lp, conf);
+                new FuncSpec(DummyLoad.class.getName(), new String[] { "x", "y" })), aschema1, lp,
+                conf);
         lp.add(load1);
 
         // Different schema
         LogicalSchema aschema2 = new LogicalSchema();
         aschema2.addField(new LogicalSchema.LogicalFieldSchema(
-            "x", null, DataType.CHARARRAY));
+                "x", null, DataType.CHARARRAY));
 
         LOLoad load6 = newLOLoad(new FileSpec("/abc",
-            new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "z"})), aschema2, lp, conf);
+                new FuncSpec(DummyLoad.class.getName(), new String[] { "x", "z" })), aschema2, lp,
+                conf);
         lp.add(load6);
 
         assertFalse(load1.isEqual(load6));
@@ -1041,11 +1054,11 @@ public class TestNewPlanOperatorPlan {
         LogicalPlan lp = new LogicalPlan();
         // Test that two loads with no schema are still equal
         LOLoad load7 = newLOLoad(new FileSpec("/abc",
-            new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "y"})), null, lp, conf);
+                new FuncSpec(DummyLoad.class.getName(), new String[] { "x", "y" })), null, lp, conf);
         lp.add(load7);
 
         LOLoad load8 = newLOLoad(new FileSpec("/abc",
-            new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "y"})), null, lp, conf);
+                new FuncSpec(DummyLoad.class.getName(), new String[] { "x", "y" })), null, lp, conf);
         lp.add(load8);
 
         assertTrue(load7.isEqual(load8));
@@ -1056,14 +1069,15 @@ public class TestNewPlanOperatorPlan {
         LogicalPlan lp = new LogicalPlan();
         LogicalSchema aschema1 = new LogicalSchema();
         aschema1.addField(new LogicalSchema.LogicalFieldSchema(
-            "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         LOLoad load1 = newLOLoad(new FileSpec("/abc",
-            new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "y"})), aschema1, lp, conf);
+                new FuncSpec(DummyLoad.class.getName(), new String[] { "x", "y" })), aschema1, lp,
+                conf);
         lp.add(load1);
 
         // Test that one with schema and one without breaks equality
         LOLoad load9 = newLOLoad(new FileSpec("/abc",
-            new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "z"})), null, lp, conf);
+                new FuncSpec(DummyLoad.class.getName(), new String[] { "x", "z" })), null, lp, conf);
         lp.add(load9);
 
         assertFalse(load1.isEqual(load9));
@@ -1076,21 +1090,21 @@ public class TestNewPlanOperatorPlan {
         LogicalExpressionPlan fp1 = new LogicalExpressionPlan();
         ProjectExpression fy1 = new ProjectExpression(fp1, 0, 1, null);
         ConstantExpression fc1 = new ConstantExpression(fp1,
-            new Integer(0));
+                new Integer(0));
         new EqualExpression(fp1, fy1, fc1);
         LOFilter D1 = new LOFilter(lp, fp1);
         LogicalSchema cschema = new LogicalSchema();
         cschema.addField(new LogicalSchema.LogicalFieldSchema(
-            "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         cschema.addField(new LogicalSchema.LogicalFieldSchema(
-            "y", null, DataType.INTEGER));
+                "y", null, DataType.INTEGER));
         D1.neverUseForRealSetSchema(cschema);
         lp.add(D1);
 
         LogicalExpressionPlan fp2 = new LogicalExpressionPlan();
         ProjectExpression fy2 = new ProjectExpression(fp2, 0, 1, null);
         ConstantExpression fc2 = new ConstantExpression(fp2,
-            new Integer(1));
+                new Integer(1));
         new EqualExpression(fp2, fy2, fc2);
         LOFilter D2 = new LOFilter(lp, fp2);
         D2.neverUseForRealSetSchema(cschema);
@@ -1104,37 +1118,38 @@ public class TestNewPlanOperatorPlan {
 
     @Test
     public void testJoinDifferentJoinTypes() throws FrontendException {
-       LogicalPlan lp = new LogicalPlan();
-       LogicalSchema jaschema1 = new LogicalSchema();
-       jaschema1.addField(new LogicalSchema.LogicalFieldSchema(
-           "x", null, DataType.INTEGER));
-       LOLoad A1 = newLOLoad(new FileSpec("/abc",
-           new FuncSpec("org.apache.pig.test.TestNewPlanOperatorPlan$FooLoad", new String[] {"x", "y"})), jaschema1, lp, conf);
-       lp.add(A1);
+        LogicalPlan lp = new LogicalPlan();
+        LogicalSchema jaschema1 = new LogicalSchema();
+        jaschema1.addField(new LogicalSchema.LogicalFieldSchema(
+                "x", null, DataType.INTEGER));
+        LOLoad A1 = newLOLoad(new FileSpec("/abc",
+                new FuncSpec("org.apache.pig.test.TestNewPlanOperatorPlan$FooLoad", new String[] {
+                                "x", "y" })), jaschema1, lp, conf);
+        lp.add(A1);
 
         // B = load
         LogicalSchema jbschema1 = new LogicalSchema();
         jbschema1.addField(new LogicalSchema.LogicalFieldSchema(
-            "y", null, DataType.INTEGER));
+                "y", null, DataType.INTEGER));
         LOLoad B1 = newLOLoad(new FileSpec("/def",
-            new FuncSpec("PigStorage", "\t")), jbschema1, lp, conf);
+                new FuncSpec("PigStorage", "\t")), jbschema1, lp, conf);
         lp.add(B1);
 
         // C = join
         LogicalSchema jcschema1 = new LogicalSchema();
         jcschema1.addField(new LogicalSchema.LogicalFieldSchema(
-            "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         jcschema1.addField(new LogicalSchema.LogicalFieldSchema(
-            "y", null, DataType.INTEGER));
+                "y", null, DataType.INTEGER));
         LogicalExpressionPlan aprojplan1 = new LogicalExpressionPlan();
         new ProjectExpression(aprojplan1, 0, 0, null);
         LogicalExpressionPlan bprojplan1 = new LogicalExpressionPlan();
         new ProjectExpression(bprojplan1, 1, 0, null);
         MultiMap<Integer, LogicalExpressionPlan> mm1 =
-            new MultiMap<Integer, LogicalExpressionPlan>();
+                new MultiMap<Integer, LogicalExpressionPlan>();
         mm1.put(0, aprojplan1);
         mm1.put(1, bprojplan1);
-        LOJoin C1 = new LOJoin(lp, mm1, JOINTYPE.HASH, new boolean[] {true, true});
+        LOJoin C1 = new LOJoin(lp, mm1, JOINTYPE.HASH, new boolean[] { true, true });
         C1.neverUseForRealSetSchema(jcschema1);
         lp.add(C1);
         lp.connect(A1, C1);
@@ -1143,34 +1158,35 @@ public class TestNewPlanOperatorPlan {
         // A = load
         LogicalSchema jaschema2 = new LogicalSchema();
         jaschema2.addField(new LogicalSchema.LogicalFieldSchema(
-           "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         LOLoad A2 = newLOLoad(new FileSpec("/abc",
-           new FuncSpec("org.apache.pig.test.TestNewPlanOperatorPlan$FooLoad", new String[] {"x", "y"})), jaschema2, lp, conf);
+                new FuncSpec("org.apache.pig.test.TestNewPlanOperatorPlan$FooLoad", new String[] {
+                                "x", "y" })), jaschema2, lp, conf);
         lp.add(A2);
 
         // B = load
         LogicalSchema jbschema2 = new LogicalSchema();
         jbschema2.addField(new LogicalSchema.LogicalFieldSchema(
-            "y", null, DataType.INTEGER));
+                "y", null, DataType.INTEGER));
         LOLoad B2 = newLOLoad(new FileSpec("/def",
-            new FuncSpec("PigStorage", "\t")), jbschema2, lp, conf);
+                new FuncSpec("PigStorage", "\t")), jbschema2, lp, conf);
         lp.add(B2);
 
         // C = join
         LogicalSchema jcschema2 = new LogicalSchema();
         jcschema2.addField(new LogicalSchema.LogicalFieldSchema(
-            "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         jcschema2.addField(new LogicalSchema.LogicalFieldSchema(
-            "y", null, DataType.INTEGER));
+                "y", null, DataType.INTEGER));
         LogicalExpressionPlan aprojplan2 = new LogicalExpressionPlan();
         new ProjectExpression(aprojplan2, 0, 0, null);
         LogicalExpressionPlan bprojplan2 = new LogicalExpressionPlan();
         new ProjectExpression(bprojplan2, 1, 0, null);
         MultiMap<Integer, LogicalExpressionPlan> mm2 =
-            new MultiMap<Integer, LogicalExpressionPlan>();
+                new MultiMap<Integer, LogicalExpressionPlan>();
         mm2.put(0, aprojplan2);
         mm2.put(1, bprojplan2);
-        LOJoin C2 = new LOJoin(lp, mm2, JOINTYPE.SKEWED, new boolean[] {true, true});
+        LOJoin C2 = new LOJoin(lp, mm2, JOINTYPE.SKEWED, new boolean[] { true, true });
         C2.neverUseForRealSetSchema(jcschema2);
         lp.add(C2);
         lp.connect(A2, C2);
@@ -1182,74 +1198,75 @@ public class TestNewPlanOperatorPlan {
     @Test
     public void testJoinDifferentInner() throws FrontendException {
         LogicalPlan lp = new LogicalPlan();
-               LogicalSchema jaschema1 = new LogicalSchema();
-       jaschema1.addField(new LogicalSchema.LogicalFieldSchema(
-           "x", null, DataType.INTEGER));
-       LOLoad A1 = newLOLoad(new FileSpec("/abc",
-           new FuncSpec("org.apache.pig.test.TestNewPlanOperatorPlan$FooLoad", new String[] {"x", "y"})), jaschema1, lp, conf);
-       lp.add(A1);
+        LogicalSchema jaschema1 = new LogicalSchema();
+        jaschema1.addField(new LogicalSchema.LogicalFieldSchema(
+                "x", null, DataType.INTEGER));
+        LOLoad A1 = newLOLoad(new FileSpec("/abc",
+                new FuncSpec("org.apache.pig.test.TestNewPlanOperatorPlan$FooLoad", new String[] {
+                                "x", "y" })), jaschema1, lp, conf);
+        lp.add(A1);
 
         // B = load
         LogicalSchema jbschema1 = new LogicalSchema();
         jbschema1.addField(new LogicalSchema.LogicalFieldSchema(
-            "y", null, DataType.INTEGER));
+                "y", null, DataType.INTEGER));
         LOLoad B1 = newLOLoad(new FileSpec("/def",
-            new FuncSpec("PigStorage", "\t")), jbschema1, lp, conf);
+                new FuncSpec("PigStorage", "\t")), jbschema1, lp, conf);
         lp.add(B1);
 
         // C = join
         LogicalSchema jcschema1 = new LogicalSchema();
         jcschema1.addField(new LogicalSchema.LogicalFieldSchema(
-            "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         jcschema1.addField(new LogicalSchema.LogicalFieldSchema(
-            "y", null, DataType.INTEGER));
+                "y", null, DataType.INTEGER));
         LogicalExpressionPlan aprojplan1 = new LogicalExpressionPlan();
         new ProjectExpression(aprojplan1, 0, 0, null);
         LogicalExpressionPlan bprojplan1 = new LogicalExpressionPlan();
         new ProjectExpression(bprojplan1, 1, 0, null);
         MultiMap<Integer, LogicalExpressionPlan> mm1 =
-            new MultiMap<Integer, LogicalExpressionPlan>();
+                new MultiMap<Integer, LogicalExpressionPlan>();
         mm1.put(0, aprojplan1);
         mm1.put(1, bprojplan1);
-        LOJoin C1 = new LOJoin(lp, mm1, JOINTYPE.HASH, new boolean[] {true, true});
+        LOJoin C1 = new LOJoin(lp, mm1, JOINTYPE.HASH, new boolean[] { true, true });
         C1.neverUseForRealSetSchema(jcschema1);
         lp.add(C1);
         lp.connect(A1, C1);
         lp.connect(B1, C1);
 
-
         // Test different inner status
         // A = load
         LogicalSchema jaschema3 = new LogicalSchema();
         jaschema3.addField(new LogicalSchema.LogicalFieldSchema(
-           "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         LOLoad A3 = newLOLoad(new FileSpec("/abc",
-           new FuncSpec("org.apache.pig.test.TestNewPlanOperatorPlan$FooLoad", new String[] {"x", "y"})), jaschema3, lp, conf);
+                new FuncSpec("org.apache.pig.test.TestNewPlanOperatorPlan$FooLoad", new String[] {
+                                "x", "y" })), jaschema3, lp, conf);
         lp.add(A3);
 
         // B = load
         LogicalSchema jbschema3 = new LogicalSchema();
         jbschema3.addField(new LogicalSchema.LogicalFieldSchema(
-            "y", null, DataType.INTEGER));
+                "y", null, DataType.INTEGER));
         LOLoad B3 = newLOLoad(new FileSpec("/def",
-            new FuncSpec("PigStorage", "\t")), jbschema3, lp, conf);
+                new FuncSpec("PigStorage", "\t")), jbschema3, lp, conf);
         lp.add(B3);
 
         // C = join
         LogicalSchema jcschema3 = new LogicalSchema();
         jcschema3.addField(new LogicalSchema.LogicalFieldSchema(
-            "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         jcschema3.addField(new LogicalSchema.LogicalFieldSchema(
-            "y", null, DataType.INTEGER));
+                "y", null, DataType.INTEGER));
         LogicalExpressionPlan aprojplan3 = new LogicalExpressionPlan();
         new ProjectExpression(aprojplan3, 0, 0, null);
         LogicalExpressionPlan bprojplan3 = new LogicalExpressionPlan();
         new ProjectExpression(bprojplan3, 1, 0, null);
         MultiMap<Integer, LogicalExpressionPlan> mm3 =
-            new MultiMap<Integer, LogicalExpressionPlan>();
+                new MultiMap<Integer, LogicalExpressionPlan>();
         mm3.put(0, aprojplan3);
         mm3.put(1, bprojplan3);
-        LOJoin C3 = new LOJoin(lp, mm3, JOINTYPE.HASH, new boolean[] {true, false});
+        LOJoin C3 = new LOJoin(lp, mm3, JOINTYPE.HASH, new boolean[] { true, false });
         C3.neverUseForRealSetSchema(jcschema3);
         lp.add(C3);
         lp.connect(A3, C3);
@@ -1261,36 +1278,37 @@ public class TestNewPlanOperatorPlan {
     @Test
     public void testJoinDifferentNumInputs() throws FrontendException {
         LogicalPlan lp = new LogicalPlan();
-               LogicalSchema jaschema1 = new LogicalSchema();
-       jaschema1.addField(new LogicalSchema.LogicalFieldSchema(
-           "x", null, DataType.INTEGER));
-       LOLoad A1 = newLOLoad(new FileSpec("/abc",
-           new FuncSpec("org.apache.pig.test.TestNewPlanOperatorPlan$FooLoad", new String[] {"x", "y"})), jaschema1, lp, conf);
-       lp.add(A1);
+        LogicalSchema jaschema1 = new LogicalSchema();
+        jaschema1.addField(new LogicalSchema.LogicalFieldSchema(
+                "x", null, DataType.INTEGER));
+        LOLoad A1 = newLOLoad(new FileSpec("/abc",
+                new FuncSpec("org.apache.pig.test.TestNewPlanOperatorPlan$FooLoad", new String[] {
+                                "x", "y" })), jaschema1, lp, conf);
+        lp.add(A1);
 
         // B = load
         LogicalSchema jbschema1 = new LogicalSchema();
         jbschema1.addField(new LogicalSchema.LogicalFieldSchema(
-            "y", null, DataType.INTEGER));
+                "y", null, DataType.INTEGER));
         LOLoad B1 = newLOLoad(new FileSpec("/def",
-            new FuncSpec("PigStorage", "\t")), jbschema1, lp, conf);
+                new FuncSpec("PigStorage", "\t")), jbschema1, lp, conf);
         lp.add(B1);
 
         // C = join
         LogicalSchema jcschema1 = new LogicalSchema();
         jcschema1.addField(new LogicalSchema.LogicalFieldSchema(
-            "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         jcschema1.addField(new LogicalSchema.LogicalFieldSchema(
-            "y", null, DataType.INTEGER));
+                "y", null, DataType.INTEGER));
         LogicalExpressionPlan aprojplan1 = new LogicalExpressionPlan();
         new ProjectExpression(aprojplan1, 0, 0, null);
         LogicalExpressionPlan bprojplan1 = new LogicalExpressionPlan();
         new ProjectExpression(bprojplan1, 1, 0, null);
         MultiMap<Integer, LogicalExpressionPlan> mm1 =
-            new MultiMap<Integer, LogicalExpressionPlan>();
+                new MultiMap<Integer, LogicalExpressionPlan>();
         mm1.put(0, aprojplan1);
         mm1.put(1, bprojplan1);
-        LOJoin C1 = new LOJoin(lp, mm1, JOINTYPE.HASH, new boolean[] {true, true});
+        LOJoin C1 = new LOJoin(lp, mm1, JOINTYPE.HASH, new boolean[] { true, true });
         C1.neverUseForRealSetSchema(jcschema1);
         lp.add(C1);
         lp.connect(A1, C1);
@@ -1299,33 +1317,34 @@ public class TestNewPlanOperatorPlan {
         // A = load
         LogicalSchema jaschema5 = new LogicalSchema();
         jaschema5.addField(new LogicalSchema.LogicalFieldSchema(
-           "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         LOLoad A5 = newLOLoad(new FileSpec("/abc",
-           new FuncSpec("org.apache.pig.test.TestNewPlanOperatorPlan$FooLoad", new String[] {"x", "y"})), jaschema5, lp, conf);
+                new FuncSpec("org.apache.pig.test.TestNewPlanOperatorPlan$FooLoad", new String[] {
+                                "x", "y" })), jaschema5, lp, conf);
         lp.add(A5);
 
         // B = load
         LogicalSchema jbschema5 = new LogicalSchema();
         jbschema5.addField(new LogicalSchema.LogicalFieldSchema(
-            "y", null, DataType.INTEGER));
+                "y", null, DataType.INTEGER));
         LOLoad B5 = newLOLoad(new FileSpec("/def",
-            new FuncSpec("PigStorage", "\t")), jbschema5, lp, conf);
+                new FuncSpec("PigStorage", "\t")), jbschema5, lp, conf);
         lp.add(B5);
 
         // Beta = load
         LogicalSchema jbetaschema5 = new LogicalSchema();
         jbetaschema5.addField(new LogicalSchema.LogicalFieldSchema(
-            "y", null, DataType.INTEGER));
+                "y", null, DataType.INTEGER));
         LOLoad Beta5 = newLOLoad(new FileSpec("/ghi",
-            new FuncSpec("PigStorage", "\t")), jbetaschema5, lp, conf);
+                new FuncSpec("PigStorage", "\t")), jbetaschema5, lp, conf);
         lp.add(Beta5);
 
         // C = join
         LogicalSchema jcschema5 = new LogicalSchema();
         jcschema5.addField(new LogicalSchema.LogicalFieldSchema(
-            "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         jcschema5.addField(new LogicalSchema.LogicalFieldSchema(
-            "y", null, DataType.INTEGER));
+                "y", null, DataType.INTEGER));
         LogicalExpressionPlan aprojplan5 = new LogicalExpressionPlan();
         new ProjectExpression(aprojplan5, 0, 0, null);
         LogicalExpressionPlan bprojplan5 = new LogicalExpressionPlan();
@@ -1333,11 +1352,11 @@ public class TestNewPlanOperatorPlan {
         LogicalExpressionPlan betaprojplan5 = new LogicalExpressionPlan();
         new ProjectExpression(betaprojplan5, 1, 0, null);
         MultiMap<Integer, LogicalExpressionPlan> mm5 =
-            new MultiMap<Integer, LogicalExpressionPlan>();
+                new MultiMap<Integer, LogicalExpressionPlan>();
         mm5.put(0, aprojplan5);
         mm5.put(1, bprojplan5);
         mm5.put(2, betaprojplan5);
-        LOJoin C5 = new LOJoin(lp, mm5, JOINTYPE.HASH, new boolean[] {true, true});
+        LOJoin C5 = new LOJoin(lp, mm5, JOINTYPE.HASH, new boolean[] { true, true });
         C5.neverUseForRealSetSchema(jcschema5);
         lp.add(C5);
         lp.connect(A5, C5);
@@ -1354,27 +1373,28 @@ public class TestNewPlanOperatorPlan {
         // Test different join keys
         LogicalSchema jaschema6 = new LogicalSchema();
         jaschema6.addField(new LogicalSchema.LogicalFieldSchema(
-           "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         LOLoad A6 = newLOLoad(new FileSpec("/abc",
-           new FuncSpec("org.apache.pig.test.TestNewPlanOperatorPlan$FooLoad", new String[] {"x", "y"})), jaschema6, lp, conf);
+                new FuncSpec("org.apache.pig.test.TestNewPlanOperatorPlan$FooLoad", new String[] {
+                                "x", "y" })), jaschema6, lp, conf);
         lp.add(A6);
 
         // B = load
         LogicalSchema jbschema6 = new LogicalSchema();
         jbschema6.addField(new LogicalSchema.LogicalFieldSchema(
-            "y", null, DataType.INTEGER));
+                "y", null, DataType.INTEGER));
         jbschema6.addField(new LogicalSchema.LogicalFieldSchema(
-            "z", null, DataType.LONG));
+                "z", null, DataType.LONG));
         LOLoad B6 = newLOLoad(new FileSpec("/def",
-            new FuncSpec("PigStorage", "\t")), jbschema6, lp, conf);
+                new FuncSpec("PigStorage", "\t")), jbschema6, lp, conf);
         lp.add(B6);
 
         // C = join
         LogicalSchema jcschema6 = new LogicalSchema();
         jcschema6.addField(new LogicalSchema.LogicalFieldSchema(
-            "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         jcschema6.addField(new LogicalSchema.LogicalFieldSchema(
-            "y", null, DataType.INTEGER));
+                "y", null, DataType.INTEGER));
         LogicalExpressionPlan aprojplan6 = new LogicalExpressionPlan();
         new ProjectExpression(aprojplan6, 0, 0, null);
         LogicalExpressionPlan bprojplan6 = new LogicalExpressionPlan();
@@ -1382,40 +1402,40 @@ public class TestNewPlanOperatorPlan {
         LogicalExpressionPlan b2projplan6 = new LogicalExpressionPlan();
         new ProjectExpression(b2projplan6, 1, 1, null);
         MultiMap<Integer, LogicalExpressionPlan> mm6 =
-            new MultiMap<Integer, LogicalExpressionPlan>();
+                new MultiMap<Integer, LogicalExpressionPlan>();
         mm6.put(0, aprojplan6);
         mm6.put(1, bprojplan6);
         mm6.put(1, b2projplan6);
-        LOJoin C6 = new LOJoin(lp, mm6, JOINTYPE.HASH, new boolean[] {true, true});
+        LOJoin C6 = new LOJoin(lp, mm6, JOINTYPE.HASH, new boolean[] { true, true });
         C6.neverUseForRealSetSchema(jcschema6);
         lp.add(C6);
         lp.connect(A6, C6);
         lp.connect(B6, C6);
 
-
         LogicalSchema jaschema7 = new LogicalSchema();
         jaschema7.addField(new LogicalSchema.LogicalFieldSchema(
-           "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         LOLoad A7 = newLOLoad(new FileSpec("/abc",
-           new FuncSpec("org.apache.pig.test.TestNewPlanOperatorPlan$FooLoad", new String[] {"x", "y"})), jaschema7, lp, conf);
+                new FuncSpec("org.apache.pig.test.TestNewPlanOperatorPlan$FooLoad", new String[] {
+                                "x", "y" })), jaschema7, lp, conf);
         lp.add(A7);
 
         // B = load
         LogicalSchema jbschema7 = new LogicalSchema();
         jbschema7.addField(new LogicalSchema.LogicalFieldSchema(
-            "y", null, DataType.INTEGER));
+                "y", null, DataType.INTEGER));
         jbschema7.addField(new LogicalSchema.LogicalFieldSchema(
-            "z", null, DataType.LONG));
+                "z", null, DataType.LONG));
         LOLoad B7 = newLOLoad(new FileSpec("/def",
-            new FuncSpec("PigStorage", "\t")), jbschema7, lp, conf);
+                new FuncSpec("PigStorage", "\t")), jbschema7, lp, conf);
         lp.add(B7);
 
         // C = join
         LogicalSchema jcschema7 = new LogicalSchema();
         jcschema7.addField(new LogicalSchema.LogicalFieldSchema(
-            "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         jcschema7.addField(new LogicalSchema.LogicalFieldSchema(
-            "y", null, DataType.INTEGER));
+                "y", null, DataType.INTEGER));
         LogicalExpressionPlan aprojplan7 = new LogicalExpressionPlan();
         new ProjectExpression(aprojplan7, 0, 0, null);
         LogicalExpressionPlan bprojplan7 = new LogicalExpressionPlan();
@@ -1423,11 +1443,11 @@ public class TestNewPlanOperatorPlan {
         LogicalExpressionPlan b2projplan7 = new LogicalExpressionPlan();
         new ProjectExpression(b2projplan7, 1, 0, null);
         MultiMap<Integer, LogicalExpressionPlan> mm7 =
-            new MultiMap<Integer, LogicalExpressionPlan>();
+                new MultiMap<Integer, LogicalExpressionPlan>();
         mm7.put(0, aprojplan7);
         mm7.put(1, bprojplan7);
         mm7.put(1, b2projplan7);
-        LOJoin C7 = new LOJoin(lp, mm7, JOINTYPE.HASH, new boolean[] {true, true});
+        LOJoin C7 = new LOJoin(lp, mm7, JOINTYPE.HASH, new boolean[] { true, true });
         C7.neverUseForRealSetSchema(jcschema7);
         lp.add(C7);
         lp.connect(A7, C7);
@@ -1443,27 +1463,28 @@ public class TestNewPlanOperatorPlan {
         // Test different join keys
         LogicalSchema jaschema6 = new LogicalSchema();
         jaschema6.addField(new LogicalSchema.LogicalFieldSchema(
-           "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         LOLoad A6 = newLOLoad(new FileSpec("/abc",
-           new FuncSpec("org.apache.pig.test.TestNewPlanOperatorPlan$FooLoad", new String[] {"x", "y"})), jaschema6, lp, conf);
+                new FuncSpec("org.apache.pig.test.TestNewPlanOperatorPlan$FooLoad", new String[] {
+                                "x", "y" })), jaschema6, lp, conf);
         lp.add(A6);
 
         // B = load
         LogicalSchema jbschema6 = new LogicalSchema();
         jbschema6.addField(new LogicalSchema.LogicalFieldSchema(
-            "y", null, DataType.INTEGER));
+                "y", null, DataType.INTEGER));
         jbschema6.addField(new LogicalSchema.LogicalFieldSchema(
-            "z", null, DataType.LONG));
+                "z", null, DataType.LONG));
         LOLoad B6 = newLOLoad(new FileSpec("/def",
-            new FuncSpec("PigStorage", "\t")), jbschema6, lp, conf);
+                new FuncSpec("PigStorage", "\t")), jbschema6, lp, conf);
         lp.add(B6);
 
         // C = join
         LogicalSchema jcschema6 = new LogicalSchema();
         jcschema6.addField(new LogicalSchema.LogicalFieldSchema(
-            "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         jcschema6.addField(new LogicalSchema.LogicalFieldSchema(
-            "y", null, DataType.INTEGER));
+                "y", null, DataType.INTEGER));
         LogicalExpressionPlan aprojplan6 = new LogicalExpressionPlan();
         new ProjectExpression(aprojplan6, 0, 0, null);
         LogicalExpressionPlan bprojplan6 = new LogicalExpressionPlan();
@@ -1471,11 +1492,11 @@ public class TestNewPlanOperatorPlan {
         LogicalExpressionPlan b2projplan6 = new LogicalExpressionPlan();
         new ProjectExpression(b2projplan6, 1, 1, null);
         MultiMap<Integer, LogicalExpressionPlan> mm6 =
-            new MultiMap<Integer, LogicalExpressionPlan>();
+                new MultiMap<Integer, LogicalExpressionPlan>();
         mm6.put(0, aprojplan6);
         mm6.put(1, bprojplan6);
         mm6.put(1, b2projplan6);
-        LOJoin C6 = new LOJoin(lp, mm6, JOINTYPE.HASH, new boolean[] {true, true});
+        LOJoin C6 = new LOJoin(lp, mm6, JOINTYPE.HASH, new boolean[] { true, true });
         C6.neverUseForRealSetSchema(jcschema6);
         lp.add(C6);
         lp.connect(A6, C6);
@@ -1484,36 +1505,37 @@ public class TestNewPlanOperatorPlan {
         // Test different different number of join keys
         LogicalSchema jaschema8 = new LogicalSchema();
         jaschema8.addField(new LogicalSchema.LogicalFieldSchema(
-           "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         LOLoad A8 = newLOLoad(new FileSpec("/abc",
-           new FuncSpec("org.apache.pig.test.TestNewPlanOperatorPlan$FooLoad", new String[] {"x", "y"})), jaschema8, lp, conf);
+                new FuncSpec("org.apache.pig.test.TestNewPlanOperatorPlan$FooLoad", new String[] {
+                                "x", "y" })), jaschema8, lp, conf);
         lp.add(A8);
 
         // B = load
         LogicalSchema jbschema8 = new LogicalSchema();
         jbschema8.addField(new LogicalSchema.LogicalFieldSchema(
-            "y", null, DataType.INTEGER));
+                "y", null, DataType.INTEGER));
         jbschema8.addField(new LogicalSchema.LogicalFieldSchema(
-            "z", null, DataType.LONG));
+                "z", null, DataType.LONG));
         LOLoad B8 = newLOLoad(new FileSpec("/def",
-            new FuncSpec("PigStorage", "\t")), jbschema8, lp, conf);
+                new FuncSpec("PigStorage", "\t")), jbschema8, lp, conf);
         lp.add(B8);
 
         // C = join
         LogicalSchema jcschema8 = new LogicalSchema();
         jcschema8.addField(new LogicalSchema.LogicalFieldSchema(
-            "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         jcschema8.addField(new LogicalSchema.LogicalFieldSchema(
-            "y", null, DataType.INTEGER));
+                "y", null, DataType.INTEGER));
         LogicalExpressionPlan aprojplan8 = new LogicalExpressionPlan();
         new ProjectExpression(aprojplan8, 0, 0, null);
         LogicalExpressionPlan bprojplan8 = new LogicalExpressionPlan();
         new ProjectExpression(bprojplan8, 1, 0, null);
         MultiMap<Integer, LogicalExpressionPlan> mm8 =
-            new MultiMap<Integer, LogicalExpressionPlan>();
+                new MultiMap<Integer, LogicalExpressionPlan>();
         mm8.put(0, aprojplan8);
         mm8.put(1, bprojplan8);
-        LOJoin C8 = new LOJoin(lp, mm8, JOINTYPE.HASH, new boolean[] {true, true});
+        LOJoin C8 = new LOJoin(lp, mm8, JOINTYPE.HASH, new boolean[] { true, true });
         C8.neverUseForRealSetSchema(jcschema8);
         lp.add(C8);
         lp.connect(A8, C8);
@@ -1527,33 +1549,35 @@ public class TestNewPlanOperatorPlan {
         LogicalPlan lp1 = new LogicalPlan();
         LogicalSchema aschema1 = new LogicalSchema();
         aschema1.addField(new LogicalSchema.LogicalFieldSchema(
-            "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         LOLoad A1 = newLOLoad(new FileSpec("/abc",
-            new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "y"})), aschema1, lp1, conf);
+                new FuncSpec(DummyLoad.class.getName(), new String[] { "x", "y" })), aschema1, lp1,
+                conf);
         lp1.add(A1);
 
         LogicalExpressionPlan fp1 = new LogicalExpressionPlan();
         ProjectExpression fy1 = new ProjectExpression(fp1, 0, 0, null);
         ConstantExpression fc1 = new ConstantExpression(fp1,
-            new Integer(0));
+                new Integer(0));
         new EqualExpression(fp1, fy1, fc1);
         LOFilter D1 = new LOFilter(lp1, fp1);
         LogicalSchema cschema = new LogicalSchema();
         cschema.addField(new LogicalSchema.LogicalFieldSchema(
-            "x", null, DataType.INTEGER));
+                "x", null, DataType.INTEGER));
         D1.neverUseForRealSetSchema(cschema);
         lp1.add(D1);
         lp1.connect(A1, D1);
 
         LogicalPlan lp2 = new LogicalPlan();
         LOLoad A2 = newLOLoad(new FileSpec("/abc",
-            new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "z"})), null, lp2, conf);
+                new FuncSpec(DummyLoad.class.getName(), new String[] { "x", "z" })), null, lp2,
+                conf);
         lp2.add(A2);
 
         LogicalExpressionPlan fp2 = new LogicalExpressionPlan();
         ProjectExpression fy2 = new ProjectExpression(fp2, 0, 0, null);
         ConstantExpression fc2 = new ConstantExpression(fp2,
-            new Integer(0));
+                new Integer(0));
         new EqualExpression(fp2, fy2, fc2);
         LOFilter D2 = new LOFilter(lp2, fp2);
         D2.neverUseForRealSetSchema(cschema);
@@ -1862,7 +1886,7 @@ public class TestNewPlanOperatorPlan {
         assertTrue(succs.contains(filter2));
     }
 
-    @Test
+    @Test(expected = FrontendException.class)
     public void testRemove6() throws FrontendException {
         // has multiple inputs/outputs
         SillyPlan plan = new SillyPlan();
@@ -1883,9 +1907,9 @@ public class TestNewPlanOperatorPlan {
 
         try {
             plan.removeAndReconnect(fake1);
-            fail("Should have thrown a FrontendException");
         } catch (FrontendException e) {
-            assertTrue(e.getErrorCode()==2256);
+            assertEquals(2256, e.getErrorCode());
+            throw e;
         }
     }
 

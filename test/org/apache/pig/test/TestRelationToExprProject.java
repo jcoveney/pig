@@ -166,7 +166,6 @@ public class TestRelationToExprProject {
     // input is the filter
     @Test
     public void testFilterCount3() throws IOException, ParserException {
-        //Util.copyFromLocalToCluster(cluster, TEST_FILTER_COUNT3_INPUT, "testdata");
         String query = "TESTDATA =  load '"+TEST_FILTER_COUNT3_INPUT+"' using PigStorage() as (timestamp:chararray, testid:chararray, userid: chararray, sessionid:chararray, value:long, flag:int);" +
         		"TESTDATA_FILTERED = filter TESTDATA by (timestamp gte '1230800400000' and timestamp lt '1230804000000' and value != 0);" +
         		"TESTDATA_GROUP = group TESTDATA_FILTERED by testid;" +
