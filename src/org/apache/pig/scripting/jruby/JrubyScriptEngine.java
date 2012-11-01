@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -190,7 +191,6 @@ public class JrubyScriptEngine extends ScriptEngine {
         RubyArray allLoadedFiles = (RubyArray)rubyEngine.runScriptlet("$\"");
         RubyArray fullLoadPath = (RubyArray)rubyEngine.runScriptlet("$LOAD_PATH");
 
-        //TODO find the common parent of the new loaded files
         List<String> newLoadedFiles = Lists.newArrayList();
         for (Object o : allLoadedFiles) {
             if (!initialListOfLoadedFiles.contains(o)) {
@@ -201,115 +201,63 @@ public class JrubyScriptEngine extends ScriptEngine {
         File commonParent = findCommonParent(newLoadedFiles);
         LOG.debug("Common parent for JRuby dependencies: " + commonParent);
 
+        String loadPathValue = null;
+
         for (Object o : fullLoadPath) {
             String loadPath = new File(o.toString()).getAbsolutePath();
             String parPath = commonParent.getAbsolutePath();
             if (loadPath.startsWith(parPath)) {
                 String newPath = new File(GEM_DIR_BASE_NAME, loadPath.substring(parPath.length())).getPath();
-                String value = conf.get(RUBY_LOAD_PATH_KEY);
-                if (value != null) {
-                    value = newPath;
+                LOG.debug("Adding path to M/R JRuby load path: " + newPath);
+                if (loadPathValue == null) {
+                    loadPathValue  = newPath;
                 } else {
-                    value += "^^^" + newPath;
+                    loadPathValue  += "^^^" + newPath;
                 }
-                conf.set(RUBY_LOAD_PATH_KEY, value);
             }
         }
-
-
-
-        LOG.debug("Beginning to archive gems to ship.");
+        if (loadPathValue != null) {
+            conf.set(RUBY_LOAD_PATH_KEY, loadPathValue);
+            LOG.debug("Setting JobConf key ["+RUBY_LOAD_PATH_KEY+"] to: " + loadPathValue);
+        } else {
+            LOG.debug("No load path values to set in JobConf key: " + RUBY_LOAD_PATH_KEY);
+        }
 
         File fout = File.createTempFile("tmp", ".tar.gz");
         fout.delete();
         fout.deleteOnExit();
 
+        int commonParentSize = commonParent.getAbsolutePath().length() + 1;
         TarArchiveOutputStream os = new TarArchiveOutputStream(new GZIPOutputStream(new FileOutputStream(fout), 1024*1024));
 
-        for (File f : gems) {
-            LOG.debug("Shipping gem: " + f);
-            TarUtils.tarFile(GEM_DIR_BASE_NAME, f.getParentFile(), new File(f, "lib"), os);
-        }
+        LOG.debug("Beginning to archive JRuby dependencies to ship.");
+        for (String file : newLoadedFiles) {
+            LOG.debug("Attempting to archive file: " + file);
+            String getTarName = file.substring(commonParentSize);
+            getTarName = new File(GEM_DIR_BASE_NAME, getTarName).getAbsolutePath();
 
-        //RubyArray list = (RubyArray)rubyEngine.runScriptlet("Gem.loaded_specs.map {|k,v| [k,v.gem_dir]}");
+            File fileToTar = new File(file);
+            TarArchiveEntry entry = new TarArchiveEntry(file);
+            entry.setName(getTarName);
 
-        shipTarToDistributedCache(tarGemsToShip(Sets.newHashSet(gemsToShip.values())), pigContext, conf);
+            os.putArchiveEntry(entry);
 
-        //TODO then we want to tar everything with paths relative to the common parent
-        //TODO what is the best format to do this?
+            InputStream in = new FileInputStream(file);
 
-        List<String> newLoadPath = Lists.newArrayList();
-        for (Object o : fullLoadPath) {
-            if (!initialLoadPath.contains(o)) {
-                newLoadPath.add(o.toString());
+            byte[] buf = new byte[2048];
+            int written;
+            while ((written = in.read(buf)) != -1) {
+                os.write(buf, 0, written);
             }
+
+            in.close();
+            os.closeArchiveEntry();
+            os.flush();
         }
 
-        Map<String,String> newLoadedFiles = Maps.newHashMap();
-        Set<String> loadPaths = Sets.newHashSet();
+        os.finish();
 
-
-
-        for (Object o : allLoadedFiles) {
-            if (!initialListOfLoadedFiles.contains(o)) {
-                String loadedFile = o.toString();
-                for (Object o2 : fullLoadPath) {
-                    String loadPath = o2.toString();
-                    if (loadedFile.startsWith(loadPath)) {
-                        newLoadedFiles.put(loadedFile, loadPath);
-                        loadPaths.add(loadPath);
-                        break;
-                    }
-                }
-            }
-        }
-
-        String[] loadPathsArray = (String[])loadPaths.toArray();
-        Arrays.sort(loadPathsArray);
-
-        String firstPath = loadPathsArray[0];
-        String lastPath = loadPathsArray[loadPathsArray.length - 1];
-
-        File firstPathFile = new File(firstPath).getAbsoluteFile();
-        File lastPathFile = new File(lastPath).getAbsoluteFile();
-
-        Deque<String> firstPathParentFiles = new LinkedList<String>();
-        Deque<String> lastPathParentFiles = new LinkedList<String>();
-
-        File parent = null;
-        while ((parent = firstPathFile.getParentFile()) != null) {
-            firstPathParentFiles.add(parent.getAbsolutePath());
-        }
-
-        parent = null;
-        while ((parent = lastPathFile.getParentFile()) != null) {
-            lastPathParentFiles.add(parent.getAbsolutePath());
-        }
-
-        File commonParent = new File("/");
-        while (!firstPathParentFiles.isEmpty() && !lastPathParentFiles.isEmpty()) {
-            String val = firstPathParentFiles.pop();
-            if (val.equals(lastPathParentFiles.pop())) {
-                commonParent = new File(val);
-            } else {
-                break;
-            }
-        }
-
-        LOG.debug("Longest prefix between all loaded files is: " + commonParent.getAbsolutePath());
-
-        int commonParentAbsoluteLength = commonParent.getAbsolutePath().length();
-        List<String> relativeLoadPath = Lists.newArrayList();
-        for (String path : loadPaths) {
-            File toAdd = new File(GEM_DIR_BASE_NAME, new File(path).getAbsolutePath().substring(commonParentAbsoluteLength));
-            String key = conf.get(RUBY_LOAD_PATH_KEY);
-        }
-
-        //TODO *** make it so that we find the common parent of all of the LOADED FILES, and we include any load path which shares that parent
-
-
-        //TODO now we can set the LOAD_PATH variables we will want w.r.t. the load path less the common parent
-
+        shipTarToDistributedCache(fout, pigContext, conf);
     }
 
     // Another general option would be to add them individually to the distributed cache as they come
