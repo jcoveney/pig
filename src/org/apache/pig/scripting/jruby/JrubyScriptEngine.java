@@ -27,8 +27,11 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -53,7 +56,6 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tar.TarUtils;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.jruby.CompatVersion;
 import org.jruby.Ruby;
 import org.jruby.RubyArray;
 import org.jruby.RubyBoolean;
@@ -62,6 +64,7 @@ import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.LocalVariableBehavior;
 import org.jruby.embed.ScriptingContainer;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
@@ -81,7 +84,6 @@ public class JrubyScriptEngine extends ScriptEngine {
 
     static {
         rubyEngine = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
-        rubyEngine.setCompatVersion(CompatVersion.RUBY1_9);
         rubyEngine.getProvider().getRubyInstanceConfig().setCompileMode(CompileMode.JIT); //consider using FORCE
     }
 
@@ -147,23 +149,176 @@ public class JrubyScriptEngine extends ScriptEngine {
     private static Map<String, File> gemsToShip = Maps.newHashMap();
     public static final String GEM_DIR_BASE_NAME = "gems_to_ship_123456"; //TODO move to PigConstants
     public static final String GEM_TAR_SYMLINK = "apreciousgemindeed.tar.gz"; //TODO move to PigConstants
+    public static final String RUBY_LOAD_PATH_KEY = "pig.jruby.files.to.ship"; //TODO move to PigConstants
 
-    //TODO add logging!
+    public static File findCommonParent(List<String> files) {
+        String[] arr = (String[])files.toArray();
+        Arrays.sort(arr);
+        File first = new File(arr[0]).getAbsoluteFile();
+        File last = new File(arr[arr.length - 1]).getAbsoluteFile();
+        Deque<File> firstStack = new LinkedList<File>();
+        Deque<File> lastStack = new LinkedList<File>();
+        File parent = null;
+        while ((parent = first.getParentFile()) != null) {
+            firstStack.add(parent);
+        }
+
+        parent = null;
+        while ((parent = last.getParentFile()) != null) {
+            lastStack.add(parent);
+        }
+
+        parent = new File("/");
+        while (!firstStack.isEmpty() && !lastStack.isEmpty()) {
+            File firstParent = firstStack.pollLast();
+            File lastParent = lastStack.pollLast();
+            if (!firstParent.equals(lastParent)) { //TODO make sure equals ok to use here
+                return parent;
+            }
+            parent = firstParent;
+        }
+        return parent;
+    }
 
     public static void shipGems(PigContext pigContext, Configuration conf) throws IOException {
-        if (gemsToShip.isEmpty()) {
-            return;
+        //TODO do this all at the end
+        //TODO for everything new in $", need to see what base it is off of in the load path $:
+        //TODO anything new in the load path should be set accordingly in the mappers
+        //TODO any new file in $" we need to find where in the load path it was found, and then set accordingly
+
+        LOG.debug("Figuring out what dependencies will need to be shipped.");
+        RubyArray allLoadedFiles = (RubyArray)rubyEngine.runScriptlet("$\"");
+        RubyArray fullLoadPath = (RubyArray)rubyEngine.runScriptlet("$LOAD_PATH");
+
+        //TODO find the common parent of the new loaded files
+        List<String> newLoadedFiles = Lists.newArrayList();
+        for (Object o : allLoadedFiles) {
+            if (!initialListOfLoadedFiles.contains(o)) {
+                newLoadedFiles.add(o.toString());
+            }
         }
+
+        File commonParent = findCommonParent(newLoadedFiles);
+        LOG.debug("Common parent for JRuby dependencies: " + commonParent);
+
+        for (Object o : fullLoadPath) {
+            String loadPath = new File(o.toString()).getAbsolutePath();
+            String parPath = commonParent.getAbsolutePath();
+            if (loadPath.startsWith(parPath)) {
+                String newPath = new File(GEM_DIR_BASE_NAME, loadPath.substring(parPath.length())).getPath();
+                String value = conf.get(RUBY_LOAD_PATH_KEY);
+                if (value != null) {
+                    value = newPath;
+                } else {
+                    value += "^^^" + newPath;
+                }
+                conf.set(RUBY_LOAD_PATH_KEY, value);
+            }
+        }
+
+
+
         LOG.debug("Beginning to archive gems to ship.");
+
+        File fout = File.createTempFile("tmp", ".tar.gz");
+        fout.delete();
+        fout.deleteOnExit();
+
+        TarArchiveOutputStream os = new TarArchiveOutputStream(new GZIPOutputStream(new FileOutputStream(fout), 1024*1024));
+
+        for (File f : gems) {
+            LOG.debug("Shipping gem: " + f);
+            TarUtils.tarFile(GEM_DIR_BASE_NAME, f.getParentFile(), new File(f, "lib"), os);
+        }
+
+        //RubyArray list = (RubyArray)rubyEngine.runScriptlet("Gem.loaded_specs.map {|k,v| [k,v.gem_dir]}");
+
         shipTarToDistributedCache(tarGemsToShip(Sets.newHashSet(gemsToShip.values())), pigContext, conf);
+
+        //TODO then we want to tar everything with paths relative to the common parent
+        //TODO what is the best format to do this?
+
+        List<String> newLoadPath = Lists.newArrayList();
+        for (Object o : fullLoadPath) {
+            if (!initialLoadPath.contains(o)) {
+                newLoadPath.add(o.toString());
+            }
+        }
+
+        Map<String,String> newLoadedFiles = Maps.newHashMap();
+        Set<String> loadPaths = Sets.newHashSet();
+
+
+
+        for (Object o : allLoadedFiles) {
+            if (!initialListOfLoadedFiles.contains(o)) {
+                String loadedFile = o.toString();
+                for (Object o2 : fullLoadPath) {
+                    String loadPath = o2.toString();
+                    if (loadedFile.startsWith(loadPath)) {
+                        newLoadedFiles.put(loadedFile, loadPath);
+                        loadPaths.add(loadPath);
+                        break;
+                    }
+                }
+            }
+        }
+
+        String[] loadPathsArray = (String[])loadPaths.toArray();
+        Arrays.sort(loadPathsArray);
+
+        String firstPath = loadPathsArray[0];
+        String lastPath = loadPathsArray[loadPathsArray.length - 1];
+
+        File firstPathFile = new File(firstPath).getAbsoluteFile();
+        File lastPathFile = new File(lastPath).getAbsoluteFile();
+
+        Deque<String> firstPathParentFiles = new LinkedList<String>();
+        Deque<String> lastPathParentFiles = new LinkedList<String>();
+
+        File parent = null;
+        while ((parent = firstPathFile.getParentFile()) != null) {
+            firstPathParentFiles.add(parent.getAbsolutePath());
+        }
+
+        parent = null;
+        while ((parent = lastPathFile.getParentFile()) != null) {
+            lastPathParentFiles.add(parent.getAbsolutePath());
+        }
+
+        File commonParent = new File("/");
+        while (!firstPathParentFiles.isEmpty() && !lastPathParentFiles.isEmpty()) {
+            String val = firstPathParentFiles.pop();
+            if (val.equals(lastPathParentFiles.pop())) {
+                commonParent = new File(val);
+            } else {
+                break;
+            }
+        }
+
+        LOG.debug("Longest prefix between all loaded files is: " + commonParent.getAbsolutePath());
+
+        int commonParentAbsoluteLength = commonParent.getAbsolutePath().length();
+        List<String> relativeLoadPath = Lists.newArrayList();
+        for (String path : loadPaths) {
+            File toAdd = new File(GEM_DIR_BASE_NAME, new File(path).getAbsolutePath().substring(commonParentAbsoluteLength));
+            String key = conf.get(RUBY_LOAD_PATH_KEY);
+        }
+
+        //TODO *** make it so that we find the common parent of all of the LOADED FILES, and we include any load path which shares that parent
+
+
+        //TODO now we can set the LOAD_PATH variables we will want w.r.t. the load path less the common parent
+
     }
 
     // Another general option would be to add them individually to the distributed cache as they come
     private static File tarGemsToShip(Set<File> gems) throws IOException {
         File fout = File.createTempFile("tmp", ".tar.gz");
         fout.delete();
-        //TODO do I need to buffer as well or does GZIP already?
-        TarArchiveOutputStream os = new TarArchiveOutputStream(new GZIPOutputStream(new FileOutputStream(fout)));
+        fout.deleteOnExit();
+
+        TarArchiveOutputStream os = new TarArchiveOutputStream(new GZIPOutputStream(new FileOutputStream(fout), 1024*1024));
 
         for (File f : gems) {
             LOG.debug("Shipping gem: " + f);
@@ -229,7 +384,7 @@ public class JrubyScriptEngine extends ScriptEngine {
                 parent.mkdirs();
             }
             LOG.debug("Attempting to write to temporary location: " + fileToWriteTo);
-            //TODO may have to make all of the parents between fileToWriteTo and gemDir
+
             OutputStream os = new BufferedOutputStream(new FileOutputStream(fileToWriteTo));
             byte[] buf = new byte[1024 * 1024];
 
@@ -246,8 +401,9 @@ public class JrubyScriptEngine extends ScriptEngine {
             os.close();
         }
         is.close();
-        String glob = "Dir.glob(\""+gemDir.getAbsolutePath()+"/"+GEM_DIR_BASE_NAME+"/**/*\").map {|x| $LOAD_PATH.unshift x}";
-        LOG.debug("Running following command in ruby: [ "+glob+" ]");
+        //String glob = "Dir.glob(\""+gemDir.getAbsolutePath()+"/"+GEM_DIR_BASE_NAME+"/**/*\").map {|x| $LOAD_PATH.unshift x}";
+        String glob = "Dir.glob(\""+gemDir.getAbsolutePath()+"/"+GEM_DIR_BASE_NAME+"/*/lib\").map {|x| $LOAD_PATH.unshift x}";
+        LOG.debug("Running following command in ruby: "+glob);
         rubyEngine.runScriptlet(glob);
         if (LOG.isDebugEnabled()) {
             LOG.debug("Printing $LOAD_PATH");
@@ -262,6 +418,11 @@ public class JrubyScriptEngine extends ScriptEngine {
         */
     }
 
+    private Map<String, Set<String>> scriptsInNamespace = Maps.newHashMap();
+    private Set<String> scriptsAlreadyRun = Sets.newHashSet();
+    private static RubyArray initialListOfLoadedFiles;
+    private static RubyArray initialLoadPath;
+
     /**
      * Evaluates the script containing ruby udfs to determine what udfs are defined as well as
      * what libaries and other external resources are necessary. These libraries and resources
@@ -270,26 +431,36 @@ public class JrubyScriptEngine extends ScriptEngine {
     @Override
     public void registerFunctions(String path, String namespace, PigContext pigContext) throws IOException {
         if (!isInitialized) {
+            initialListOfLoadedFiles = (RubyArray)rubyEngine.runScriptlet("$\"");
+            initialLoadPath = (RubyArray)rubyEngine.runScriptlet("$LOAD_PATH");
+
             pigContext.scriptJars.add(getJarPath(Ruby.class));
-            pigContext.addScriptFile("pigudf.rb", "pigudf.rb");
+            rubyEngine.runScriptlet("require 'pigudf'");
+            rubyEngine.runScriptlet("require 'pigudf'");
+            rubyEngine.runScriptlet(getScriptAsStream("pigudf.rb"), "pigudf.rb");
+            scriptsAlreadyRun.add("pigudf.rb");
+            //pigContext.addScriptFile("pigudf.rb", "pigudf.rb");
             isInitialized = true;
         }
 
-        rubyEngine.runScriptlet(getScriptAsStream(path), path);
-        RubyFunctions.setHasAlreadyRun(path);
-        RubyArray list = (RubyArray)rubyEngine.runScriptlet("Gem.loaded_specs.map {|k,v| [k,v.gem_dir]}");
-        for (Object o : list) {
-            RubyArray innerList = (RubyArray)o;
-            String gemName = innerList.get(0).toString();
-            if (gemsToShip.get(gemName) == null) {
-                gemsToShip.put(gemName, new File(innerList.get(1).toString()));
-            }
+        Set<String> scriptsInThisNamespace = scriptsInNamespace.get(namespace);
+        if (scriptsInThisNamespace != null && scriptsInThisNamespace.contains(path)) {
+            LOG.warn("Script at path ["+path+"] already in namespace ["+namespace+"]. Skipping.");
+            return;
+        }
+        if (scriptsInThisNamespace == null) {
+            scriptsInThisNamespace = Sets.newHashSet();
+            scriptsInNamespace.put(namespace, scriptsInThisNamespace);
+        }
+        scriptsInThisNamespace.add(path);
+
+        if (!scriptsAlreadyRun.contains(path)) {
+            rubyEngine.runScriptlet(getScriptAsStream(path), path);
+            scriptsAlreadyRun.add(path);
         }
 
         for (Map.Entry<String,Object> entry : RubyFunctions.getFunctions("evalfunc", path).entrySet()) {
             String method = entry.getKey();
-
-            String functionType = rubyEngine.callMethod(entry.getValue(), "name", String.class); //TODO why is this here? use!
 
             FuncSpec funcspec = new FuncSpec(JrubyEvalFunc.class.getCanonicalName() + "('" + path + "','" + method +"')");
             pigContext.registerFunction(namespace + "." + method, funcspec);
@@ -333,33 +504,8 @@ public class JrubyScriptEngine extends ScriptEngine {
 
             pigContext.registerFunction(namespace + "." + method, new FuncSpec(canonicalName + "('" + path + "','" + method +"')"));
         }
-
-        // Determine what external dependencies to ship with the job jar
-        HashSet<String> toShip = libsToShip();
-        for (String lib : toShip) {
-            File libFile = new File(lib);
-            if (lib.endsWith(".rb")) {
-                pigContext.addScriptFile(lib);
-            } else if (libFile.isDirectory()) {
-                //
-                // Need to package entire contents of directory
-                //
-                List<File> files = listRecursively(libFile);
-                for (File file : files) {
-                    if (file.isDirectory()) {
-                        continue;
-                    } else if (file.getName().endsWith(".jar") || file.getName().endsWith(".zip")) {
-                        pigContext.scriptJars.add(file.getPath());
-                    } else {
-                        String localPath = libFile.getName() + file.getPath().replaceFirst(libFile.getPath(), "");
-                        pigContext.addScriptFile(localPath, file.getPath());
-                    }
-                }
-            } else {
-                pigContext.scriptJars.add(lib);
-            }
-        }
     }
+
     /**
      * Consults the scripting container, after the script has been evaluated, to
      * determine what dependencies to ship.
