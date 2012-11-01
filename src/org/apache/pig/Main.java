@@ -395,9 +395,6 @@ static int run(String args[], PigProgressNotificationListener listener) {
             pigContext.getProperties().setProperty("pig.optimizer.rules", ObjectSerializer.serialize(optimizerRules));
         }
 
-        if (properties.get("udf.import.list")!=null)
-            PigContext.initializeImportList((String)properties.get("udf.import.list"));
-
         PigContext.setClassLoader(pigContext.createCl(null));
 
         // construct the parameter substitution preprocessor
@@ -869,6 +866,8 @@ public static void usage()
         System.out.println("    -F, -stop_on_failure - Aborts execution on the first failed job; default is off");
         System.out.println("    -M, -no_multiquery - Turn multiquery optimization off; default is on");
         System.out.println("    -P, -propertyFile - Path to property file");
+        System.out.println("    -printCmdDebug - Overrides anything else and prints the actual command used to run Pig, including");
+        System.out.println("                     any environment variables that are set by the pig command.");
 }
 
 public static void printProperties(){

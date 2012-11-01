@@ -81,8 +81,7 @@ public class TestLoad {
         pc = servers[0].getPigContext();
         String curDir = System.getProperty("user.dir");
         String inpDir = curDir + File.separatorChar + "test/org/apache/pig/test/data/InputFiles/";
-        if ((System.getProperty("os.name").toUpperCase().startsWith("WINDOWS")))
-            inpDir="/"+FileLocalizer.parseCygPath(inpDir, FileLocalizer.STYLE_WINDOWS);
+
         // copy passwd file to cluster and set that as the input location for the load
         Util.copyFromLocalToCluster(cluster, inpDir + "passwd", "passwd");
         FileSpec inpFSpec = new FileSpec("passwd", new FuncSpec(PigStorage.class.getName(), new String[]{":"}));
@@ -325,17 +324,13 @@ public class TestLoad {
             String p = load.getFileSpec().getFileName();
             System.err.println("DEBUG: p:" + p + " expected:" + expected +", exectype:" + pc.getExecType());
             if(noConversionExpected) {
-                assertEquals(p, expected);
+                assertEquals(expected, p);
             } else  {
-                if (pc.getExecType() == ExecType.MAPREDUCE) {
-                    assertTrue(p.matches(".*hdfs://[0-9a-zA-Z:\\.]*.*"));
-                    assertEquals(p.replaceAll("hdfs://[0-9a-zA-Z:\\.]*/", "/"),
-                            expected);
-                } else {
-                    assertTrue(p.matches(".*file://[0-9a-zA-Z:\\.]*.*"));
-                    assertEquals(p.replaceAll("file://[0-9a-zA-Z:\\.]*/", "/"),
-                            expected);
-                }
+                String protocol = pc.getExecType() == ExecType.MAPREDUCE ? "hdfs" : "file";
+                // regex : A word character, i.e. [a-zA-Z_0-9] or '-' followed by ':' then any characters 
+                String regex = "[\\-\\w:\\.]";
+                assertTrue(p.matches(".*" + protocol + "://" + regex + "*.*"));
+                assertEquals(expected, p.replaceAll(protocol + "://" + regex + "*/", "/"));
             }
         }
     }
