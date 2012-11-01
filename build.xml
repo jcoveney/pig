@@ -30,7 +30,7 @@
     <property name="pig.pom" value="${basedir}/ivy/pig.pom" />
     <property name="pigsmoke.pom" value="${basedir}/ivy/pigsmoke.pom" />
     <property name="pigunit.pom" value="${basedir}/ivy/pigunit.pom" />
-    <property name="pig.version" value="0.11.0" />
+    <property name="pig.version" value="0.12.0" />
     <property name="pig.version.suffix" value="-SNAPSHOT" />
     <property name="version" value="${pig.version}${pig.version.suffix}" />
     <property name="final.name" value="${name}-${version}" />
@@ -488,6 +488,7 @@
    
         <ivy:cachepath pathid="mr-apps-test-ivy.classpath" conf="test" />
         <path id="mr-apps-test.classpath">
+            <pathelement path="${build.classes}"/> <!--Include hadoop-site.xml for TestFRJoin -->
             <pathelement path="${clover.jar}"/>
             <path refid="mr-apps-test-ivy.classpath"/>
         </path>
@@ -687,13 +688,12 @@
                 <include name="jackson-core-asl-${jackson.version}.jar" />
                 <include name="joda-time-${joda-time.version}.jar" />
                 <include name="guava-${guava.version}.jar" />
+                <include name="protobuf-java-${protobuf-java.version}.jar" />
                 <include name="automaton-${automaton.version}.jar" />
                 <include name="avro-${avro.version}.jar" />
-                <include name="hbase-${hbase.version}.jar" />
                 <include name="commons*.jar" />
                 <include name="log4j*.jar" />
                 <include name="jsp-api*.jar" />
-                <include name="zookeeper*.jar" />
                 <include name="jansi-${jansi.version}.jar" />
             </zipgroupfileset>
             <fileset file="${basedir}/src/pig-default.properties" />
@@ -848,6 +848,7 @@
             <jvmarg line="${debugArgs}"/>
             <sysproperty key="java.security.krb5.realm" value="" />
             <sysproperty key="java.security.krb5.kdc" value="" />
+            <env key="MALLOC_ARENA_MAX" value="4"/>
             <classpath>
                 <pathelement location="${output.jarfile.withouthadoop}" />
                 <pathelement location="${test.build.classes}" />

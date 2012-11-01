@@ -862,11 +862,11 @@ public class BinInterSedes implements InterSedes {
                 if (type1 == type2) {
                     int basz1 = readSize(bb1, dt1);
                     int basz2 = readSize(bb2, dt2);
-                    byte[] ba1 = new byte[basz1];
-                    byte[] ba2 = new byte[basz2];
-                    bb1.get(ba1);
-                    bb2.get(ba2);
-                    rc = DataByteArray.compare(ba1, ba2);
+                    rc = WritableComparator.compareBytes(
+                          bb1.array(), bb1.position(), basz1,
+                          bb2.array(), bb2.position(), basz2);
+                    bb1.position(bb1.position() + basz1);
+                    bb2.position(bb2.position() + basz2);
                 }
                 break;
             }
@@ -1146,6 +1146,16 @@ public class BinInterSedes implements InterSedes {
             case BinInterSedes.SMALLCHARARRAY:
             case BinInterSedes.CHARARRAY:
                 return DataType.CHARARRAY;
+            case BinInterSedes.TUPLE_0:
+            case BinInterSedes.TUPLE_1:
+            case BinInterSedes.TUPLE_2:
+            case BinInterSedes.TUPLE_3:
+            case BinInterSedes.TUPLE_4:
+            case BinInterSedes.TUPLE_5:
+            case BinInterSedes.TUPLE_6:
+            case BinInterSedes.TUPLE_7:
+            case BinInterSedes.TUPLE_8:
+            case BinInterSedes.TUPLE_9:
             case BinInterSedes.TUPLE:
             case BinInterSedes.TINYTUPLE:
             case BinInterSedes.SMALLTUPLE:

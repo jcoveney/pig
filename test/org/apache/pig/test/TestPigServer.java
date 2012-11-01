@@ -18,7 +18,9 @@
 
 package org.apache.pig.test;
 
-import static org.junit.Assert.assertEquals;
+import static junit.framework.Assert.assertEquals;
+import static org.apache.pig.builtin.mock.Storage.resetData;
+import static org.apache.pig.builtin.mock.Storage.tuple;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -45,6 +47,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -473,6 +476,40 @@ public class TestPigServer {
     }
     
     @Test
+    public void testRegisterRemoteScript() throws Throwable {
+        String scriptName = "script.py";
+        File scriptFile = File.createTempFile("tmp", "");
+        PrintWriter pw = new PrintWriter(new FileWriter(scriptFile));
+        pw.println("@outputSchema(\"word:chararray\")\ndef helloworld():\n    return 'Hello, World'");
+        pw.close();
+
+        FileSystem fs = cluster.getFileSystem();
+        fs.copyFromLocalFile(new Path(scriptFile.getAbsolutePath()), new Path(scriptName));
+
+        // find the absolute path for the directory so that it does not
+        // depend on configuration
+        String absPath = fs.getFileStatus(new Path(scriptName)).getPath().toString();
+
+        Util.createInputFile(cluster, "testRegisterRemoteScript_input", new String[]{"1", "2"});
+        pig.registerCode(absPath, "jython", "pig");
+        pig.registerQuery("a = load 'testRegisterRemoteScript_input';");
+        pig.registerQuery("b = foreach a generate pig.helloworld($0);");
+        Iterator<Tuple> iter = pig.openIterator("b");
+
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        assertTrue(t.size() > 0);
+        assertEquals("Hello, World", t.get(0));
+
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        assertTrue(t.size() > 0);
+        assertEquals("Hello, World", t.get(0));
+
+        assertFalse(iter.hasNext());
+    }
+
+    @Test
     public void testParamSubstitution() throws Exception{
         // using params map
         PigServer pig=new PigServer(ExecType.LOCAL);
@@ -669,4 +706,25 @@ public class TestPigServer {
 
 		propertyFile.delete();
 	}
+
+    @Test
+    public void testSecondarySort() throws Exception {
+        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        Data data = resetData(pigServer);
+
+        data.set("foo",
+            tuple("a", 1, "b"),
+            tuple("b", 2, "c"),
+            tuple("c", 3, "d")
+            );
+
+        pigServer.registerQuery("A = LOAD 'foo' USING mock.Storage() AS (f1:chararray,f2:int,f3:chararray);");
+        pigServer.registerQuery("B = order A by f1,f2,f3 DESC;");
+        pigServer.registerQuery("STORE B INTO 'bar' USING mock.Storage();");
+
+        List<Tuple> out = data.get("bar");
+        assertEquals(tuple("a", 1, "b"), out.get(0));
+        assertEquals(tuple("b", 2, "c"), out.get(1));
+        assertEquals(tuple("c", 3, "d"), out.get(2));
+    }
 }
