@@ -1,14 +1,12 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
+ * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarding copyright ownership. The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * with the License. You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -87,48 +85,59 @@ import com.google.common.io.Files;
 public class JrubyScriptEngine extends ScriptEngine {
     private static final Log LOG = LogFactory.getLog(JrubyScriptEngine.class);
 
-    //TODO test if it is necessary to have a per script (or even per method) runtime. PRO: avoid collisions CON: a bunch of runtimes, which could be slow
+    // TODO test if it is necessary to have a per script (or even per method) runtime. PRO: avoid
+    // collisions CON: a bunch of runtimes, which could be slow
     protected static final ScriptingContainer rubyEngine;
 
     private boolean isInitialized = false;
 
     static {
-        rubyEngine = new ScriptingContainer(LocalContextScope.SINGLETHREAD, LocalVariableBehavior.PERSISTENT);
-        rubyEngine.getProvider().getRubyInstanceConfig().setCompileMode(CompileMode.JIT); //consider using FORCE
+        rubyEngine = new ScriptingContainer(LocalContextScope.SINGLETHREAD,
+                LocalVariableBehavior.PERSISTENT);
+        rubyEngine.getProvider().getRubyInstanceConfig().setCompileMode(CompileMode.JIT); // consider
+                                                                                          // using
+                                                                                          // FORCE
     }
 
     /**
-     * This is a static class which provides functionality around the functions that are registered with Pig.
+     * This is a static class which provides functionality around the functions that are registered
+     * with Pig.
      */
     static class RubyFunctions {
         /**
-         * This cache maps function type to a map that maps path to a map of function name to the object
-         * which contains information about that function. In the case of an EvalFunc, there is a special
-         * function which encapsulates information about the function. In the case of an Accumulator or
+         * This cache maps function type to a map that maps path to a map of function name to the
+         * object
+         * which contains information about that function. In the case of an EvalFunc, there is a
+         * special
+         * function which encapsulates information about the function. In the case of an Accumulator
+         * or
          * Algebraic, it is just an instance of the Class object that extends AccumulatorPigUdf or
          * AlgebraicPigUdf, respectively.
          */
-        private static Map<String, Map<String, Map<String, Object>>> functionsCache = Maps.newHashMap();
+        private static Map<String, Map<String, Map<String, Object>>> functionsCache = Maps
+                .newHashMap();
 
         private static Set<String> alreadyRunCache = Sets.newHashSet();
 
         private static Map<String, String> cacheFunction = Maps.newHashMap();
 
         static {
-            //TODO use an enum instead?
+            // TODO use an enum instead?
             cacheFunction.put("evalfunc", "PigUdf.get_functions_to_register");
             cacheFunction.put("accumulator", "AccumulatorPigUdf.classes_to_register");
             cacheFunction.put("algebraic", "AlgebraicPigUdf.classes_to_register");
 
-            functionsCache.put("evalfunc", new HashMap<String,Map<String,Object>>());
-            functionsCache.put("accumulator", new HashMap<String,Map<String,Object>>());
-            functionsCache.put("algebraic", new HashMap<String,Map<String,Object>>());
+            functionsCache.put("evalfunc", new HashMap<String, Map<String, Object>>());
+            functionsCache.put("accumulator", new HashMap<String, Map<String, Object>>());
+            functionsCache.put("algebraic", new HashMap<String, Map<String, Object>>());
         }
 
         @SuppressWarnings("unchecked")
-        private static Map<String,Object> getFromCache(String path, Map<String,Map<String,Object>> cacheToUpdate, String regCommand) {
+        private static Map<String, Object> getFromCache(String path,
+                Map<String, Map<String, Object>> cacheToUpdate, String regCommand) {
             if (!alreadyRunCache.contains(path)) {
-                for (Map.Entry<String, Map<String, Map<String, Object>>> entry : functionsCache.entrySet()) {
+                for (Map.Entry<String, Map<String, Map<String, Object>>> entry : functionsCache
+                        .entrySet()) {
                     entry.getValue().remove(path);
                 }
 
@@ -137,10 +146,10 @@ public class JrubyScriptEngine extends ScriptEngine {
                 alreadyRunCache.add(path);
             }
 
-            Map<String,Object> funcMap = cacheToUpdate.get(path);
+            Map<String, Object> funcMap = cacheToUpdate.get(path);
 
             if (funcMap == null) {
-                funcMap = (Map<String,Object>)rubyEngine.runScriptlet(regCommand);
+                funcMap = (Map<String, Object>)rubyEngine.runScriptlet(regCommand);
                 cacheToUpdate.put(path, funcMap);
             }
 
@@ -152,11 +161,16 @@ public class JrubyScriptEngine extends ScriptEngine {
         }
     }
 
-    public static final String GEM_DIR_BASE_NAME = "gems_to_ship_123456"; //TODO move to PigConstants
-    public static final String GEM_TAR_SYMLINK = "apreciousgemindeed.tar.gz"; //TODO move to PigConstants
-    public static final String RUBY_LOAD_PATH_KEY = "pig.jruby.files.to.ship"; //TODO move to PigConstants
-    public static final String RUBY_DEPENDENCY_NON_JAR_PATHS = "pig.jruby.simplified.paths.non.jar"; //TODO move to PigConstants
-
+    public static final String GEM_DIR_BASE_NAME = "gems_to_ship_123456"; // TODO move to
+                                                                          // PigConstants
+    public static final String GEM_TAR_SYMLINK = "apreciousgemindeed.tar.gz"; // TODO move to
+                                                                              // PigConstants
+    public static final String RUBY_LOAD_PATH_KEY = "pig.jruby.files.to.ship"; // TODO move to
+                                                                               // PigConstants
+    public static final String RUBY_DEPENDENCY_NON_JAR_PATHS = "pig.jruby.simplified.paths.non.jar"; // TODO
+                                                                                                     // move
+                                                                                                     // to
+                                                                                                     // PigConstants
 
     // TODO need to bite the bullet and make this memory efficient. No being lazy :)
     public static File findCommonParent(List<String> files) {
@@ -180,7 +194,7 @@ public class JrubyScriptEngine extends ScriptEngine {
         while (!firstStack.isEmpty() && !lastStack.isEmpty()) {
             File firstParent = firstStack.pollLast();
             File lastParent = lastStack.pollLast();
-            if (!firstParent.equals(lastParent)) { //TODO make sure equals ok to use here
+            if (!firstParent.equals(lastParent)) { // TODO make sure equals ok to use here
                 return parent;
             }
             parent = firstParent;
@@ -189,11 +203,14 @@ public class JrubyScriptEngine extends ScriptEngine {
     }
 
     private static final Pattern jarPathMatcher = Pattern.compile("\\.jar(!|$)");
+
     private static boolean pathIsAJar(String s) {
         return jarPathMatcher.matcher(s).find();
     }
 
-    private static final Pattern fileInJarPathExtractor = Pattern.compile("(?:.*/)?(?:file:)?([^/]+)\\.jar!(.*)");
+    private static final Pattern fileInJarPathExtractor = Pattern
+            .compile("(?:.*/)?(?:file:)?([^/]+)\\.jar!(.*)");
+
     private static Pair<String, String> getJarName(String s) {
         Matcher m = fileInJarPathExtractor.matcher(s);
         if (m.matches()) {
@@ -202,7 +219,9 @@ public class JrubyScriptEngine extends ScriptEngine {
         return null;
     }
 
-    private static final Pattern fileOnlyJarNameExtractor = Pattern.compile("(?:.*/)?(?:file:)?([^/]+)\\.jar$");
+    private static final Pattern fileOnlyJarNameExtractor = Pattern
+            .compile("(?:.*/)?(?:file:)?([^/]+)\\.jar$");
+
     private static String getJarNameOnly(String s) {
         Matcher m = fileOnlyJarNameExtractor.matcher(s);
         if (m.matches()) {
@@ -212,54 +231,56 @@ public class JrubyScriptEngine extends ScriptEngine {
     }
 
     public static void shipGems(PigContext pigContext, Configuration conf) throws IOException {
-        //TODO do this all at the end
-        //TODO for everything new in $", need to see what base it is off of in the load path $:
-        //TODO anything new in the load path should be set accordingly in the mappers
-        //TODO any new file in $" we need to find where in the load path it was found, and then set accordingly
-
         LOG.debug("Figuring out what dependencies will need to be shipped.");
-        List<String> allLoadedFiles = rubyArrayToStringList((RubyArray)rubyEngine.runScriptlet("$\".clone"));
-        List<String> fullLoadPath = rubyArrayToStringList((RubyArray)rubyEngine.runScriptlet("$LOAD_PATH.clone"));
+        List<String> allLoadedFiles = rubyArrayToStringList((RubyArray)rubyEngine
+                .runScriptlet("$\".clone"));
+        List<String> fullLoadPath = rubyArrayToStringList((RubyArray)rubyEngine
+                .runScriptlet("$LOAD_PATH.clone"));
 
         Set<String> allLoadedFilesPlusFilesFromGems = Sets.newHashSet();
 
-        RubyArray additionalFilesFromGems = (RubyArray)rubyEngine.runScriptlet("Gem.loaded_specs.map {|k,v| Dir.glob(v.gem_dir+\"/lib/**/*\")}.flatten.reject {|x| File.directory? x}");
+        RubyArray additionalFilesFromGems = (RubyArray)rubyEngine
+                .runScriptlet("Gem.loaded_specs.map {|k,v| Dir.glob(v.gem_dir+\"/lib/**/*\")}"
+                        + ".flatten.reject {|x| File.directory? x}");
         for (Object o : additionalFilesFromGems) {
             allLoadedFilesPlusFilesFromGems.add(o.toString());
         }
         allLoadedFilesPlusFilesFromGems.addAll(allLoadedFiles);
 
-
-        List<String> fullLoadPathNotJar = Lists.newArrayList(Collections2.filter(fullLoadPath, new Predicate<String>() {
-            @Override
-            public boolean apply(String s) {
-                return !pathIsAJar(s);
-            }
-        }));
+        List<String> fullLoadPathNotJar = Lists.newArrayList(Collections2.filter(fullLoadPath,
+                new Predicate<String>() {
+                    @Override
+                    public boolean apply(String s) {
+                        return !pathIsAJar(s);
+                    }
+                }));
 
         LOG.debug("All files in $\": " + allLoadedFiles);
         LOG.debug("All directories in $LOAD_PATH: " + fullLoadPath);
 
-        List<String> allLoadedFilesThatExist = Lists.newArrayList(Collections2.filter(allLoadedFilesPlusFilesFromGems, new Predicate<String>() {
-            @Override
-            public boolean apply(String s) {
-                return new File(s).exists();
-            }
-        }));
+        List<String> allLoadedFilesThatExist = Lists.newArrayList(Collections2.filter(
+                allLoadedFilesPlusFilesFromGems, new Predicate<String>() {
+                    @Override
+                    public boolean apply(String s) {
+                        return new File(s).exists();
+                    }
+                }));
 
-        List<String> newLoadedFilesThatExist = Lists.newArrayList(Collections2.filter(allLoadedFilesThatExist, new Predicate<String>() {
-            @Override
-            public boolean apply(String s) {
-                return !initialListOfLoadedFiles.contains(s);
-            }
-        }));
+        List<String> newLoadedFilesThatExist = Lists.newArrayList(Collections2.filter(
+                allLoadedFilesThatExist, new Predicate<String>() {
+                    @Override
+                    public boolean apply(String s) {
+                        return !initialListOfLoadedFiles.contains(s);
+                    }
+                }));
 
-        List<String> newLoadedFilesThatExistNotInJars = Lists.newArrayList(Collections2.filter(newLoadedFilesThatExist, new Predicate<String>() {
-            @Override
-            public boolean apply(String s) {
-                return !pathIsAJar(s);
-            }
-        }));
+        List<String> newLoadedFilesThatExistNotInJars = Lists.newArrayList(Collections2.filter(
+                newLoadedFilesThatExist, new Predicate<String>() {
+                    @Override
+                    public boolean apply(String s) {
+                        return !pathIsAJar(s);
+                    }
+                }));
 
         LOG.debug("New files not in jars in $\": " + newLoadedFilesThatExistNotInJars);
         LOG.debug("Non-jars directories in $LOAD_PATH: " + fullLoadPathNotJar);
@@ -273,39 +294,41 @@ public class JrubyScriptEngine extends ScriptEngine {
             String loadPath = new File(s).getAbsolutePath();
             String parPath = commonParent.getAbsolutePath();
             if (loadPath.startsWith(parPath)) {
-                String newPath = new File(GEM_DIR_BASE_NAME, loadPath.substring(parPath.length())).getPath();
+                String newPath = new File(GEM_DIR_BASE_NAME, loadPath.substring(parPath.length()))
+                        .getPath();
                 LOG.debug("Adding path to M/R JRuby load path: " + newPath);
                 if (loadPathValue == null) {
-                    loadPathValue  = newPath;
+                    loadPathValue = newPath;
                 } else {
-                    loadPathValue  += "^^^" + newPath;
+                    loadPathValue += "^^^" + newPath;
                 }
             }
         }
 
-        List<String> newLoadedFilesThatExistInJars = Lists.newArrayList(Collections2.filter(allLoadedFilesPlusFilesFromGems, new Predicate<String>() {
-            @Override
-            public boolean apply(String s) {
-                return getJarName(s) != null;
-            }
-        }));
+        List<String> newLoadedFilesThatExistInJars = Lists.newArrayList(Collections2.filter(
+                allLoadedFilesPlusFilesFromGems, new Predicate<String>() {
+                    @Override
+                    public boolean apply(String s) {
+                        return getJarName(s) != null;
+                    }
+                }));
 
-        List<String> fullLoadPathJar = Lists.newArrayList(Collections2.filter(fullLoadPath, new Predicate<String>() {
-            @Override
-            public boolean apply(String s) {
-                return pathIsAJar(s);
-            }
-        }));
+        List<String> fullLoadPathJar = Lists.newArrayList(Collections2.filter(fullLoadPath,
+                new Predicate<String>() {
+                    @Override
+                    public boolean apply(String s) {
+                        return pathIsAJar(s);
+                    }
+                }));
 
         LOG.debug("New files in jars in $\": " + newLoadedFilesThatExistInJars);
         LOG.debug("New jar directories in load path: " + fullLoadPathJar);
-        Set<Pair<String,String>> jarFilesToLoad = Sets.newHashSet(); //TODO what if multiple jars have same name?
+        Set<Pair<String, String>> jarFilesToLoad = Sets.newHashSet();
+
         Set<String> jarsToLoad = Sets.newHashSet();
         for (String s : newLoadedFilesThatExistInJars) {
             Pair<String, String> jarDetails = getJarName(s);
-            //TODO could consider adding directly here IF we know for sure that
-            //TODO any file inside a jar will have the jar base as a load path
-            //TODO Q: is it possible to have a load path that ISN'T the base of a jar?
+            // Is it possible to have a load path that ISN'T the base of a jar?
             jarsToLoad.add(jarDetails.getFirst());
             jarFilesToLoad.add(jarDetails);
         }
@@ -316,16 +339,16 @@ public class JrubyScriptEngine extends ScriptEngine {
                 String newPath = new File(GEM_DIR_BASE_NAME, jar).getPath();
                 LOG.debug("Adding synthetic jar path to load path: " + newPath);
                 if (loadPathValue == null) {
-                    loadPathValue  = newPath;
+                    loadPathValue = newPath;
                 } else {
-                    loadPathValue  += "^^^" + newPath;
+                    loadPathValue += "^^^" + newPath;
                 }
             }
         }
 
         if (loadPathValue != null) {
             conf.set(RUBY_LOAD_PATH_KEY, loadPathValue);
-            LOG.debug("Setting JobConf key ["+RUBY_LOAD_PATH_KEY+"] to: " + loadPathValue);
+            LOG.debug("Setting JobConf key [" + RUBY_LOAD_PATH_KEY + "] to: " + loadPathValue);
         } else {
             LOG.debug("No load path values to set in JobConf key: " + RUBY_LOAD_PATH_KEY);
         }
@@ -335,7 +358,8 @@ public class JrubyScriptEngine extends ScriptEngine {
         fout.deleteOnExit();
 
         int commonParentSize = commonParent.getAbsolutePath().length() + 1;
-        TarArchiveOutputStream os = new TarArchiveOutputStream(new GZIPOutputStream(new FileOutputStream(fout), 1024*1024));
+        TarArchiveOutputStream os = new TarArchiveOutputStream(new GZIPOutputStream(
+                new FileOutputStream(fout), 1024 * 1024));
 
         List<String> parentPathsToSerialize = Lists.newArrayList();
 
@@ -351,7 +375,9 @@ public class JrubyScriptEngine extends ScriptEngine {
             String parentPathName = new File(getTarName).getParent();
             parentPathsToSerialize.add(parentPathName);
 
-            String tarPath = new File(new File(Integer.toString(parentPathsToSerialize.size() - 1)), new File(file).getName()).getPath();
+            String tarPath = new File(
+                    new File(Integer.toString(parentPathsToSerialize.size() - 1)),
+                    new File(file).getName()).getPath();
 
             entry.setName(tarPath);
 
@@ -365,11 +391,11 @@ public class JrubyScriptEngine extends ScriptEngine {
             os.closeArchiveEntry();
         }
 
-        for (Pair<String,String> filePair : jarFilesToLoad) {
+        for (Pair<String, String> filePair : jarFilesToLoad) {
             String jar = filePair.getFirst();
             String pathInJar = filePair.getSecond();
 
-            LOG.debug("Attempting to archive file ["+pathInJar+"] present in jar ["+jar+"]");
+            LOG.debug("Attempting to archive file [" + pathInJar + "] present in jar [" + jar + "]");
 
             String syntheticPath = new File(jar, pathInJar).getPath();
             String realTarPath = new File(GEM_DIR_BASE_NAME, syntheticPath).getPath();
@@ -384,7 +410,8 @@ public class JrubyScriptEngine extends ScriptEngine {
 
             String parentPathName = new File(realTarPath).getParent();
             parentPathsToSerialize.add(parentPathName);
-            String tarPath = new File(Integer.toString(parentPathsToSerialize.size() - 1), new File(pathInJar).getName()).getPath();
+            String tarPath = new File(Integer.toString(parentPathsToSerialize.size() - 1),
+                    new File(pathInJar).getName()).getPath();
 
             TarArchiveEntry entry = new TarArchiveEntry(tmp);
             entry.setName(tarPath);
@@ -404,13 +431,15 @@ public class JrubyScriptEngine extends ScriptEngine {
 
         LOG.debug("Have successfully written to temporary .tar.gz file: " + fout);
 
-        String[] parentPathsArray = parentPathsToSerialize.toArray(new String[parentPathsToSerialize.size()]);
+        String[] parentPathsArray = parentPathsToSerialize
+                .toArray(new String[parentPathsToSerialize.size()]);
         conf.set(RUBY_DEPENDENCY_NON_JAR_PATHS, ObjectSerializer.serialize(parentPathsArray));
 
         shipTarToDistributedCache(fout, pigContext, conf);
     }
 
-    private static void shipTarToDistributedCache(File tar, PigContext pigContext, Configuration conf) {
+    private static void shipTarToDistributedCache(File tar, PigContext pigContext,
+            Configuration conf) {
         DistributedCache.createSymlink(conf); // we will read using symlinks
         Path src = new Path(tar.toURI());
         Path dst;
@@ -458,9 +487,11 @@ public class JrubyScriptEngine extends ScriptEngine {
         File gemDir = Files.createTempDir();
         gemDir.deleteOnExit();
         LOG.debug("Temporary gem location: " + gemDir);
-        TarArchiveInputStream is = new TarArchiveInputStream(new GZIPInputStream(new FileInputStream(gemTar)));
+        TarArchiveInputStream is = new TarArchiveInputStream(new GZIPInputStream(
+                new FileInputStream(gemTar)));
 
-        String[] parentPathsArray = (String[]) ObjectSerializer.deserialize(conf.get(RUBY_DEPENDENCY_NON_JAR_PATHS));
+        String[] parentPathsArray = (String[])ObjectSerializer.deserialize(conf
+                .get(RUBY_DEPENDENCY_NON_JAR_PATHS));
 
         TarArchiveEntry entry;
         while ((entry = is.getNextTarEntry()) != null) {
@@ -500,7 +531,7 @@ public class JrubyScriptEngine extends ScriptEngine {
             for (String loadPath : loadPaths.split("\\^\\^\\^")) {
                 String path = new File(gemDir, loadPath).getAbsolutePath();
                 LOG.debug("Adding path to load path: " + path);
-                rubyEngine.runScriptlet("$LOAD_PATH.unshift(\""+path+"\")");
+                rubyEngine.runScriptlet("$LOAD_PATH.unshift(\"" + path + "\")");
             }
         }
     }
@@ -511,7 +542,7 @@ public class JrubyScriptEngine extends ScriptEngine {
 
     @SuppressWarnings("unchecked")
     private static List<String> rubyArrayToStringList(RubyArray array) {
-        return Lists.transform(array, new Function<Object,String>() {
+        return Lists.transform(array, new Function<Object, String>() {
             @Override
             public String apply(Object o) {
                 return new File(o.toString()).getAbsolutePath();
@@ -525,22 +556,25 @@ public class JrubyScriptEngine extends ScriptEngine {
      * are then packaged with the job jar itself.
      */
     @Override
-    public void registerFunctions(String path, String namespace, PigContext pigContext) throws IOException {
+    public void registerFunctions(String path, String namespace, PigContext pigContext)
+            throws IOException {
         if (!isInitialized) {
-            initialListOfLoadedFiles = rubyArrayToStringList((RubyArray)rubyEngine.runScriptlet("$\".clone"));
+            initialListOfLoadedFiles = rubyArrayToStringList((RubyArray)rubyEngine
+                    .runScriptlet("$\".clone"));
             LOG.debug("Initial $\": " + initialListOfLoadedFiles);
 
             pigContext.scriptJars.add(getJarPath(Ruby.class));
             rubyEngine.runScriptlet("require 'pigudf'");
             rubyEngine.runScriptlet(getScriptAsStream("pigudf.rb"), "pigudf.rb");
             scriptsAlreadyRun.add("pigudf.rb");
-            //pigContext.addScriptFile("pigudf.rb", "pigudf.rb");
+            // pigContext.addScriptFile("pigudf.rb", "pigudf.rb");
             isInitialized = true;
         }
 
         Set<String> scriptsInThisNamespace = scriptsInNamespace.get(namespace);
         if (scriptsInThisNamespace != null && scriptsInThisNamespace.contains(path)) {
-            LOG.warn("Script at path ["+path+"] already in namespace ["+namespace+"]. Skipping.");
+            LOG.warn("Script at path [" + path + "] already in namespace [" + namespace
+                    + "]. Skipping.");
             return;
         }
         if (scriptsInThisNamespace == null) {
@@ -555,50 +589,85 @@ public class JrubyScriptEngine extends ScriptEngine {
             scriptsAlreadyRun.add(path);
         }
 
-        for (Map.Entry<String,Object> entry : RubyFunctions.getFunctions("evalfunc", path).entrySet()) {
+        for (Map.Entry<String, Object> entry : RubyFunctions.getFunctions("evalfunc", path)
+                .entrySet()) {
             String method = entry.getKey();
 
-            FuncSpec funcspec = new FuncSpec(JrubyEvalFunc.class.getCanonicalName() + "('" + path + "','" + method +"')");
+            FuncSpec funcspec = new FuncSpec(JrubyEvalFunc.class.getCanonicalName() + "('" + path
+                    + "','" + method + "')");
             pigContext.registerFunction(namespace + "." + method, funcspec);
         }
 
-        for (Map.Entry<String,Object> entry : RubyFunctions.getFunctions("accumulator", path).entrySet()) {
+        for (Map.Entry<String, Object> entry : RubyFunctions.getFunctions("accumulator", path)
+                .entrySet()) {
             String method = entry.getKey();
 
-            if (rubyEngine.callMethod(entry.getValue(), "check_if_necessary_methods_present", RubyBoolean.class).isFalse())
-                throw new RuntimeException("Method " + method + " does not have all of the required methods present!");
+            if (rubyEngine.callMethod(entry.getValue(), "check_if_necessary_methods_present",
+                    RubyBoolean.class).isFalse())
+                throw new RuntimeException("Method " + method
+                        + " does not have all of the required methods present!");
 
-            pigContext.registerFunction(namespace + "." + method, new FuncSpec(JrubyAccumulatorEvalFunc.class.getCanonicalName() + "('" + path + "','" + method +"')"));
+            pigContext.registerFunction(namespace + "." + method, new FuncSpec(
+                    JrubyAccumulatorEvalFunc.class.getCanonicalName() + "('" + path + "','"
+                            + method + "')"));
         }
 
-        for (Map.Entry<String,Object> entry : RubyFunctions.getFunctions("algebraic", path).entrySet()) {
+        for (Map.Entry<String, Object> entry : RubyFunctions.getFunctions("algebraic", path)
+                .entrySet()) {
             String method = entry.getKey();
 
-            if (rubyEngine.callMethod(entry.getValue(), "check_if_necessary_methods_present", RubyBoolean.class).isFalse())
-                throw new RuntimeException("Method " + method + " does not have all of the required methods present!");
+            if (rubyEngine.callMethod(entry.getValue(), "check_if_necessary_methods_present",
+                    RubyBoolean.class).isFalse())
+                throw new RuntimeException("Method " + method
+                        + " does not have all of the required methods present!");
 
-            Schema schema = PigJrubyLibrary.rubyToPig(rubyEngine.callMethod(entry.getValue(), "get_output_schema", RubySchema.class));
+            Schema schema = PigJrubyLibrary.rubyToPig(rubyEngine.callMethod(entry.getValue(),
+                    "get_output_schema", RubySchema.class));
             String canonicalName = JrubyAlgebraicEvalFunc.class.getCanonicalName() + "$";
 
-            // In the case of an Algebraic UDF, a type specific EvalFunc is necessary (ie not EvalFunc<Object>), so we
+            // In the case of an Algebraic UDF, a type specific EvalFunc is necessary (ie not
+            // EvalFunc<Object>), so we
             // inspect the type and instantiated the proper class.
             switch (schema.getField(0).type) {
-                case DataType.BAG: canonicalName += "Bag"; break;
-                case DataType.TUPLE: canonicalName += "Tuple"; break;
-                case DataType.CHARARRAY: canonicalName += "Chararray"; break;
-                case DataType.DOUBLE: canonicalName += "Double"; break;
-                case DataType.FLOAT: canonicalName += "Float"; break;
-                case DataType.INTEGER: canonicalName += "Integer"; break;
-                case DataType.LONG: canonicalName += "Long"; break;
-                case DataType.DATETIME: canonicalName += "DateTime"; break;
-                case DataType.MAP: canonicalName += "Map"; break;
-                case DataType.BYTEARRAY: canonicalName += "DataByteArray"; break;
-                default: throw new ExecException("Unable to instantiate Algebraic EvalFunc " + method + " as schema type is invalid");
+            case DataType.BAG:
+                canonicalName += "Bag";
+                break;
+            case DataType.TUPLE:
+                canonicalName += "Tuple";
+                break;
+            case DataType.CHARARRAY:
+                canonicalName += "Chararray";
+                break;
+            case DataType.DOUBLE:
+                canonicalName += "Double";
+                break;
+            case DataType.FLOAT:
+                canonicalName += "Float";
+                break;
+            case DataType.INTEGER:
+                canonicalName += "Integer";
+                break;
+            case DataType.LONG:
+                canonicalName += "Long";
+                break;
+            case DataType.DATETIME:
+                canonicalName += "DateTime";
+                break;
+            case DataType.MAP:
+                canonicalName += "Map";
+                break;
+            case DataType.BYTEARRAY:
+                canonicalName += "DataByteArray";
+                break;
+            default:
+                throw new ExecException("Unable to instantiate Algebraic EvalFunc " + method
+                        + " as schema type is invalid");
             }
 
             canonicalName += "JrubyAlgebraicEvalFunc";
 
-            pigContext.registerFunction(namespace + "." + method, new FuncSpec(canonicalName + "('" + path + "','" + method +"')"));
+            pigContext.registerFunction(namespace + "." + method, new FuncSpec(canonicalName + "('"
+                    + path + "','" + method + "')"));
         }
     }
 
@@ -606,8 +675,8 @@ public class JrubyScriptEngine extends ScriptEngine {
      * Consults the scripting container, after the script has been evaluated, to
      * determine what dependencies to ship.
      * <p>
-     * FIXME: Corner cases like the following: "def foobar; require 'json'; end"
-     * are NOT dealt with using this method
+     * FIXME: Corner cases like the following: "def foobar; require 'json'; end" are NOT dealt with
+     * using this method
      */
     private HashSet<String> libsToShip() {
         RubyArray loadedLibs = (RubyArray)rubyEngine.get("$\"");
@@ -624,12 +693,12 @@ public class JrubyScriptEngine extends ScriptEngine {
                     continue;
                 if (shippedLib.contains(lib))
                     continue;
-                String possiblePath = (loadPath.toString().isEmpty()?"":loadPath.toString() +
+                String possiblePath = (loadPath.toString().isEmpty() ? "" : loadPath.toString() +
                         File.separator) + lib.toString();
                 if ((new File(possiblePath)).exists()) {
                     // remove prefix ./
-                    toShip.add(possiblePath.startsWith("./")?possiblePath.substring(2):
-                        possiblePath);
+                    toShip.add(possiblePath.startsWith("./") ? possiblePath.substring(2) :
+                            possiblePath);
                     shippedLib.add(lib);
                 }
             }
@@ -653,7 +722,8 @@ public class JrubyScriptEngine extends ScriptEngine {
     }
 
     @Override
-    protected Map<String, List<PigStats>> main(PigContext pigContext, String scriptFile) throws IOException {
+    protected Map<String, List<PigStats>> main(PigContext pigContext, String scriptFile)
+            throws IOException {
         throw new UnsupportedOperationException("Unimplemented");
     }
 
