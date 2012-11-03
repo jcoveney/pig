@@ -25,11 +25,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -567,7 +565,6 @@ public class JrubyScriptEngine extends ScriptEngine {
             rubyEngine.runScriptlet("require 'pigudf'");
             rubyEngine.runScriptlet(getScriptAsStream("pigudf.rb"), "pigudf.rb");
             scriptsAlreadyRun.add("pigudf.rb");
-            // pigContext.addScriptFile("pigudf.rb", "pigudf.rb");
             isInitialized = true;
         }
 
@@ -669,56 +666,6 @@ public class JrubyScriptEngine extends ScriptEngine {
             pigContext.registerFunction(namespace + "." + method, new FuncSpec(canonicalName + "('"
                     + path + "','" + method + "')"));
         }
-    }
-
-    /**
-     * Consults the scripting container, after the script has been evaluated, to
-     * determine what dependencies to ship.
-     * <p>
-     * FIXME: Corner cases like the following: "def foobar; require 'json'; end" are NOT dealt with
-     * using this method
-     */
-    private HashSet<String> libsToShip() {
-        RubyArray loadedLibs = (RubyArray)rubyEngine.get("$\"");
-        RubyArray loadPaths = (RubyArray)rubyEngine.get("$LOAD_PATH");
-        // Current directory first
-        loadPaths.add(0, "");
-
-        HashSet<String> toShip = new HashSet<String>();
-        HashSet<Object> shippedLib = new HashSet<Object>();
-
-        for (Object loadPath : loadPaths) {
-            for (Object lib : loadedLibs) {
-                if (lib.toString().equals("pigudf.rb"))
-                    continue;
-                if (shippedLib.contains(lib))
-                    continue;
-                String possiblePath = (loadPath.toString().isEmpty() ? "" : loadPath.toString() +
-                        File.separator) + lib.toString();
-                if ((new File(possiblePath)).exists()) {
-                    // remove prefix ./
-                    toShip.add(possiblePath.startsWith("./") ? possiblePath.substring(2) :
-                            possiblePath);
-                    shippedLib.add(lib);
-                }
-            }
-        }
-        return toShip;
-    }
-
-    private static List<File> listRecursively(File directory) {
-        File[] entries = directory.listFiles();
-
-        ArrayList<File> files = new ArrayList<File>();
-
-        // Go over entries
-        for (File entry : entries) {
-            files.add(entry);
-            if (entry.isDirectory()) {
-                files.addAll(listRecursively(entry));
-            }
-        }
-        return files;
     }
 
     @Override
