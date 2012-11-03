@@ -28,7 +28,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,26 +36,32 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
+import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.rest.Main;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.utils.StructuresHelper.Pair;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.scripting.ScriptEngine;
-import org.apache.pig.tar.TarUtils;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.jruby.Ruby;
 import org.jruby.RubyArray;
@@ -65,6 +71,9 @@ import org.jruby.embed.LocalContextScope;
 import org.jruby.embed.LocalVariableBehavior;
 import org.jruby.embed.ScriptingContainer;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -116,10 +125,6 @@ public class JrubyScriptEngine extends ScriptEngine {
             functionsCache.put("algebraic", new HashMap<String,Map<String,Object>>());
         }
 
-        private static void setHasAlreadyRun(String path) {
-            alreadyRunCache.add(path);
-        }
-
         @SuppressWarnings("unchecked")
         private static Map<String,Object> getFromCache(String path, Map<String,Map<String,Object>> cacheToUpdate, String regCommand) {
             if (!alreadyRunCache.contains(path)) {
@@ -147,25 +152,27 @@ public class JrubyScriptEngine extends ScriptEngine {
         }
     }
 
-    private static Map<String, File> gemsToShip = Maps.newHashMap();
     public static final String GEM_DIR_BASE_NAME = "gems_to_ship_123456"; //TODO move to PigConstants
     public static final String GEM_TAR_SYMLINK = "apreciousgemindeed.tar.gz"; //TODO move to PigConstants
     public static final String RUBY_LOAD_PATH_KEY = "pig.jruby.files.to.ship"; //TODO move to PigConstants
+    public static final String RUBY_DEPENDENCY_NON_JAR_PATHS = "pig.jruby.simplified.paths.non.jar"; //TODO move to PigConstants
 
+
+    // TODO need to bite the bullet and make this memory efficient. No being lazy :)
     public static File findCommonParent(List<String> files) {
-        String[] arr = (String[])files.toArray();
-        Arrays.sort(arr);
-        File first = new File(arr[0]).getAbsoluteFile();
-        File last = new File(arr[arr.length - 1]).getAbsoluteFile();
+        List<String> copy = Lists.newArrayList(files);
+        Collections.sort(copy);
+        File first = new File(copy.get(0)).getAbsoluteFile();
+        File last = new File(copy.get(copy.size() - 1)).getAbsoluteFile();
         Deque<File> firstStack = new LinkedList<File>();
         Deque<File> lastStack = new LinkedList<File>();
-        File parent = null;
-        while ((parent = first.getParentFile()) != null) {
+        File parent = first;
+        while ((parent = parent.getParentFile()) != null) {
             firstStack.add(parent);
         }
 
-        parent = null;
-        while ((parent = last.getParentFile()) != null) {
+        parent = last;
+        while ((parent = parent.getParentFile()) != null) {
             lastStack.add(parent);
         }
 
@@ -181,6 +188,29 @@ public class JrubyScriptEngine extends ScriptEngine {
         return parent;
     }
 
+    private static final Pattern jarPathMatcher = Pattern.compile("\\.jar(!|$)");
+    private static boolean pathIsAJar(String s) {
+        return jarPathMatcher.matcher(s).find();
+    }
+
+    private static final Pattern fileInJarPathExtractor = Pattern.compile("(?:.*/)?(?:file:)?([^/]+)\\.jar!(.*)");
+    private static Pair<String, String> getJarName(String s) {
+        Matcher m = fileInJarPathExtractor.matcher(s);
+        if (m.matches()) {
+            return Pair.make(m.group(1), m.group(2));
+        }
+        return null;
+    }
+
+    private static final Pattern fileOnlyJarNameExtractor = Pattern.compile("(?:.*/)?(?:file:)?([^/]+)\\.jar$");
+    private static String getJarNameOnly(String s) {
+        Matcher m = fileOnlyJarNameExtractor.matcher(s);
+        if (m.matches()) {
+            return m.group(1);
+        }
+        return null;
+    }
+
     public static void shipGems(PigContext pigContext, Configuration conf) throws IOException {
         //TODO do this all at the end
         //TODO for everything new in $", need to see what base it is off of in the load path $:
@@ -188,23 +218,59 @@ public class JrubyScriptEngine extends ScriptEngine {
         //TODO any new file in $" we need to find where in the load path it was found, and then set accordingly
 
         LOG.debug("Figuring out what dependencies will need to be shipped.");
-        RubyArray allLoadedFiles = (RubyArray)rubyEngine.runScriptlet("$\"");
-        RubyArray fullLoadPath = (RubyArray)rubyEngine.runScriptlet("$LOAD_PATH");
+        List<String> allLoadedFiles = rubyArrayToStringList((RubyArray)rubyEngine.runScriptlet("$\".clone"));
+        List<String> fullLoadPath = rubyArrayToStringList((RubyArray)rubyEngine.runScriptlet("$LOAD_PATH.clone"));
 
-        List<String> newLoadedFiles = Lists.newArrayList();
-        for (Object o : allLoadedFiles) {
-            if (!initialListOfLoadedFiles.contains(o)) {
-                newLoadedFiles.add(o.toString());
-            }
+        Set<String> allLoadedFilesPlusFilesFromGems = Sets.newHashSet();
+
+        RubyArray additionalFilesFromGems = (RubyArray)rubyEngine.runScriptlet("Gem.loaded_specs.map {|k,v| Dir.glob(v.gem_dir+\"/lib/**/*\")}.flatten.reject {|x| File.directory? x}");
+        for (Object o : additionalFilesFromGems) {
+            allLoadedFilesPlusFilesFromGems.add(o.toString());
         }
+        allLoadedFilesPlusFilesFromGems.addAll(allLoadedFiles);
 
-        File commonParent = findCommonParent(newLoadedFiles);
+
+        List<String> fullLoadPathNotJar = Lists.newArrayList(Collections2.filter(fullLoadPath, new Predicate<String>() {
+            @Override
+            public boolean apply(String s) {
+                return !pathIsAJar(s);
+            }
+        }));
+
+        LOG.debug("All files in $\": " + allLoadedFiles);
+        LOG.debug("All directories in $LOAD_PATH: " + fullLoadPath);
+
+        List<String> allLoadedFilesThatExist = Lists.newArrayList(Collections2.filter(allLoadedFilesPlusFilesFromGems, new Predicate<String>() {
+            @Override
+            public boolean apply(String s) {
+                return new File(s).exists();
+            }
+        }));
+
+        List<String> newLoadedFilesThatExist = Lists.newArrayList(Collections2.filter(allLoadedFilesThatExist, new Predicate<String>() {
+            @Override
+            public boolean apply(String s) {
+                return !initialListOfLoadedFiles.contains(s);
+            }
+        }));
+
+        List<String> newLoadedFilesThatExistNotInJars = Lists.newArrayList(Collections2.filter(newLoadedFilesThatExist, new Predicate<String>() {
+            @Override
+            public boolean apply(String s) {
+                return !pathIsAJar(s);
+            }
+        }));
+
+        LOG.debug("New files not in jars in $\": " + newLoadedFilesThatExistNotInJars);
+        LOG.debug("Non-jars directories in $LOAD_PATH: " + fullLoadPathNotJar);
+
+        File commonParent = findCommonParent(newLoadedFilesThatExistNotInJars);
         LOG.debug("Common parent for JRuby dependencies: " + commonParent);
 
         String loadPathValue = null;
 
-        for (Object o : fullLoadPath) {
-            String loadPath = new File(o.toString()).getAbsolutePath();
+        for (String s : fullLoadPathNotJar) {
+            String loadPath = new File(s).getAbsolutePath();
             String parPath = commonParent.getAbsolutePath();
             if (loadPath.startsWith(parPath)) {
                 String newPath = new File(GEM_DIR_BASE_NAME, loadPath.substring(parPath.length())).getPath();
@@ -216,6 +282,47 @@ public class JrubyScriptEngine extends ScriptEngine {
                 }
             }
         }
+
+        List<String> newLoadedFilesThatExistInJars = Lists.newArrayList(Collections2.filter(allLoadedFilesPlusFilesFromGems, new Predicate<String>() {
+            @Override
+            public boolean apply(String s) {
+                return getJarName(s) != null;
+            }
+        }));
+
+        List<String> fullLoadPathJar = Lists.newArrayList(Collections2.filter(fullLoadPath, new Predicate<String>() {
+            @Override
+            public boolean apply(String s) {
+                return pathIsAJar(s);
+            }
+        }));
+
+        LOG.debug("New files in jars in $\": " + newLoadedFilesThatExistInJars);
+        LOG.debug("New jar directories in load path: " + fullLoadPathJar);
+        Set<Pair<String,String>> jarFilesToLoad = Sets.newHashSet(); //TODO what if multiple jars have same name?
+        Set<String> jarsToLoad = Sets.newHashSet();
+        for (String s : newLoadedFilesThatExistInJars) {
+            Pair<String, String> jarDetails = getJarName(s);
+            //TODO could consider adding directly here IF we know for sure that
+            //TODO any file inside a jar will have the jar base as a load path
+            //TODO Q: is it possible to have a load path that ISN'T the base of a jar?
+            jarsToLoad.add(jarDetails.getFirst());
+            jarFilesToLoad.add(jarDetails);
+        }
+
+        for (String s : fullLoadPathJar) {
+            String jar = getJarNameOnly(s);
+            if (jarsToLoad.contains(jar)) {
+                String newPath = new File(GEM_DIR_BASE_NAME, jar).getPath();
+                LOG.debug("Adding synthetic jar path to load path: " + newPath);
+                if (loadPathValue == null) {
+                    loadPathValue  = newPath;
+                } else {
+                    loadPathValue  += "^^^" + newPath;
+                }
+            }
+        }
+
         if (loadPathValue != null) {
             conf.set(RUBY_LOAD_PATH_KEY, loadPathValue);
             LOG.debug("Setting JobConf key ["+RUBY_LOAD_PATH_KEY+"] to: " + loadPathValue);
@@ -230,51 +337,77 @@ public class JrubyScriptEngine extends ScriptEngine {
         int commonParentSize = commonParent.getAbsolutePath().length() + 1;
         TarArchiveOutputStream os = new TarArchiveOutputStream(new GZIPOutputStream(new FileOutputStream(fout), 1024*1024));
 
-        LOG.debug("Beginning to archive JRuby dependencies to ship.");
-        for (String file : newLoadedFiles) {
+        List<String> parentPathsToSerialize = Lists.newArrayList();
+
+        LOG.debug("Beginning to archive JRuby dependencies (those NOT in jars) to ship.");
+        for (String file : newLoadedFilesThatExistNotInJars) {
             LOG.debug("Attempting to archive file: " + file);
             String getTarName = file.substring(commonParentSize);
-            getTarName = new File(GEM_DIR_BASE_NAME, getTarName).getAbsolutePath();
+            getTarName = new File(GEM_DIR_BASE_NAME, getTarName).getPath();
 
-            File fileToTar = new File(file);
-            TarArchiveEntry entry = new TarArchiveEntry(file);
-            entry.setName(getTarName);
+            File entryFile = new File(file);
+            TarArchiveEntry entry = new TarArchiveEntry(entryFile);
+
+            String parentPathName = new File(getTarName).getParent();
+            parentPathsToSerialize.add(parentPathName);
+
+            String tarPath = new File(new File(Integer.toString(parentPathsToSerialize.size() - 1)), new File(file).getName()).getPath();
+
+            entry.setName(tarPath);
 
             os.putArchiveEntry(entry);
 
             InputStream in = new FileInputStream(file);
 
-            byte[] buf = new byte[2048];
-            int written;
-            while ((written = in.read(buf)) != -1) {
-                os.write(buf, 0, written);
-            }
+            IOUtils.copy(in, os);
 
             in.close();
             os.closeArchiveEntry();
-            os.flush();
+        }
+
+        for (Pair<String,String> filePair : jarFilesToLoad) {
+            String jar = filePair.getFirst();
+            String pathInJar = filePair.getSecond();
+
+            LOG.debug("Attempting to archive file ["+pathInJar+"] present in jar ["+jar+"]");
+
+            String syntheticPath = new File(jar, pathInJar).getPath();
+            String realTarPath = new File(GEM_DIR_BASE_NAME, syntheticPath).getPath();
+            InputStream is = Main.class.getResourceAsStream(pathInJar);
+            File tmp = File.createTempFile("tmp", "tmp");
+            tmp.deleteOnExit();
+
+            FileOutputStream fos = new FileOutputStream(tmp);
+            IOUtils.copy(is, fos);
+            fos.close();
+            is.close();
+
+            String parentPathName = new File(realTarPath).getParent();
+            parentPathsToSerialize.add(parentPathName);
+            String tarPath = new File(Integer.toString(parentPathsToSerialize.size() - 1), new File(pathInJar).getName()).getPath();
+
+            TarArchiveEntry entry = new TarArchiveEntry(tmp);
+            entry.setName(tarPath);
+
+            os.putArchiveEntry(entry);
+
+            InputStream in = new FileInputStream(tmp);
+
+            IOUtils.copy(in, os);
+
+            in.close();
+            os.closeArchiveEntry();
         }
 
         os.finish();
+        os.close();
+
+        LOG.debug("Have successfully written to temporary .tar.gz file: " + fout);
+
+        String[] parentPathsArray = parentPathsToSerialize.toArray(new String[parentPathsToSerialize.size()]);
+        conf.set(RUBY_DEPENDENCY_NON_JAR_PATHS, ObjectSerializer.serialize(parentPathsArray));
 
         shipTarToDistributedCache(fout, pigContext, conf);
-    }
-
-    // Another general option would be to add them individually to the distributed cache as they come
-    private static File tarGemsToShip(Set<File> gems) throws IOException {
-        File fout = File.createTempFile("tmp", ".tar.gz");
-        fout.delete();
-        fout.deleteOnExit();
-
-        TarArchiveOutputStream os = new TarArchiveOutputStream(new GZIPOutputStream(new FileOutputStream(fout), 1024*1024));
-
-        for (File f : gems) {
-            LOG.debug("Shipping gem: " + f);
-            TarUtils.tarFile(GEM_DIR_BASE_NAME, f.getParentFile(), new File(f, "lib"), os);
-        }
-        os.close();
-        LOG.debug("Tarred gems added to temporary file: " + fout);
-        return fout;
     }
 
     private static void shipTarToDistributedCache(File tar, PigContext pigContext, Configuration conf) {
@@ -319,14 +452,26 @@ public class JrubyScriptEngine extends ScriptEngine {
         if (!gemTar.exists()) {
             return; // there are no gems
         }
+
+        Configuration conf = UDFContext.getUDFContext().getJobConf();
+
         File gemDir = Files.createTempDir();
         gemDir.deleteOnExit();
         LOG.debug("Temporary gem location: " + gemDir);
         TarArchiveInputStream is = new TarArchiveInputStream(new GZIPInputStream(new FileInputStream(gemTar)));
+
+        String[] parentPathsArray = (String[]) ObjectSerializer.deserialize(conf.get(RUBY_DEPENDENCY_NON_JAR_PATHS));
+
         TarArchiveEntry entry;
         while ((entry = is.getNextTarEntry()) != null) {
-            LOG.debug("Processing next entry: " + entry.getName());
-            File fileToWriteTo = new File(gemDir, entry.getName());
+            String entryName = entry.getName();
+            LOG.debug("Processing next entry: " + entryName);
+            int fileIndex = Integer.parseInt(new File(entryName).getParent());
+            File realPath = new File(parentPathsArray[fileIndex]);
+            String realFile = new File(realPath, new File(entryName).getName()).getPath();
+            LOG.debug("Real path for entry: " + realFile);
+
+            File fileToWriteTo = new File(gemDir, realFile);
             File parent = fileToWriteTo.getParentFile();
             if (!parent.exists()) {
                 parent.mkdirs();
@@ -349,27 +494,30 @@ public class JrubyScriptEngine extends ScriptEngine {
             os.close();
         }
         is.close();
-        //String glob = "Dir.glob(\""+gemDir.getAbsolutePath()+"/"+GEM_DIR_BASE_NAME+"/**/*\").map {|x| $LOAD_PATH.unshift x}";
-        String glob = "Dir.glob(\""+gemDir.getAbsolutePath()+"/"+GEM_DIR_BASE_NAME+"/*/lib\").map {|x| $LOAD_PATH.unshift x}";
-        LOG.debug("Running following command in ruby: "+glob);
-        rubyEngine.runScriptlet(glob);
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Printing $LOAD_PATH");
-            LOG.debug(rubyEngine.runScriptlet("$LOAD_PATH").toString());
+
+        String loadPaths = conf.get(RUBY_LOAD_PATH_KEY);
+        if (loadPaths != null) {
+            for (String loadPath : loadPaths.split("\\^\\^\\^")) {
+                String path = new File(gemDir, loadPath).getAbsolutePath();
+                LOG.debug("Adding path to load path: " + path);
+                rubyEngine.runScriptlet("$LOAD_PATH.unshift(\""+path+"\")");
+            }
         }
-        /*
-        List<String> loadPaths = rubyEngine.getLoadPaths();
-        for (File f : gemDir.listFiles()) {
-            loadPaths.add(new File(f, "lib").getAbsolutePath());
-        }
-        rubyEngine.setLoadPaths(loadPaths);
-        */
     }
 
     private Map<String, Set<String>> scriptsInNamespace = Maps.newHashMap();
     private Set<String> scriptsAlreadyRun = Sets.newHashSet();
-    private static RubyArray initialListOfLoadedFiles;
-    private static RubyArray initialLoadPath;
+    private static List<String> initialListOfLoadedFiles;
+
+    @SuppressWarnings("unchecked")
+    private static List<String> rubyArrayToStringList(RubyArray array) {
+        return Lists.transform(array, new Function<Object,String>() {
+            @Override
+            public String apply(Object o) {
+                return new File(o.toString()).getAbsolutePath();
+            }
+        });
+    }
 
     /**
      * Evaluates the script containing ruby udfs to determine what udfs are defined as well as
@@ -379,11 +527,10 @@ public class JrubyScriptEngine extends ScriptEngine {
     @Override
     public void registerFunctions(String path, String namespace, PigContext pigContext) throws IOException {
         if (!isInitialized) {
-            initialListOfLoadedFiles = (RubyArray)rubyEngine.runScriptlet("$\"");
-            initialLoadPath = (RubyArray)rubyEngine.runScriptlet("$LOAD_PATH");
+            initialListOfLoadedFiles = rubyArrayToStringList((RubyArray)rubyEngine.runScriptlet("$\".clone"));
+            LOG.debug("Initial $\": " + initialListOfLoadedFiles);
 
             pigContext.scriptJars.add(getJarPath(Ruby.class));
-            rubyEngine.runScriptlet("require 'pigudf'");
             rubyEngine.runScriptlet("require 'pigudf'");
             rubyEngine.runScriptlet(getScriptAsStream("pigudf.rb"), "pigudf.rb");
             scriptsAlreadyRun.add("pigudf.rb");
@@ -403,6 +550,7 @@ public class JrubyScriptEngine extends ScriptEngine {
         scriptsInThisNamespace.add(path);
 
         if (!scriptsAlreadyRun.contains(path)) {
+            LOG.debug("Running JRuby script: " + path);
             rubyEngine.runScriptlet(getScriptAsStream(path), path);
             scriptsAlreadyRun.add(path);
         }
