@@ -49,6 +49,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.rest.Main;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigConstants;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.utils.StructuresHelper.Pair;
@@ -83,8 +84,6 @@ import com.google.common.io.Files;
 public class JrubyScriptEngine extends ScriptEngine {
     private static final Log LOG = LogFactory.getLog(JrubyScriptEngine.class);
 
-    // TODO test if it is necessary to have a per script (or even per method) runtime. PRO: avoid
-    // collisions CON: a bunch of runtimes, which could be slow
     protected static final ScriptingContainer rubyEngine;
 
     private boolean isInitialized = false;
@@ -92,9 +91,8 @@ public class JrubyScriptEngine extends ScriptEngine {
     static {
         rubyEngine = new ScriptingContainer(LocalContextScope.SINGLETHREAD,
                 LocalVariableBehavior.PERSISTENT);
-        rubyEngine.getProvider().getRubyInstanceConfig().setCompileMode(CompileMode.JIT); // consider
-                                                                                          // using
-                                                                                          // FORCE
+        // consider using CompileMode.FORCE
+        rubyEngine.getProvider().getRubyInstanceConfig().setCompileMode(CompileMode.JIT);
     }
 
     /**
@@ -159,18 +157,6 @@ public class JrubyScriptEngine extends ScriptEngine {
         }
     }
 
-    public static final String GEM_DIR_BASE_NAME = "gems_to_ship_123456"; // TODO move to
-                                                                          // PigConstants
-    public static final String GEM_TAR_SYMLINK = "apreciousgemindeed.tar.gz"; // TODO move to
-                                                                              // PigConstants
-    public static final String RUBY_LOAD_PATH_KEY = "pig.jruby.files.to.ship"; // TODO move to
-                                                                               // PigConstants
-    public static final String RUBY_DEPENDENCY_NON_JAR_PATHS = "pig.jruby.simplified.paths.non.jar"; // TODO
-                                                                                                     // move
-                                                                                                     // to
-                                                                                                     // PigConstants
-
-    // TODO need to bite the bullet and make this memory efficient. No being lazy :)
     public static File findCommonParent(List<String> files) {
         List<String> copy = Lists.newArrayList(files);
         Collections.sort(copy);
@@ -292,7 +278,7 @@ public class JrubyScriptEngine extends ScriptEngine {
             String loadPath = new File(s).getAbsolutePath();
             String parPath = commonParent.getAbsolutePath();
             if (loadPath.startsWith(parPath)) {
-                String newPath = new File(GEM_DIR_BASE_NAME, loadPath.substring(parPath.length()))
+                String newPath = new File(PigConstants.GEM_DIR_BASE_NAME, loadPath.substring(parPath.length()))
                         .getPath();
                 LOG.debug("Adding path to M/R JRuby load path: " + newPath);
                 if (loadPathValue == null) {
@@ -334,7 +320,7 @@ public class JrubyScriptEngine extends ScriptEngine {
         for (String s : fullLoadPathJar) {
             String jar = getJarNameOnly(s);
             if (jarsToLoad.contains(jar)) {
-                String newPath = new File(GEM_DIR_BASE_NAME, jar).getPath();
+                String newPath = new File(PigConstants.GEM_DIR_BASE_NAME, jar).getPath();
                 LOG.debug("Adding synthetic jar path to load path: " + newPath);
                 if (loadPathValue == null) {
                     loadPathValue = newPath;
@@ -345,10 +331,10 @@ public class JrubyScriptEngine extends ScriptEngine {
         }
 
         if (loadPathValue != null) {
-            conf.set(RUBY_LOAD_PATH_KEY, loadPathValue);
-            LOG.debug("Setting JobConf key [" + RUBY_LOAD_PATH_KEY + "] to: " + loadPathValue);
+            conf.set(PigConstants.RUBY_LOAD_PATH_KEY, loadPathValue);
+            LOG.debug("Setting JobConf key [" + PigConstants.RUBY_LOAD_PATH_KEY + "] to: " + loadPathValue);
         } else {
-            LOG.debug("No load path values to set in JobConf key: " + RUBY_LOAD_PATH_KEY);
+            LOG.debug("No load path values to set in JobConf key: " + PigConstants.RUBY_LOAD_PATH_KEY);
         }
 
         File fout = File.createTempFile("tmp", ".tar.gz");
@@ -365,7 +351,7 @@ public class JrubyScriptEngine extends ScriptEngine {
         for (String file : newLoadedFilesThatExistNotInJars) {
             LOG.debug("Attempting to archive file: " + file);
             String getTarName = file.substring(commonParentSize);
-            getTarName = new File(GEM_DIR_BASE_NAME, getTarName).getPath();
+            getTarName = new File(PigConstants.GEM_DIR_BASE_NAME, getTarName).getPath();
 
             File entryFile = new File(file);
             TarArchiveEntry entry = new TarArchiveEntry(entryFile);
@@ -396,7 +382,7 @@ public class JrubyScriptEngine extends ScriptEngine {
             LOG.debug("Attempting to archive file [" + pathInJar + "] present in jar [" + jar + "]");
 
             String syntheticPath = new File(jar, pathInJar).getPath();
-            String realTarPath = new File(GEM_DIR_BASE_NAME, syntheticPath).getPath();
+            String realTarPath = new File(PigConstants.GEM_DIR_BASE_NAME, syntheticPath).getPath();
             InputStream is = Main.class.getResourceAsStream(pathInJar);
             File tmp = File.createTempFile("tmp", "tmp");
             tmp.deleteOnExit();
@@ -431,7 +417,7 @@ public class JrubyScriptEngine extends ScriptEngine {
 
         String[] parentPathsArray = parentPathsToSerialize
                 .toArray(new String[parentPathsToSerialize.size()]);
-        conf.set(RUBY_DEPENDENCY_NON_JAR_PATHS, ObjectSerializer.serialize(parentPathsArray));
+        conf.set(PigConstants.RUBY_DEPENDENCY_NON_JAR_PATHS, ObjectSerializer.serialize(parentPathsArray));
 
         shipTarToDistributedCache(fout, pigContext, conf);
     }
@@ -459,7 +445,7 @@ public class JrubyScriptEngine extends ScriptEngine {
                     + src + ", dst = " + dst, e);
         }
 
-        String destination = dst.toString() + "#" + GEM_TAR_SYMLINK;
+        String destination = dst.toString() + "#" + PigConstants.GEM_TAR_SYMLINK;
 
         try {
             DistributedCache.addCacheFile(new URI(destination), conf);
@@ -475,7 +461,7 @@ public class JrubyScriptEngine extends ScriptEngine {
             haveCopiedFromDistributedCache = true;
         }
 
-        File gemTar = new File(GEM_TAR_SYMLINK);
+        File gemTar = new File(PigConstants.GEM_TAR_SYMLINK);
         if (!gemTar.exists()) {
             return; // there are no gems
         }
@@ -489,7 +475,7 @@ public class JrubyScriptEngine extends ScriptEngine {
                 new FileInputStream(gemTar)));
 
         String[] parentPathsArray = (String[])ObjectSerializer.deserialize(conf
-                .get(RUBY_DEPENDENCY_NON_JAR_PATHS));
+                .get(PigConstants.RUBY_DEPENDENCY_NON_JAR_PATHS));
 
         TarArchiveEntry entry;
         while ((entry = is.getNextTarEntry()) != null) {
@@ -524,7 +510,7 @@ public class JrubyScriptEngine extends ScriptEngine {
         }
         is.close();
 
-        String loadPaths = conf.get(RUBY_LOAD_PATH_KEY);
+        String loadPaths = conf.get(PigConstants.RUBY_LOAD_PATH_KEY);
         if (loadPaths != null) {
             for (String loadPath : loadPaths.split("\\^\\^\\^")) {
                 String path = new File(gemDir, loadPath).getAbsolutePath();

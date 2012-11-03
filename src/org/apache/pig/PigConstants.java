@@ -17,4 +17,10 @@ public class PigConstants {
 
     // This makes it easy to turn SchemaTuple on globally.
     public static final boolean SCHEMA_TUPLE_ON_BY_DEFAULT = false;
+
+    // These values are used in JrubyScriptEngine
+    public static final String GEM_DIR_BASE_NAME = "gems_to_ship_123456";
+    public static final String GEM_TAR_SYMLINK = "apreciousgemindeed.tar.gz";
+    public static final String RUBY_LOAD_PATH_KEY = "pig.jruby.files.to.ship";
+    public static final String RUBY_DEPENDENCY_NON_JAR_PATHS = "pig.jruby.simplified.paths";
 }
