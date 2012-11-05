@@ -47,8 +47,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.rest.Main;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.Main;
 import org.apache.pig.PigConstants;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
@@ -87,6 +87,7 @@ public class JrubyScriptEngine extends ScriptEngine {
     protected static final ScriptingContainer rubyEngine;
 
     private boolean isInitialized = false;
+    private static boolean shouldShip = false;
 
     static {
         rubyEngine = new ScriptingContainer(LocalContextScope.SINGLETHREAD,
@@ -158,6 +159,10 @@ public class JrubyScriptEngine extends ScriptEngine {
     }
 
     public static File findCommonParent(List<String> files) {
+        switch (files.size()) {
+        case 0: return new File("/");
+        case 1: return new File(files.get(0)).getAbsoluteFile().getParentFile();
+        }
         List<String> copy = Lists.newArrayList(files);
         Collections.sort(copy);
         File first = new File(copy.get(0)).getAbsoluteFile();
@@ -178,7 +183,7 @@ public class JrubyScriptEngine extends ScriptEngine {
         while (!firstStack.isEmpty() && !lastStack.isEmpty()) {
             File firstParent = firstStack.pollLast();
             File lastParent = lastStack.pollLast();
-            if (!firstParent.equals(lastParent)) { // TODO make sure equals ok to use here
+            if (!firstParent.equals(lastParent)) {
                 return parent;
             }
             parent = firstParent;
@@ -214,9 +219,13 @@ public class JrubyScriptEngine extends ScriptEngine {
         return null;
     }
 
-    //TODO need to detect if any scripts were actually registered, and if not, not do anything
     public static void shipGems(PigContext pigContext, Configuration conf) throws IOException {
+        if (!shouldShip) {
+            return;
+        }
+
         LOG.debug("Figuring out what dependencies will need to be shipped.");
+
         List<String> allLoadedFiles = rubyArrayToStringList((RubyArray)rubyEngine
                 .runScriptlet("$\".clone"));
         List<String> fullLoadPath = rubyArrayToStringList((RubyArray)rubyEngine
@@ -560,6 +569,7 @@ public class JrubyScriptEngine extends ScriptEngine {
             rubyEngine.runScriptlet(getScriptAsStream("pigudf.rb"), "pigudf.rb");
             scriptsAlreadyRun.add("pigudf.rb");
             isInitialized = true;
+            shouldShip = true;
         }
 
         Set<String> scriptsInThisNamespace = scriptsInNamespace.get(namespace);
