@@ -543,6 +543,13 @@ public class JrubyScriptEngine extends ScriptEngine {
     public void registerFunctions(String path, String namespace, PigContext pigContext)
             throws IOException {
         if (!isInitialized) {
+            String jrubyHome = System.getenv("JRUBY_HOME");
+            if (jrubyHome == null) {
+                LOG.error("JRUBY_HOME not set");
+            } else {
+                LOG.debug("JRUBY_HOME detected as: " + jrubyHome);
+            }
+
             initialListOfLoadedFiles = rubyArrayToStringList((RubyArray)rubyEngine
                     .runScriptlet("$\".clone"));
             LOG.debug("Initial $\": " + initialListOfLoadedFiles);
