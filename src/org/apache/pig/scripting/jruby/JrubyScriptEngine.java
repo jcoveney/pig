@@ -214,6 +214,7 @@ public class JrubyScriptEngine extends ScriptEngine {
         return null;
     }
 
+    //TODO need to detect if any scripts were actually registered, and if not, not do anything
     public static void shipGems(PigContext pigContext, Configuration conf) throws IOException {
         LOG.debug("Figuring out what dependencies will need to be shipped.");
         List<String> allLoadedFiles = rubyArrayToStringList((RubyArray)rubyEngine
