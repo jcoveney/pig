@@ -18,6 +18,7 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -41,6 +42,7 @@ import java.util.StringTokenizer;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -353,7 +355,7 @@ public class TestBuiltin {
         Tuple t3 = TupleFactory.getInstance().newTuple(2);
         t3.set(0, new DateTime("2007-03-05T03:05:03.000Z"));
         t3.set(1, "P1D");
-        
+
         assertEquals(func1.exec(t1), new DateTime("2009-01-07T01:07:02.000Z"));
         assertEquals(func1.exec(t2), new DateTime("2008-02-06T02:07:02.000Z"));
         assertEquals(func1.exec(t3), new DateTime("2007-03-06T03:05:03.000Z"));
@@ -381,7 +383,7 @@ public class TestBuiltin {
         DateTime dt3 = func2.exec(t3);
         assertEquals(dt3, new DateTime("2009-01-07T01:07:01.000+08:00", DateTimeZone.forID("+08:00")));
 
-        ToDate2ARGS func3 = new ToDate2ARGS();        
+        ToDate2ARGS func3 = new ToDate2ARGS();
         Tuple t4 = TupleFactory.getInstance().newTuple(2);
         t4.set(0, "2009.01.07 AD at 01:07:01");
         t4.set(1, "yyyy.MM.dd G 'at' HH:mm:ss");
@@ -393,8 +395,8 @@ public class TestBuiltin {
         t5.set(1, "yyyy.MM.dd G 'at' HH:mm:ss Z");
         DateTime dt5 = func3.exec(t5);
         assertEquals(dt5, new DateTime("2009-01-07T01:07:01.000+08:00"));
-        
-        ToDate3ARGS func4 = new ToDate3ARGS();        
+
+        ToDate3ARGS func4 = new ToDate3ARGS();
         Tuple t6 = TupleFactory.getInstance().newTuple(3);
         t6.set(0, "2009.01.07 AD at 01:07:01");
         t6.set(1, "yyyy.MM.dd G 'at' HH:mm:ss");
@@ -438,16 +440,22 @@ public class TestBuiltin {
         t12.set(1, "yyyy.MM.dd G 'at' HH:mm:ss Z");
         String dtStr4 = func6.exec(t12);
         assertEquals(dtStr4, "2009.01.07 AD at 01:07:01 +0800");
-        
+
         ToMilliSeconds func7 = new ToMilliSeconds();
         Tuple t13 = TupleFactory.getInstance().newTuple(1);
         t13.set(0, new DateTime(1231290421000L));
         Long ut2 = func7.exec(t11);
         assertEquals(ut2.longValue(), 1231290421000L);
-        
-        CurrentTime func8 = new CurrentTime();
+
+
+        List<FuncSpec> ctfs = new CurrentTime().getArgToFuncMapping();
+        assertNotNull(ctfs);
+        assertEquals(1, ctfs.size());
+        String[] ctorArgs = ctfs.get(0).getCtorArgs();
+        assertEquals(1, ctorArgs.length);
+        CurrentTime func8 = new CurrentTime(ctorArgs[0]);
         DateTime dt11 = func8.exec(null);
-        Assert.assertNotNull(dt11);
+        assertNotNull(dt11);
     }
 
     /**
@@ -1669,7 +1677,7 @@ public class TestBuiltin {
         t3.set(0, null);
         t3.set(1, "^\\/search\\/iy\\/(.*?)\\/.*");
         t3.set(2, 2);
-        
+
         Tuple t4 = tupleFactory.newTuple(3);
         t4.set(0,"this is a match");
         t4.set(1, "this is a (.+?)");
@@ -1922,7 +1930,7 @@ public class TestBuiltin {
         }
         assertTrue("null in tobag result", s.contains(null));
     }
-        
+
     @Test
     public void testTOBAGSupportsTuplesInInput() throws IOException {
         String[][] expected = {
@@ -2420,11 +2428,11 @@ public class TestBuiltin {
         assertTrue(rt.get(0).equals("456"));
         rt = i.next();
         assertTrue(rt.get(0).equals("789"));
-        
+
         // Check when delim specified
         Tuple t4 = tf.newTuple(2);
         t4.set(0, "123|456|78\"9");
-        t4.set(1, "|");        
+        t4.set(1, "|");
         b = f.exec(t4);
         assertTrue(b.size()==3);
         i = b.iterator();
@@ -2437,7 +2445,7 @@ public class TestBuiltin {
 
         b = f.exec(t2);
         assertTrue(b==null);
-        
+
         b = f.exec(t3);
         assertTrue(b==null);
     }
@@ -2479,7 +2487,7 @@ public class TestBuiltin {
         result = d.exec(t);
         assertEquals(2, result.size());
     }
-    
+
     //see PIG-2331
     @Test
     public void testURIwithCurlyBrace() throws Exception {
@@ -2648,12 +2656,12 @@ public class TestBuiltin {
         Long years = func1.exec(t);
         System.out.println("Years: " + years.toString());
         Assert.assertEquals(years.longValue(), 7L);
-        
+
         MonthsBetween func2 = new MonthsBetween();
         Long months = func2.exec(t);
         System.out.println("Months: " + months.toString());
         Assert.assertEquals(months.longValue(),84L);
-        
+
         WeeksBetween func3 = new WeeksBetween();
         Long weeks = func3.exec(t);
         System.out.println("Weeks: " + weeks.toString());
@@ -2691,7 +2699,7 @@ public class TestBuiltin {
         t1.set(0, new DateTime("2010-04-15T08:11:33.020Z"));
         Tuple t2 = TupleFactory.getInstance().newTuple(1);
         t2.set(0, new DateTime("2010-04-15T08:11:33.020+08:00"));
-        
+
         GetYear func1 = new GetYear();
         Integer year = func1.exec(t1);
         assertEquals(year.intValue(), 2010);
@@ -2703,31 +2711,31 @@ public class TestBuiltin {
         assertEquals(month.intValue(), 4);
         month = func2.exec(t2);
         assertEquals(month.intValue(), 4);
-        
+
         GetDay func3 = new GetDay();
         Integer day = func3.exec(t1);
         assertEquals(day.intValue(), 15);
         day = func3.exec(t2);
         assertEquals(day.intValue(), 15);
-        
+
         GetHour func4 = new GetHour();
         Integer hour = func4.exec(t1);
         assertEquals(hour.intValue(), 8);
         hour = func4.exec(t2);
         assertEquals(hour.intValue(), 0);
-        
+
         GetMinute func5 = new GetMinute();
         Integer minute = func5.exec(t1);
         assertEquals(minute.intValue(), 11);
         minute = func5.exec(t2);
         assertEquals(minute.intValue(), 11);
-        
+
         GetSecond func6 = new GetSecond();
         Integer second = func6.exec(t1);
         assertEquals(second.intValue(), 33);
         second = func6.exec(t2);
         assertEquals(second.intValue(), 33);
-        
+
         GetMilliSecond func7 = new GetMilliSecond();
         Integer milli = func7.exec(t1);
         assertEquals(milli.intValue(), 20);
@@ -2739,7 +2747,7 @@ public class TestBuiltin {
         assertEquals(weekyear.intValue(), 2010);
         weekyear = func8.exec(t2);
         assertEquals(weekyear.intValue(), 2010);
-        
+
         GetWeek func9 = new GetWeek();
         Integer week = func9.exec(t1);
         assertEquals(week.intValue(), 15);
