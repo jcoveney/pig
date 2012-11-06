@@ -862,9 +862,11 @@ public class BinInterSedes implements InterSedes {
                 if (type1 == type2) {
                     int basz1 = readSize(bb1, dt1);
                     int basz2 = readSize(bb2, dt2);
-                    rc = org.apache.hadoop.io.WritableComparator.compareBytes(
+                    rc = WritableComparator.compareBytes(
                           bb1.array(), bb1.position(), basz1,
                           bb2.array(), bb2.position(), basz2);
+                    bb1.position(bb1.position() + basz1);
+                    bb2.position(bb2.position() + basz2);
                 }
                 break;
             }
@@ -875,17 +877,16 @@ public class BinInterSedes implements InterSedes {
                 if (type1 == type2) {
                     int casz1 = readSize(bb1, dt1);
                     int casz2 = readSize(bb2, dt2);
-                    byte[] ca1 = new byte[casz1];
-                    byte[] ca2 = new byte[casz2];
-                    bb1.get(ca1);
-                    bb2.get(ca2);
                     String str1 = null, str2 = null;
                     try {
-                        str1 = new String(ca1, BinInterSedes.UTF8);
-                        str2 = new String(ca2, BinInterSedes.UTF8);
+                        str1 = new String(bb1.array(), bb1.position(), casz1, BinInterSedes.UTF8);
+                        str2 = new String(bb2.array(), bb2.position(), casz2, BinInterSedes.UTF8);
                     } catch (UnsupportedEncodingException uee) {
                         mLog.warn("Unsupported string encoding", uee);
                         uee.printStackTrace();
+                    } finally {
+                        bb1.position(bb1.position() + casz1);
+                        bb2.position(bb2.position() + casz2);
                     }
                     if (str1 != null && str2 != null)
                         rc = str1.compareTo(str2);

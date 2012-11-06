@@ -49,6 +49,7 @@ import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.streaming.HadoopExecutableManager;
@@ -178,6 +179,10 @@ public class PigContext implements Serializable {
     public PigContext() {
         this(ExecType.MAPREDUCE, new Properties());
     }
+    
+    public PigContext(ExecType execType, Configuration conf) {
+        this(execType, ConfigurationUtil.toProperties(conf));
+    }
 
     public PigContext(ExecType execType, Properties properties){
         this.execType = execType;
@@ -201,6 +206,17 @@ public class PigContext implements Serializable {
         skippedShipPaths.add("/sbin");
         skippedShipPaths.add("/usr/sbin");
         skippedShipPaths.add("/usr/local/sbin");
+        
+        init();
+    }
+
+    /**
+     * This method is created with the aim of unifying the Grunt and PigServer
+     * approaches, so all common initializations can go in here.
+     */
+    private void init() {
+        if (properties.get("udf.import.list")!=null)
+            PigContext.initializeImportList((String)properties.get("udf.import.list"));
     }
 
     public static void initializeImportList(String importListCommandLineProperties)
