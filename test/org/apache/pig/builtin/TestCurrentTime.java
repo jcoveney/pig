@@ -33,14 +33,15 @@ public class TestCurrentTime {
 
         List<Tuple> justSomeRows = Lists.newArrayList();
         for (int i = 0; i < 1000; i++) {
-            justSomeRows.add(tuple(1));
+            justSomeRows.add(tuple(i));
         }
 
         data.set("justSomeRows", justSomeRows);
 
         pigServer.registerQuery("A = load 'justSomeRows' using mock.Storage();");
-        pigServer.registerQuery("B = foreach (group A by $0) generate COUNT($1);");
-        Iterator<Tuple> it = pigServer.openIterator("B");
+        pigServer.registerQuery("B = foreach A generate CurrentTime();");
+        pigServer.registerQuery("C = foreach (group B by $0) generate COUNT($1);");
+        Iterator<Tuple> it = pigServer.openIterator("C");
         assertTrue(it.hasNext());
         Tuple t = it.next();
         assertEquals(1000L, t.get(0));
