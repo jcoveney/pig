@@ -42,7 +42,6 @@ import java.util.StringTokenizer;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
-import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -448,12 +447,7 @@ public class TestBuiltin {
         assertEquals(ut2.longValue(), 1231290421000L);
 
 
-        List<FuncSpec> ctfs = new CurrentTime().getArgToFuncMapping();
-        assertNotNull(ctfs);
-        assertEquals(1, ctfs.size());
-        String[] ctorArgs = ctfs.get(0).getCtorArgs();
-        assertEquals(1, ctorArgs.length);
-        CurrentTime func8 = new CurrentTime(ctorArgs[0]);
+        CurrentTime func8 = new CurrentTime();
         DateTime dt11 = func8.exec(null);
         assertNotNull(dt11);
     }

@@ -14,6 +14,7 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.util.UDFContext;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -46,11 +47,5 @@ public class TestCurrentTime {
         Tuple t = it.next();
         assertEquals(1000L, t.get(0));
         assertFalse(it.hasNext());
-    }
-
-    @Test(expected = ExecException.class)
-    public void testCurrentTimeExecDefaultConstructorFails() throws Exception {
-        CurrentTime ct = new CurrentTime();
-        ct.exec(null);
     }
 }
