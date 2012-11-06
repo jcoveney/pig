@@ -1,28 +1,50 @@
 package org.apache.pig.builtin;
 
+import static org.apache.pig.builtin.mock.Storage.resetData;
+import static org.apache.pig.builtin.mock.Storage.tuple;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
+import java.util.Iterator;
+import java.util.List;
 
-import org.apache.commons.codec.binary.Base64;
+import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.BinInterSedes;
-import org.apache.pig.data.DataType;
-import org.joda.time.DateTime;
+import org.apache.pig.builtin.mock.Storage.Data;
+import org.apache.pig.data.Tuple;
+import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.Lists;
+
 public class TestCurrentTime {
+    private static PigServer pigServer;
+
+    @Before
+    public void setUp() throws Exception {
+        pigServer = new PigServer(ExecType.LOCAL);
+    }
+
     @Test
-    public void testCurrentTime() throws Exception {
-        DateTime dt = new DateTime();
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(baos);
-        new BinInterSedes().writeDatum(dos, dt, DataType.DATETIME);
-        baos.close();
-        String encoded = Base64.encodeBase64URLSafeString(baos.toByteArray());
-        CurrentTime ct = new CurrentTime(encoded);
-        assertEquals(dt, ct.exec(null));
+    public void testAllCurrentTimeSame() throws Exception {
+        Data data = resetData(pigServer);
+
+        List<Tuple> justSomeRows = Lists.newArrayList();
+        for (int i = 0; i < 1000; i++) {
+            justSomeRows.add(tuple(1));
+        }
+
+        data.set("justSomeRows", justSomeRows);
+
+        pigServer.registerQuery("A = load 'justSomeRows' using mock.Storage();");
+        pigServer.registerQuery("B = foreach (group A by $0) generate COUNT($1);");
+        Iterator<Tuple> it = pigServer.openIterator("B");
+        assertTrue(it.hasNext());
+        Tuple t = it.next();
+        assertEquals(1000L, t.get(0));
+        assertFalse(it.hasNext());
     }
 
     @Test(expected = ExecException.class)
