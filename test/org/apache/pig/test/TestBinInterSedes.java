@@ -38,7 +38,6 @@ import org.apache.pig.data.InterSedesFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.util.TupleFormat;
-import org.joda.time.DateTime;
 import org.junit.Test;
 
 public class TestBinInterSedes {
@@ -66,13 +65,13 @@ public class TestBinInterSedes {
             tuplein.set(6, bag);
 
             testTupleSedes(tuplein);
-
+            
             assertEquals(
                     "(12,[pig#scalability],,12,1.2,(innerTuple),{(innerTuple)})",
                     TupleFormat.format(tuplein));
     }
-
-
+    
+    
     /**
      * test sedes of int of diff sizes
      * @throws IOException
@@ -86,10 +85,10 @@ public class TestBinInterSedes {
             tuple.append(new Integer(125));  //fits into byte
             tuple.append(new Integer(1024)); //fits into short
             tuple.append(new Integer(1024*1024*1024)); //fits into int (=~ 2 ^30)
-
+            
             testTupleSedes(tuple);
     }
-
+    
     /**
      * test sedes of bytearray, string of diff sizes
      * @throws IOException
@@ -111,7 +110,7 @@ public class TestBinInterSedes {
             tuple.append(new DataByteArray(largeBytearray));
 
             testTupleSedes(tuple);
-
+            
             // add strings of different sizes
             tuple = TupleFactory.getInstance().newTuple();
             tuple.append(new String(""));
@@ -130,9 +129,9 @@ public class TestBinInterSedes {
     public void testTupleWriteReadBagDiffSizes() throws IOException {
             // tuple with ByteArray and strings of different sizes
             Tuple tuple = TupleFactory.getInstance().newTuple();
-            DataBag tinyBag = createBag(10);
-            DataBag smallBag = createBag(1000);
-            DataBag largeBag = createBag(100*1024);
+            DataBag tinyBag = createBag(10); 
+            DataBag smallBag = createBag(1000); 
+            DataBag largeBag = createBag(100*1024); 
 
             tuple.append(tinyBag);
             tuple.append(smallBag);
@@ -192,7 +191,7 @@ public class TestBinInterSedes {
             // tuple with ByteArray and strings of different sizes
             Tuple smallTuple = createTupleWithManyCols(1000);
             testTupleSedes(smallTuple);
-
+            
             Tuple largeTuple = createTupleWithManyCols(100*1000);
             testTupleSedes(largeTuple);
     }
@@ -205,7 +204,7 @@ public class TestBinInterSedes {
         }
         return t;
     }
-
+    
     /**
      * test sedes  with maps of diff sizes
      * @throws IOException
@@ -242,23 +241,23 @@ public class TestBinInterSedes {
      * @throws IOException
      */
     private void testTupleSedes(Tuple tuple) throws IOException {
-
+        
         InterSedes sedes = InterSedesFactory.getInterSedesInstance();
-
-        //write the tuple into a DataOutputStream on bytearray
+        
+        //write the tuple into a DataOutputStream on bytearray 
         ByteArrayOutputStream bout = new ByteArrayOutputStream(10*1024*1024);// 10 MB
         DataOutputStream out = new DataOutputStream(bout);
         sedes.writeDatum(out, tuple);
         out.flush();
-
-        //read tuple back
+        
+        //read tuple back 
         ByteArrayInputStream bin = new ByteArrayInputStream(bout.toByteArray());
         DataInputStream in = new DataInputStream(bin);
         Tuple tupleout = (Tuple)sedes.readDatum(in);
-
+        
         assertEquals(" Tuple before and after serialization are same ",
                 tuple, tupleout);
-
+        
     }
 
     /**
@@ -292,24 +291,9 @@ public class TestBinInterSedes {
                 bis.writeDatum(out, val);
                 t.set(j, val);
             }
-
+    
             testSerTuple(t, baos.toByteArray());
         }
-    }
-
-    @Test
-    public void testDateTimeSerialization() throws Exception {
-        DateTime dt = new DateTime();
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(baos);
-        bis.writeDatum(dos, dt);
-        baos.close();
-
-        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-        DataInputStream dis = new DataInputStream(bais);
-        Object o = bis.readDatum(dis);
-        assertEquals(DateTime.class, o.getClass());
-        assertEquals(dt, o);
     }
 
     private void testSerTuple(Tuple t, byte[] expected) throws Exception {
@@ -317,7 +301,7 @@ public class TestBinInterSedes {
         DataOutput out = new DataOutputStream(baos);
 
         bis.writeDatum(out, t);
-
+    
         Tuple t2 = (Tuple) bis.readDatum(new DataInputStream(new ByteArrayInputStream(baos.toByteArray())));
 
         assertEquals(t, t2);
