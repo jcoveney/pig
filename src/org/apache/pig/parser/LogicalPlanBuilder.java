@@ -933,14 +933,27 @@ public class LogicalPlanBuilder {
             Map<String, Operator> operators,
             List<LogicalExpressionPlan> exprPlans, List<Boolean> flattenFlags,
             List<LogicalSchema> schemas)
-    throws ParserValidationException{
+    throws ParserValidationException {
 
         boolean[] flags = new boolean[ flattenFlags.size() ];
         for( int i = 0; i < flattenFlags.size(); i++ )
             flags[i] = flattenFlags.get( i );
         LogicalPlan innerPlan = (LogicalPlan)gen.getPlan();
         ArrayList<Operator> inputs = new ArrayList<Operator>();
+        int idx = 0;
         for( LogicalExpressionPlan exprPlan : exprPlans ) {
+            LogicalExpression expr = (LogicalExpression)exprPlan.getSources().get(0);
+            LogicalSchema userSchema = schemas.get(idx);
+            if (userSchema == null) {
+                LogicalSchema ls = new LogicalSchema();
+                try {
+                    ls.addField(expr.getFieldSchema());
+                    schemas.set(idx, ls);
+                } catch (FrontendException e) {
+                    // if we get an exception, then we have no schema to set
+                }
+            }
+            idx++;
             try {
                 processExpressionPlan( foreach, innerPlan, exprPlan, operators, inputs );
             } catch (FrontendException e) {
@@ -1259,15 +1272,14 @@ public class LogicalPlanBuilder {
                     }
                 }
                 LogicalExpression root = (LogicalExpression)planCopy.getSources().get( 0 );// get the root of the plan
+                LogicalFieldSchema schema;
                 try {
-                    LogicalFieldSchema rootSchema = root.getFieldSchema();
-                    if (rootSchema.alias == null) {
-                        rootSchema.alias = colAlias;
+                    schema = root.getFieldSchema();
+                    if (schema.alias == null) {
+                        schema.alias = colAlias;
                     }
                 } catch (FrontendException e) {
-                    // Do nothing. getFieldSchema() is not just a getter -- it has side effects. In some cases, as
-                    // a result of these side effects it will throw an exception, which for our purposes just means
-                    // there is no LogicalFieldSchema available.
+                    // Sometimes it can throw an exception. If it does, then there is no schema to get
                 }
                 return root;
             } else {
