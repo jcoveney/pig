@@ -109,6 +109,7 @@ public class BinCondExpression extends LogicalExpression {
         return fieldSchema;
     }
 
+    @Override
     public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws FrontendException {
         LogicalExpression copy = new BinCondExpression(
                 lgExpPlan,

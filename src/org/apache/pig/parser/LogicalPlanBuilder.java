@@ -944,7 +944,7 @@ public class LogicalPlanBuilder {
         for( LogicalExpressionPlan exprPlan : exprPlans ) {
             LogicalExpression expr = (LogicalExpression)exprPlan.getSources().get(0);
             LogicalSchema userSchema = schemas.get(idx);
-            if (userSchema == null) {
+            if (userSchema == null && expr.hasFieldSchema()) {
                 LogicalSchema ls = new LogicalSchema();
                 try {
                     ls.addField(expr.getFieldSchema());

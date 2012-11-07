@@ -54,6 +54,14 @@ public abstract class LogicalExpression extends Operator {
     }
 
     /**
+     * This is a convenience method to avoid the side-effectful nature of getFieldSchema().
+     * It simply returns whether or not fieldSchema is currently null.
+     */
+    public boolean hasFieldSchema() {
+        return fieldSchema != null;
+    }
+
+    /**
      * Get the field schema for the output of this expression operator.  This does
      * not merely return the field schema variable.  If schema is not yet set, this
      * will attempt to construct it.  Therefore it is abstract since each
@@ -117,14 +125,5 @@ public abstract class LogicalExpression extends Operator {
      */
     public void resetUid() {
         uidOnlyFieldSchema = null;
-    }
-
-    public LogicalFieldSchema getUidOnlyFieldSchema() throws FrontendException {
-        if (uidOnlyFieldSchema!=null)
-            return uidOnlyFieldSchema;
-
-        getFieldSchema();
-
-        return uidOnlyFieldSchema;
     }
 }
