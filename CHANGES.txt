@@ -24,6 +24,12 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3016: Modernize more tests (jcoveney via cheolsoo)
+
+PIG-2582: Store size in bytes (not mbytes) in ResourceStatistics (prkommireddi via billgraham)
+
+PIG-3006: Modernize a chunk of the tests (jcoveney via cheolsoo)
+
 PIG-2997: Provide a convenience constructor on PigServer that accepts Configuration (prkommireddi via rohini)
 
 PIG-2933: HBaseStorage is using setScannerCaching which is deprecated (prkommireddi via rohini)
@@ -50,6 +56,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-2989: Illustrate for Rank Operator (xalan via gates)
+
 PIG-2885: TestJobSumission and TestHBaseStorage don't work with HBase 0.94 and ZK 3.4.3 (cheolsoo via sms)
 
 PIG-2928: Fix e2e test failures in trunk: FilterBoolean_23/24 (cheolsoo via dvryaboy)
@@ -57,6 +65,8 @@ PIG-2928: Fix e2e test failures in trunk: FilterBoolean_23/24 (cheolsoo via dvry
 Release 0.11.0 (unreleased)
 
 INCOMPATIBLE CHANGES
+
+PIG-3034: Remove Penny code from Pig repository (gates via cheolsoo)
 
 PIG-2931: $ signs in the replacement string make parameter substitution fail (cheolsoo via jcoveney)
 
@@ -349,6 +359,12 @@ PIG-2337: Provide UDF with input schema (xutingz via daijy)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-2979: Pig.jar doesn't work with hadoop-2.0.x (cheolsoo)
+
+PIG-3035: With latest version of hadoop23 pig does not return the correct exception stack trace from backend (rohini)
+
+PIG-2405: some unit test case failed with open JDK (fang fang chen via cheolsoo)
 
 PIG-3018: Refactor TestScriptLanguage to remove duplication and write script in different files (julien)
 
