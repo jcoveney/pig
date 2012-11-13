@@ -367,10 +367,6 @@
         <ant target="clean" dir="contrib/zebra" inheritAll="false"/>
     </target>
 
-    <target name="clean-penny" description="Cleanup Penny">
-        <ant target="clean" dir="contrib/penny/java" inheritAll="false"/>
-    </target>
-
     <target name="clean-tutorial" description="Cleanup Tutorial">
         <ant target="clean" dir="tutorial" inheritAll="false"/>
     </target>
@@ -700,7 +696,8 @@
             </manifest>
             <zipgroupfileset dir="${ivy.lib.dir}">
                 <include name="hadoop-core-${hadoop-core.version}.jar" />
-                <include name="hadoop-*-${hadoop-common.version}*.jar" />
+                <include name="hadoop-*-${hadoop-common.version}.jar" />
+                <exclude name="hadoop-hdfs-${hadoop-hdfs.version}.jar" />
                 <include name="antlr-runtime-${antlr.version}.jar" />
                 <include name="ST4-${stringtemplate.version}.jar" />
                 <include name="junit-${junit.version}.jar" />
@@ -715,6 +712,7 @@
                 <include name="avro-${avro.version}.jar" />
                 <include name="commons*.jar" />
                 <include name="log4j*.jar" />
+                <include name="slf4j*.jar" />
                 <include name="jsp-api*.jar" />
                 <include name="jansi-${jansi.version}.jar" />
             </zipgroupfileset>
@@ -1238,7 +1236,7 @@
     <!-- ================================================================== -->
     <!-- Make release tarball                                               -->
     <!-- ================================================================== -->
-    <target name="src-release" depends="clean, clean-piggybank, clean-zebra, clean-penny, clean-test-e2e, clean-tutorial" description="Source distribution">
+    <target name="src-release" depends="clean, clean-piggybank, clean-zebra, clean-test-e2e, clean-tutorial" description="Source distribution">
         <mkdir dir="${build.dir}"/>
         <tar compression="gzip" longfile="gnu"
              destfile="${build.dir}/${final.name}-src-${pig.version}.tar.gz">
