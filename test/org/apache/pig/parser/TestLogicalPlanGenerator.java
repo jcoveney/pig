@@ -477,7 +477,7 @@ public class TestLogicalPlanGenerator {
 
     // See: PIG-2937
     @Test
-    public void testAutomaticallyMadeName() throws Exception {
+    public void testRelationAliasInNestedForeachWhereUnspecified() throws Exception {
         Data data = resetData(pigServer);
         List<Tuple> values = Lists.newArrayList();
         for (int i = 0; i < 10; i++) {
