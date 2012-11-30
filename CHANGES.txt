@@ -22,9 +22,9 @@ Trunk (unreleased changes)
 
 INCOMPATIBLE CHANGES
 
-PIG-3034: Remove Penny code from Pig repository (gates via cheolsoo)
-
 IMPROVEMENTS
+
+PIG-3062: Change HBaseStorage to permit overriding pushProjection (billgraham)
 
 PIG-3016: Modernize more tests (jcoveney via cheolsoo)
 
@@ -58,6 +58,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3014: CurrentTime() UDF has undesirable characteristics (jcoveney via cheolsoo)
+
 PIG-2924: PigStats should not be assuming all Storage classes to be file-based storage (cheolsoo)
 
 PIG-3046: An empty file name in -Dpig.additional.jars throws an error (prkommireddi via cheolsoo)
@@ -72,11 +74,19 @@ Release 0.11.0 (unreleased)
 
 INCOMPATIBLE CHANGES
 
+PIG-3034: Remove Penny code from Pig repository (gates via cheolsoo)
+
 PIG-2931: $ signs in the replacement string make parameter substitution fail (cheolsoo via jcoveney)
 
 PIG-1891 Enable StoreFunc to make intelligent decision based on job success or failure (initialcontext via gates)
 
 IMPROVEMENTS
+
+PIG-2934: HBaseStorage filter optimizations (billgraham)
+
+PIG-2980: documentation for DateTime datatype (zjshen via thejas)
+
+PIG-2982: add unit tests for DateTime type that test setting timezone (zjshen via thejas)
 
 PIG-2937: generated field in nested foreach does not inherit the variable name as the field name (jcoveney)
 
@@ -365,6 +375,8 @@ PIG-2337: Provide UDF with input schema (xutingz via daijy)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-2978: TestLoadStoreFuncLifeCycle fails with hadoop-2.0.x (cheolsoo)
 
 PIG-3039: Not possible to use custom version of jackson jars (rohini)
 
