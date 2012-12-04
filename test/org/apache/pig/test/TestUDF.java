@@ -225,8 +225,6 @@ public class TestUDF {
         private String schemaString;
         private Schema schema;
 
-        public MirrorSchema() {}
-
         public MirrorSchema(String schemaString) {
             this.schemaString = schemaString;
             try {
