@@ -1092,7 +1092,7 @@ public class TestLogicalPlanBuilder {
             buildPlan( query + "c = foreach b generate group as mygroup:(myname, myage), COUNT(a) as mycount;");
             fail("Should have thrown error");
         } catch (AssertionFailedError e) {
-            assertTrue(e.getMessage().contains("Schema size mismatch"));
+            assertTrue(e.getMessage().contains("Schema size mismatch")); //TODO what actually throws this?
         }
 
         try {
