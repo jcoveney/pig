@@ -55,7 +55,7 @@ public class PluckTuple extends EvalFunc<Tuple> {
             for (int i = 0; i < inputSchema.size(); i++) {
                 String alias;
                 try {
-                  alias = inputSchema.getField(i).alias;
+                    alias = inputSchema.getField(i).alias;
                 } catch (FrontendException e) {
                     throw new RuntimeException(e); // Should never happen
                 }
@@ -73,15 +73,15 @@ public class PluckTuple extends EvalFunc<Tuple> {
         Schema outputSchema = new Schema();
         for (int val : indicesToInclude) {
             try {
-              outputSchema.add(inputSchema.getField(val));
+                outputSchema.add(inputSchema.getField(val));
             } catch (FrontendException e) {
-              throw new RuntimeException(e);
+                throw new RuntimeException(e);
             }
         }
         try {
-          return new Schema(new Schema.FieldSchema("plucked", outputSchema, DataType.TUPLE));
+            return new Schema(new Schema.FieldSchema("plucked", outputSchema, DataType.TUPLE));
         } catch (FrontendException e) {
-          throw new RuntimeException(e); // Should never happen
+            throw new RuntimeException(e); // Should never happen
         }
     }
 }
