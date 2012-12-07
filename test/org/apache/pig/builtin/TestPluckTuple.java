@@ -22,7 +22,7 @@ public class TestPluckTuple {
 
     @Before
     public void setUp() throws Exception {
-      pigServer = new PigServer(ExecType.LOCAL);
+        pigServer = new PigServer(ExecType.LOCAL);
     }
 
     @Test
