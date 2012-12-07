@@ -166,42 +166,32 @@ public class TestLogicalPlanBuilder {
         buildPlan(query);
     }
 
-    @Test
+    @Test(expected = FrontendException.class)
     public void testQueryFail1() throws Exception {
         String query = " foreach (group (A = load 'a') by $1) generate A.'1' ;";
-        try {
-            buildPlan(query);
-        } catch (AssertionFailedError e) {
-            return;
-        }
-        fail("Test case should fail" );
+        buildPlan(query);
     }
 
-    @Test
+    @Test(expected = FrontendException.class)
     public void testQueryFail2() throws Exception {
         String query = "foreach group (load 'a') by $1 generate $1.* ;";
-        try {
-            buildPlan(query);
-        } catch (AssertionFailedError e) {
-        	return;
-        }
-        fail("Test case should fail" );
+        buildPlan(query);
     }
 
-    @Test(expected = AssertionFailedError.class)
+    @Test(expected = FrontendException.class)
     public void testQueryFail3() throws Exception {
         String query = "A = generate DISTINCT foreach (load 'a');";
         LogicalPlan lp = buildPlan(query);
         System.out.println( lp.toString() );
     }
 
-    @Test(expected = AssertionFailedError.class)
+    @Test(expected = FrontendException.class)
     public void testQueryFail4() throws Exception {
         String query = "A = generate [ORDER BY $0][$3, $4] foreach (load 'a');";
         buildPlan(query);
     }
 
-    @Test(expected = AssertionFailedError.class)
+    @Test(expected = FrontendException.class)
     public void testQueryFail5() throws Exception {
         String query = "A = generate " + TestApplyFunc.class.getName() + "($2.*) foreach (load 'a');";
         buildPlan(query);
@@ -273,16 +263,11 @@ public class TestLogicalPlanBuilder {
         buildPlan(query);
     }
 
-    @Test(expected = AssertionFailedError.class)
-    public void testQuery22Fail() throws Exception {
+    @Test
+    public void testQuery22_1() throws Exception {
         String query = "A = load 'a' as (a:int, b: double);" +
                        "B = group A by (*, $0);";
-        try {
-            buildPlan(query);
-        } catch (AssertionFailedError e) {
-            assertTrue(e.getMessage().contains("Grouping attributes can either be star (*"));
-            throw e;
-        }
+        buildPlan(query);
     }
 
     @Test
@@ -307,21 +292,21 @@ public class TestLogicalPlanBuilder {
         buildPlan(query);
     }
 
-    @Test(expected = AssertionFailedError.class)
+    @Test(expected = FrontendException.class)
     public void testQuery23Fail() throws Exception {
         String query = "A = load 'a' as (a: int, b:double);" +
                        "B = load 'b';" +
                        "C = cogroup A by (*, $0), B by ($0, $1);";
         try {
             buildPlan(query);
-        } catch (AssertionFailedError e) {
+        } catch (Exception e) {
             assertTrue(e.getMessage().contains("The arity of cogroup/group by columns " +
                         "do not match"));
             throw e;
         }
     }
 
-    @Test(expected = AssertionFailedError.class)
+    @Test(expected = FrontendException.class)
     public void testQuery23Fail2() throws Exception {
         String query = "A = load 'a';" +
                        "B = load 'b';" +
@@ -329,14 +314,14 @@ public class TestLogicalPlanBuilder {
         buildPlan(query);
     }
 
-    @Test(expected = AssertionFailedError.class)
+    @Test(expected = FrontendException.class)
     public void testQuery23Fail3() throws Exception {
         String query = "A = load 'a' as (a: int, b:double);" +
                        "B = load 'b' as (a:int);" +
                        "C = cogroup A by *, B by *;";
         try {
             buildPlan(query);
-        } catch (AssertionFailedError e) {
+        } catch (Exception e) {
             assertTrue(e.getMessage().contains("The arity of cogroup/group by columns " +
                         "do not match"));
             throw e;
@@ -469,7 +454,7 @@ public class TestLogicalPlanBuilder {
         buildPlan(query);
     }
 
-    @Test(expected = AssertionFailedError.class)
+    @Test(expected = FrontendException.class)
     public void testQueryFail37() throws Exception {
         String query = "A = load 'a'; asdasdas";
         buildPlan(query);
@@ -493,14 +478,13 @@ public class TestLogicalPlanBuilder {
         buildPlan( query );
     }
 
-    @Test(expected = AssertionFailedError.class)
-    public void testQueryFail39() throws Exception{
+    public void testQuery39_1() throws Exception{
         String query = "a = load 'a' as (url, host, ranking);" +
                        "b = group a by (url,host); " +
         "c = foreach b generate flatten(group.url), SUM(a.ranking) as totalRank;" +
                        "d = filter c by totalRank > '10';" +
                        "e = foreach d generate url;";
-        buildPlan(query);//url has been falttened and hence the failure
+        buildPlan(query);
     }
 
     @Test
@@ -509,7 +493,7 @@ public class TestLogicalPlanBuilder {
         buildPlan( query +"a = FILTER (load 'a') BY (IsEmpty($2) AND ($3 == $2));" );
     }
 
-    @Test(expected = AssertionFailedError.class)
+    @Test(expected = FrontendException.class)
     public void testQueryFail41() throws Exception {
         buildPlan("a = load 'a';" + "b = a as (host,url);");
         // TODO
@@ -538,7 +522,7 @@ public class TestLogicalPlanBuilder {
         buildPlan( q );
     }
 
-    @Test(expected = AssertionFailedError.class)
+    @Test(expected = FrontendException.class)
     public void testQueryFail43() throws Exception {
         String q = "a = load 'a' as (name, age, gpa);" +
         "b = load 'b' as (name, height);";
@@ -578,7 +562,6 @@ public class TestLogicalPlanBuilder {
         buildPlan(query);
     }
 
-    @Test(expected = AssertionFailedError.class)
     public void testQueryFail58() throws Exception{
         String query = "a = load 'a' as (url, host, ranking);" +
         "b = group a by url; ";
@@ -623,7 +606,6 @@ public class TestLogicalPlanBuilder {
         buildPlan(query);
     }
 
-    @Test(expected = AssertionFailedError.class)
     public void testQueryFail62() throws Exception {
         String query = "a = load 'a' as (name, age, gpa);" +
         "b = load 'b' as (name, height);" +
@@ -641,7 +623,7 @@ public class TestLogicalPlanBuilder {
         buildPlan(query);
     }
 
-    @Test(expected = AssertionFailedError.class)
+
     public void testQueryFail63() throws Exception {
         String query = "foreach (load 'myfile' as (col1, col2 : (sub1, sub2), col3 : (bag1))) generate col1 ;";
       	buildPlan(query);
@@ -658,7 +640,7 @@ public class TestLogicalPlanBuilder {
         buildPlan(query);
     }
 
-    @Test(expected = AssertionFailedError.class)
+    @Test(expected = FrontendException.class)
     public void testQueryFail64() throws Exception {
         String query = "foreach (load 'myfile' as (col1, col2 : bag{age: int})) generate col1 ;";
       	buildPlan(query);
@@ -673,8 +655,7 @@ public class TestLogicalPlanBuilder {
         buildPlan( q );
 	}
 
-    @Test(expected = AssertionFailedError.class)
-    public void testQueryFail65() throws Exception {
+    public void testQuery65_1() throws Exception {
         String q = "a = load 'a' as (name, age, gpa);" +
         "b = load 'b' as (name, height);" +
 		"c = cogroup a by (name, age), b by (name, height);" +
@@ -712,13 +693,13 @@ public class TestLogicalPlanBuilder {
     }
 
     @Test
-    public void testQueryFail67() throws Exception {
+    public void testQuery67_1() throws Exception {
         String q = " a = load 'input1' as (name, age, gpa);" +
         " b = foreach a generate age, age * 10L, gpa/0.2f, {16, 4.0e-2, 'hello'};";
         buildPlan(q);
     }
 
-    @Test(expected = AssertionFailedError.class)
+    @Test(expected = FrontendException.class)
     public void testQueryFail68() throws Exception {
         String q = " a = load 'input1' as (name, age, gpa);";
       	buildPlan( q +
@@ -752,21 +733,21 @@ public class TestLogicalPlanBuilder {
         String q = "split (load 'a') into x if $0 > '7', y if $0 < '7';";
         try {
             buildPlan( q + "c = foreach y generate (bag)$1;");
-        } catch (AssertionFailedError e) {
+        } catch (FrontendException e) {
         	catchEx = true;
         }
         assertTrue( catchEx );
         catchEx = false;
         try {
         	buildPlan( q + "c = foreach y generate (bag{int, float})$1;");
-        } catch (AssertionFailedError e) {
+        } catch (FrontendException e) {
         	catchEx = true;
         }
         assertTrue( catchEx );
         catchEx = false;
         try {
         	buildPlan( q + "c = foreach y generate (tuple)$1;");
-        } catch (AssertionFailedError e) {
+        } catch (FrontendException e) {
         	catchEx = true;
         }
         assertTrue( catchEx );
@@ -838,7 +819,7 @@ public class TestLogicalPlanBuilder {
     	buildPlan( q );
     }
 
-    @Test(expected = AssertionFailedError.class)
+    @Test(expected = FrontendException.class)
     public void testQueryFail81() throws Exception {
         String q = "a = load 'input1' using PigStorage() as (name, age, gpa);";
         buildPlan(q + "split a into b if name lt 'f', c if (name ge 'f' and name le 'h'), d if name gt 'h';");
@@ -856,8 +837,7 @@ public class TestLogicalPlanBuilder {
         buildPlan(q);
     }
 
-    @Test(expected = AssertionFailedError.class)
-    public void testQueryFail82() throws Exception {
+    public void testQuery82_1() throws Exception {
     	String q = "a = load 'myfile';" +
         "b = group a by $0;" +
         "c = foreach b {"
@@ -990,12 +970,12 @@ public class TestLogicalPlanBuilder {
         buildPlan( query );
     }
 
-    @Test(expected = AssertionFailedError.class)
+    @Test(expected = FrontendException.class)
     public void testQueryFail89() throws Exception {
         String q = "c = load 'myfile' as (i: int);";
         try {
             buildPlan(q + "d = foreach c generate $0, $5;");
-        } catch (AssertionFailedError e) {
+        } catch (Exception e) {
             assertTrue(e.getMessage().contains("Out of bound access"));
             throw e;
         }
@@ -1089,35 +1069,35 @@ public class TestLogicalPlanBuilder {
         try {
             buildPlan( query + "c = foreach b generate group as mygroup:(myname, myage), COUNT(a) as mycount;");
             fail("Should have thrown error");
-        } catch (AssertionFailedError e) {
+        } catch (FrontendException e) {
             assertTrue(e.getMessage().contains("Schema size mismatch")); //TODO what actually throws this?
         }
 
         try {
             buildPlan( query + "c = foreach b generate group as mygroup:(myname: int, myage), COUNT(a) as mycount;");
             fail("Should have thrown error");
-        } catch (AssertionFailedError e) {
+        } catch (FrontendException e) {
             assertTrue(e.getMessage().contains("Type mismatch"));
         }
 
         try {
             buildPlan( query + "c = foreach b generate group as mygroup:(myname, myage: chararray), COUNT(a) as mycount;");
             fail("Should have thrown error");
-        } catch (AssertionFailedError e) {
+        } catch (FrontendException e) {
             assertTrue(e.getMessage().contains("Type mismatch"));
         }
 
         try {
             buildPlan( query + "c = foreach b generate group as mygroup:{t: (myname, myage)}, COUNT(a) as mycount;");
             fail("Should have thrown error");
-        } catch (AssertionFailedError e) {
+        } catch (FrontendException e) {
             assertTrue(e.getMessage().contains("Incompatable field schema"));
         }
 
         try {
             buildPlan( query + "c = foreach b generate flatten(group) as (myname, myage, mygpa), COUNT(a) as mycount;");
             fail("Should have thrown error");
-        } catch (AssertionFailedError e) {
+        } catch (FrontendException e) {
             assertTrue(e.getMessage().contains("Incompatable schema"));
         }
     }
@@ -1178,7 +1158,7 @@ public class TestLogicalPlanBuilder {
         buildPlan( query );
     }
 
-    @Test(expected = AssertionFailedError.class)
+    @Test(expected = FrontendException.class)
     public void testQueryFail94() throws Exception {
         String query = "a = load 'one' as (name, age, gpa);" +
         "b = load 'two' as (name, age, somethingelse);"+
@@ -1188,7 +1168,7 @@ public class TestLogicalPlanBuilder {
         // test that we can refer to "a::name" field and not name
         try {
             buildPlan(query);
-        } catch (AssertionFailedError e) {
+        } catch (Exception e) {
             assertTrue(e.getMessage().contains("Invalid field projection. Projected field [name] does not exist"));
             throw e;
         }
@@ -1465,14 +1445,14 @@ public class TestLogicalPlanBuilder {
         assertEquals("group:tuple(name:bytearray,age:bytearray,gpa:bytearray),a:bag{:tuple(name:bytearray,age:bytearray,gpa:bytearray)},b:bag{:tuple(first_name:bytearray,enrol_age:bytearray,high_school_gpa:bytearray)}", s);
     }
 
-    @Test(expected = AssertionFailedError.class)
+    @Test(expected = FrontendException.class)
     public void testQuery110Fail()  throws Exception {
     	String query = "a = load 'one' as (name, age, gpa);" +
     	"b = load 'two';" + "c = cogroup a by $0, b by *;";
 
         try {
             buildPlan( query );
-        } catch(AssertionFailedError e) {
+        } catch(Exception e) {
             assertTrue(e.getMessage().contains("Cogroup/Group by '*' or 'x..' (range of columns to the end) is only allowed " +
             		"if the input has a schema" ) );
             throw e;
@@ -1917,7 +1897,7 @@ public class TestLogicalPlanBuilder {
         buildPlan( query );
     }
 
-    @Test(expected = AssertionFailedError.class)
+    @Test(expected = FrontendException.class)
     public void testCogroupByStarFailure1() throws Exception {
         try {
             String query = " a = load '1.txt' as (a0:int, a1:int);" +
@@ -1925,14 +1905,14 @@ public class TestLogicalPlanBuilder {
             "c = cogroup a by *, b by *;" +
             "store c into 'output';";
             buildPlan(query);
-        } catch (AssertionFailedError e) {
+        } catch (Exception e) {
             assertTrue(e.getMessage().contains("Cogroup/Group by '*' or 'x..' (range of columns to the end) is only" +
             		" allowed if the input has a schema"));
             throw e;
         }
     }
 
-    @Test(expected = AssertionFailedError.class)
+    @Test(expected = FrontendException.class)
     public void testCogroupByStarFailure2() throws Exception {
         try {
             String query = " a = load '1.txt' ;" +
@@ -1940,13 +1920,13 @@ public class TestLogicalPlanBuilder {
             "c = cogroup a by *, b by *;" +
             "store c into 'output';";
             buildPlan( query );
-        } catch (AssertionFailedError e) {
+        } catch (Exception e) {
             assertTrue(e.getMessage().contains("Cogroup/Group by '*' or 'x..' (range of columns to the end) is only allowed if the input has a schema"));
             throw e;
         }
     }
 
-    @Test(expected = AssertionFailedError.class)
+    @Test(expected = FrontendException.class)
     public void testMissingSemicolon() throws Exception {
         try {
             String query = "A = load '1.txt' \n" +
@@ -1954,22 +1934,21 @@ public class TestLogicalPlanBuilder {
                            "C = union A, B;\n" +
                            "store C into 'output';";
             buildPlan( query );
-        } catch (AssertionFailedError e) {
+        } catch (Exception e) {
             assertTrue(e.getMessage().contains("mismatched input 'B' expecting SEMI_COLON"));
             throw e;
         }
     }
 
-    @Test(expected = AssertionFailedError.class)
+    @Test(expected = FrontendException.class)
     public void testCogroupByIncompatibleSchemaFailure() throws Exception {
-        boolean exceptionThrown = false;
         try {
             String query = " a = load '1.txt' as (a0:int, a1:int);" +
             " b = load '2.txt' as (a0:int, a1:chararray); " +
             "c = cogroup a by (a0,a1), b by (a0,a1);" +
             "store c into 'output';";
             buildPlan( query );
-        } catch (AssertionFailedError e) {
+        } catch (Exception e) {
             String msg =
                 "group column no. 2 in relation no. 2 of  group statement" +
                 " has datatype chararray which is incompatible with type of" +
