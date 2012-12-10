@@ -24,6 +24,26 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3075: Allow AvroStorage STORE Operations To Use Schema Specified By URI (nwhite via cheolsoo)
+
+PIG-3062: Change HBaseStorage to permit overriding pushProjection (billgraham)
+
+PIG-3016: Modernize more tests (jcoveney via cheolsoo)
+
+PIG-2582: Store size in bytes (not mbytes) in ResourceStatistics (prkommireddi via billgraham)
+
+PIG-3006: Modernize a chunk of the tests (jcoveney via cheolsoo)
+
+PIG-2997: Provide a convenience constructor on PigServer that accepts Configuration (prkommireddi via rohini)
+
+PIG-2933: HBaseStorage is using setScannerCaching which is deprecated (prkommireddi via rohini)
+
+PIG-2881: Add SUBTRACT eval function (jocosti via cheolsoo)
+
+PIG-3004: Improve exceptions messages when a RuntimeException is raised in Physical Operators (julien)
+
+PIG-2990: the -secretDebugCmd shouldn't be a secret and should just be...a command (jcoveney)
+
 PIG-2941: Ivy resolvers in pig don't have consistent chaining and don't have a kitchen sink option for novices (jgordon via azaroth)
 
 PIG-2778: Add 'matches' operator to predicate pushdown (cheolsoo via jcoveney)
@@ -36,7 +56,21 @@ PIG-2910: Add function to read schema from outout of Schema.toString() (initialc
 
 OPTIMIZATIONS
 
+PIG-3013: BinInterSedes improve chararray sort performance (rohini)
+
 BUG FIXES
+
+PIG-3084: Improve exceptions messages in POPackage (julien)
+
+PIG-3072: Pig job reporting negative progress (knoguchi via rohini)
+
+PIG-3014: CurrentTime() UDF has undesirable characteristics (jcoveney via cheolsoo)
+
+PIG-2924: PigStats should not be assuming all Storage classes to be file-based storage (cheolsoo)
+
+PIG-3046: An empty file name in -Dpig.additional.jars throws an error (prkommireddi via cheolsoo)
+
+PIG-2989: Illustrate for Rank Operator (xalan via gates)
 
 PIG-2885: TestJobSumission and TestHBaseStorage don't work with HBase 0.94 and ZK 3.4.3 (cheolsoo via sms)
 
@@ -46,11 +80,31 @@ Release 0.11.0 (unreleased)
 
 INCOMPATIBLE CHANGES
 
+PIG-3034: Remove Penny code from Pig repository (gates via cheolsoo)
+
 PIG-2931: $ signs in the replacement string make parameter substitution fail (cheolsoo via jcoveney)
 
 PIG-1891 Enable StoreFunc to make intelligent decision based on job success or failure (initialcontext via gates)
 
 IMPROVEMENTS
+
+PIG-3044: Trigger POPartialAgg compaction under GC pressure (dvryaboy)
+
+PIG-2907: Publish pig jars for Hadoop2/23 to maven (rohini)
+
+PIG-2934: HBaseStorage filter optimizations (billgraham)
+
+PIG-2980: documentation for DateTime datatype (zjshen via thejas)
+
+PIG-2982: add unit tests for DateTime type that test setting timezone (zjshen via thejas)
+
+PIG-2937: generated field in nested foreach does not inherit the variable name as the field name (jcoveney)
+
+PIG-3019: Need a target in build.xml for source releases (gates)
+
+PIG-2832: org.apache.pig.pigunit.pig.PigServer does not initialize udf.import.list of PigContext (prkommireddi via rohini)
+
+PIG-2898: Parallel execution of e2e tests (iveselovsky via rohini)
 
 PIG-2913: org.apache.pig.test.TestPigServerWithMacros fails sometimes because it picks up previous minicluster configuration file (cheolsoo via julien)
 
@@ -332,6 +386,32 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-3033: test-patch failed with javadoc warnings (fang fang chen via cheolsoo)
+
+PIG-3058: Upgrade junit to at least 4.8 (fang fang chen via cheolsoo)
+
+PIG-2978: TestLoadStoreFuncLifeCycle fails with hadoop-2.0.x (cheolsoo)
+
+PIG-3039: Not possible to use custom version of jackson jars (rohini)
+
+PIG-3045: Specifying sorting field(s) at nightly.conf - fix sortArgs (rohini via cheolsoo)
+
+PIG-2979: Pig.jar doesn't work with hadoop-2.0.x (cheolsoo)
+
+PIG-3035: With latest version of hadoop23 pig does not return the correct exception stack trace from backend (rohini)
+
+PIG-2405: some unit test case failed with open JDK (fang fang chen via cheolsoo)
+
+PIG-3018: Refactor TestScriptLanguage to remove duplication and write script in different files (julien)
+
+PIG-2973: TestStreaming test times out (cheolsoo)
+
+PIG-3001: TestExecutableManager.testAddJobConfToEnv fails randomly (cheolsoo)
+
+PIG-3017: Pig's object serialization should use compression (jcoveney)
+
+PIG-2968: ColumnMapKeyPrune fails to prune a subtree inside foreach (knoguchi via cheolsoo)
+
 PIG-2999: Regression after PIG-2975: BinInterSedesTupleRawComparator secondary sort failing (knoguchi via azaroth)
 
 PIG-2998: Fix TestScriptLanguage and TestMacroExpansion (cheolsoo via jcoveney)
@@ -503,13 +583,32 @@ PIG-2379: Bug in Schema.getPigSchema(ResourceSchema rSchema) improperly adds two
 
 PIG-2355: ant clean does not clean e2e test build artifacts (daijy)
 
-	PIG-2352: e2e test harness' use of environment variables causes unintended effects between tests (gates)
+PIG-2352: e2e test harness' use of environment variables causes unintended effects between tests (gates)
 
-	Release 0.10.0 - Unreleased
+Release 0.10.1 - Unreleased
 
-	INCOMPATIBLE CHANGES
+BUG FIXES
 
-	IMPROVEMENTS
+PIG-2953: "which" utility does not exist on Windows (daijy)
+
+PIG-2960: Increase the timeout for unit test (daijy)
+
+PIG-2942: DevTests, TestLoad has a false failure on Windows (jgordon via daijy)
+
+PIG-2801: grunt "sh" command should invoke the shell implicitly instead of calling exec directly with the command tokens
+(jgordon via daijy)
+
+PIG-2798: pig streaming tests assume interpreters are auto-resolved (jgordon via daijy)
+
+PIG-2795: Fix test cases that generate pig scripts with "load " + pathStr to encode "\" in the path (jgordon via daijy)
+
+PIG-2796: Local temporary paths are not always valid HDFS path names (jgordon via daijy)
+
+Release 0.10.0
+
+INCOMPATIBLE CHANGES
+
+IMPROVEMENTS
 
 PIG-2664: Allow PPNL impls to get more job info during the run (billgraham)
 

@@ -452,7 +452,7 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
         LogicalPlan p = (LogicalPlan)op.getPlan();
         List<Operator> ll = p.getPredecessors(op);
         if (ll != null) {
-            for(Operator pred: ll) {
+            for(Operator pred: ll.toArray(new Operator[ll.size()])) {
                 removeSubTree((LogicalRelationalOperator)pred);
             }
         }

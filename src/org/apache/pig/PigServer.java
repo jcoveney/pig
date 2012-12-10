@@ -45,6 +45,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -192,6 +193,10 @@ public class PigServer {
 
     public PigServer(ExecType execType, Properties properties) throws ExecException {
         this(new PigContext(execType, properties));
+    }
+    
+    public PigServer(ExecType execType, Configuration conf) throws ExecException {
+        this(new PigContext(execType, conf));
     }
 
     public PigServer(PigContext context) throws ExecException {
@@ -452,6 +457,11 @@ public class PigServer {
         // compatibility with case when user passes absolute path or path
         // relative to current working directory.)
         if (name != null) {
+            if (name.isEmpty()) {
+                log.warn("Empty string specified for jar path");
+                return;
+            }
+
             URL resource = locateJarFromResources(name);
 
             if (resource == null) {

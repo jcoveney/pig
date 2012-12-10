@@ -943,7 +943,20 @@ public class LogicalPlanBuilder {
         FlattenStates[] flags = flattenFlags.toArray(new FlattenStates[flattenFlags.size()]);
         LogicalPlan innerPlan = (LogicalPlan)gen.getPlan();
         ArrayList<Operator> inputs = new ArrayList<Operator>();
+        int idx = 0;
         for( LogicalExpressionPlan exprPlan : exprPlans ) {
+            LogicalExpression expr = (LogicalExpression)exprPlan.getSources().get(0);
+            LogicalSchema userSchema = schemas.get(idx);
+            if (userSchema == null && expr.hasFieldSchema()) {
+                LogicalSchema ls = new LogicalSchema();
+                try {
+                    ls.addField(expr.getFieldSchema());
+                    schemas.set(idx, ls);
+                } catch (FrontendException e) {
+                    // if we get an exception, then we have no schema to set
+                }
+            }
+            idx++;
             try {
                 processExpressionPlan( foreach, innerPlan, exprPlan, operators, inputs );
             } catch (FrontendException e) {
@@ -1261,7 +1274,17 @@ public class LogicalPlanBuilder {
                         }
                     }
                 }
-                return (LogicalExpression)planCopy.getSources().get( 0 );// get the root of the plan
+                LogicalExpression root = (LogicalExpression)planCopy.getSources().get( 0 );// get the root of the plan
+                LogicalFieldSchema schema;
+                try {
+                    schema = root.getFieldSchema();
+                    if (schema.alias == null) {
+                        schema.alias = colAlias;
+                    }
+                } catch (FrontendException e) {
+                    // Sometimes it can throw an exception. If it does, then there is no schema to get
+                }
+                return root;
             } else {
                 result = new ProjectExpression( plan, 0, colAlias, op );
                 result.setLocation( loc );
