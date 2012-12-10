@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3075: Allow AvroStorage STORE Operations To Use Schema Specified By URI (nwhite via cheolsoo)
+
 PIG-3062: Change HBaseStorage to permit overriding pushProjection (billgraham)
 
 PIG-3016: Modernize more tests (jcoveney via cheolsoo)
@@ -57,6 +59,8 @@ OPTIMIZATIONS
 PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
+
+PIG-3084: Improve exceptions messages in POPackage (julien)
 
 PIG-3072: Pig job reporting negative progress (knoguchi via rohini)
 
@@ -381,6 +385,8 @@ PIG-2337: Provide UDF with input schema (xutingz via daijy)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-3033: test-patch failed with javadoc warnings (fang fang chen via cheolsoo)
 
 PIG-3058: Upgrade junit to at least 4.8 (fang fang chen via cheolsoo)
 
