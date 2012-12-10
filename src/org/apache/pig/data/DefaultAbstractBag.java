@@ -403,12 +403,12 @@ public abstract class DefaultAbstractBag implements DataBag {
 
     @SuppressWarnings("rawtypes")
     protected void warn(String msg, Enum warningEnum, Exception e) {
-    	pigLogger = PhysicalOperator.getPigLogger();
-    	if(pigLogger != null) {
-    		pigLogger.warn(this, msg, warningEnum);
-    	} else {
-    		log.warn(msg, e);
-    	}
+        pigLogger = PhysicalOperator.getPigLogger();
+        if(pigLogger != null) {
+            pigLogger.warn(this, msg, warningEnum);
+        } else {
+            log.warn(msg, e);
+        }
     }
 
     @SuppressWarnings("rawtypes")
