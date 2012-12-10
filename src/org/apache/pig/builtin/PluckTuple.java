@@ -12,6 +12,21 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 import com.google.common.collect.Lists;
 
+/**
+ * This is a UDF which allows the user to specify a string prefix, and then
+ * filter for the columns in a relation that begin with that prefix.
+ *
+ * Example:
+ * a = load 'a' as (x, y);
+ * b = load 'b' as (x, y);
+ * c = join a by x, b by x;
+ * DEFINE pluck PluckTuple('a::');
+ * d = foreach c generate FLATTEN(pluck(*));
+ * describe c;
+ * c: {a::x: bytearray,a::y: bytearray,b::x: bytearray,b::y: bytearray}
+ * describe d;
+ * d: {plucked::a::x: bytearray,plucked::a::y: bytearray}
+ */
 public class PluckTuple extends EvalFunc<Tuple> {
     private static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
