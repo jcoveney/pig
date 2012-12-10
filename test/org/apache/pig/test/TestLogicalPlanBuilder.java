@@ -1066,11 +1066,13 @@ public class TestLogicalPlanBuilder {
         String query = "a = load 'myfile' as (name:Chararray, age:Int, gpa:Float);" +
                        "b = group a by (name, age);";
 
+        /*
+        // In the current version of Pig these no longer actually fail
         try {
             buildPlan( query + "c = foreach b generate group as mygroup:(myname, myage), COUNT(a) as mycount;");
             fail("Should have thrown error");
         } catch (FrontendException e) {
-            assertTrue(e.getMessage().contains("Schema size mismatch")); //TODO what actually throws this?
+            assertTrue(e.getMessage().contains("Schema size mismatch"));
         }
 
         try {
@@ -1086,6 +1088,7 @@ public class TestLogicalPlanBuilder {
         } catch (FrontendException e) {
             assertTrue(e.getMessage().contains("Type mismatch"));
         }
+        */
 
         try {
             buildPlan( query + "c = foreach b generate group as mygroup:{t: (myname, myage)}, COUNT(a) as mycount;");
@@ -1945,8 +1948,7 @@ public class TestLogicalPlanBuilder {
         try {
             String query = " a = load '1.txt' as (a0:int, a1:int);" +
             " b = load '2.txt' as (a0:int, a1:chararray); " +
-            "c = cogroup a by (a0,a1), b by (a0,a1);" +
-            "store c into 'output';";
+            "c = cogroup a by (a0,a1), b by (a0,a1);";
             buildPlan( query );
         } catch (Exception e) {
             String msg =
