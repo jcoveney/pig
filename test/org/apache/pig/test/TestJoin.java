@@ -700,6 +700,7 @@ public class TestJoin {
         assertEquals(JOINTYPE.REPLICATED, join.getJoinType());
     }
 
+    // See: https://issues.apache.org/jira/browse/PIG-3093
     @Test
     public void testIndirectSelfJoinRealias() throws Exception {
         setUp(ExecType.LOCAL);
