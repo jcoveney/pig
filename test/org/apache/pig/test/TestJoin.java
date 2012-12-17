@@ -54,7 +54,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 /**
  * Test cases to test join statement
@@ -705,11 +705,12 @@ public class TestJoin {
         setUp(ExecType.LOCAL);
         Data data = resetData(pigServer);
 
-        Set<Tuple> tuples = ImmutableSet.of(tuple("a"), tuple("b"), tuple("c"));
+        Set<Tuple> tuples = Sets.newHashSet(tuple("a"), tuple("b"), tuple("c"));
         data.set("foo", Utils.getSchemaFromString("field1:chararray"), tuples);
         pigServer.registerQuery("A = load 'foo' using mock.Storage();");
         pigServer.registerQuery("B = foreach A generate *;");
         pigServer.registerQuery("C = join A by field1, B by field1;");
+        assertEquals(Utils.getSchemaFromString("A::field1:chararray, B::field1:chararray"), pigServer.dumpSchema("C"));
         pigServer.registerQuery("D = foreach C generate B::field1, A::field1 as field2;");
         assertEquals(Utils.getSchemaFromString("B::field1:chararray, field2:chararray"), pigServer.dumpSchema("D"));
         pigServer.registerQuery("E = foreach D generate field1, field2;");
