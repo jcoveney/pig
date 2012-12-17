@@ -170,6 +170,12 @@ public class LOJoin extends LogicalRelationalOperator {
         return schema;
     }
 
+    /**
+     * In the case of a join it is possible for multiple columns to have been derived from the same
+     * column and thus have duplicate UID's. This detects that case and resets the uid.
+     * See PIG-3022 and PIG-3093 for more information.
+     * @param fss a list of LogicalFieldSchemas to check the uids of
+     */
     private void fixDuplicateUids(List<LogicalFieldSchema> fss) {
         Set<Long> uids = Sets.newHashSet();
         for (LogicalFieldSchema lfs : fss) {
