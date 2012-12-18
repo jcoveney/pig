@@ -1308,7 +1308,7 @@ public class TestParamSubPreproc {
     @Test
     public void testCmdlineParamCurlySyntax() throws Exception{
         ParameterSubstitutionPreprocessor ps = new ParameterSubstitutionPreprocessor(50);
-        pigIStream = new BufferedReader(new FileReader(basedir + "/input2.pig"));
+        pigIStream = new BufferedReader(new FileReader(basedir + "/input7.pig"));
         pigOStream = new FileWriter(basedir + "/output1.pig");
 
         String[] arg = {"date=20080228"};
