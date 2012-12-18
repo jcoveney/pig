@@ -92,16 +92,14 @@ public class HDataType {
         case DataType.LONG:
             return new NullableLongWritable((Long)o);
 
-<<<<<<< HEAD
         case DataType.BIGINTEGER:
             return new NullableBigIntegerWritable((BigInteger)o);
 
         case DataType.BIGDECIMAL:
             return new NullableBigDecimalWritable((BigDecimal)o);
-=======
+
         case DataType.DATETIME:
             return new NullableDateTimeWritable((DateTime)o);
->>>>>>> 54fc0939dc68b5c33a382ef4d8893bd5f3a7afa8
 
         case DataType.TUPLE:
             return new NullableTuple((Tuple)o);
@@ -210,16 +208,13 @@ public class HDataType {
         case DataType.LONG:
             wcKey = longWrit;
             break;
-<<<<<<< HEAD
         case DataType.BIGINTEGER:
             wcKey = bigIntWrit;
             break;
         case DataType.BIGDECIMAL:
             wcKey = bigDecWrit;
-=======
         case DataType.DATETIME:
             wcKey = dtWrit;
->>>>>>> 54fc0939dc68b5c33a382ef4d8893bd5f3a7afa8
             break;
         case DataType.TUPLE:
             wcKey = defTup;
@@ -255,15 +250,12 @@ public class HDataType {
             return DataType.INTEGER;
         else if (o instanceof NullableLongWritable)
             return DataType.LONG;
-<<<<<<< HEAD
         else if (o instanceof NullableBigIntegerWritable)
             return DataType.BIGINTEGER;
         else if (o instanceof NullableBigDecimalWritable)
             return DataType.BIGDECIMAL;
-=======
         else if (o instanceof NullableDateTimeWritable)
             return DataType.DATETIME;
->>>>>>> 54fc0939dc68b5c33a382ef4d8893bd5f3a7afa8
         else if (o instanceof NullableBag)
             return DataType.BAG;
         else if (o instanceof NullableTuple)
