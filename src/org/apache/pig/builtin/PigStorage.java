@@ -81,7 +81,7 @@ import org.apache.pig.parser.ParserException;
  * An optional second constructor argument is provided that allows one to customize
  * advanced behaviors. A list of available options is below:
  * <ul>
- * <li><code>-schema</code> Reads/Stores the schema of the relation using a 
+ * <li><code>-schema</code> Reads/Stores the schema of the relation using a
  *  hidden JSON file.
  * <li><code>-noschema</code> Ignores a stored schema during loading.
  * <li><code>-tagFile</code> Appends input source file name to beginning of each tuple.
@@ -94,7 +94,7 @@ import org.apache.pig.parser.ParserException;
  * field names and types of the data without the need for a user to explicitly provide the schema in an
  * <code>as</code> clause, unless <code>-noschema</code> is specified. No attempt to merge conflicting
  * schemas is made during loading. The first schema encountered during a file system scan is used.
- * If the schema file is not present while '-schema' option is used during loading, 
+ * If the schema file is not present while '-schema' option is used during loading,
  * it results in an error.
  * <p>
  * In addition, using <code>-schema</code> drops a ".pig_headers" file in the output directory.
@@ -107,7 +107,7 @@ import org.apache.pig.parser.ParserException;
  * The first field (0th index) in each Tuple will contain input file name.
  * If<code>-tagPath</code> is specified, PigStorage will prepend input split path to each Tuple/row.
  * Usage: A = LOAD 'input' using PigStorage(',','-tagPath'); B = foreach A generate $0;
- * The first field (0th index) in each Tuple will contain input file path 
+ * The first field (0th index) in each Tuple will contain input file path
  * <p>
  * Note that regardless of whether or not you store the schema, you <b>always</b> need to specify
  * the correct delimiter to read your data. If you store reading delimiter "#" and then load using
@@ -147,7 +147,7 @@ LoadPushDown, LoadMetadata, StoreMetadata {
 
     protected boolean[] mRequiredColumns = null;
     private boolean mRequiredColumnsInitialized = false;
-    
+
     // Indicates whether the input file name/path should be read.
     private boolean tagFile = false;
     private static final String TAG_SOURCE_FILE = "tagFile";
@@ -235,12 +235,14 @@ LoadPushDown, LoadMetadata, StoreMetadata {
             mProtoTuple.add(new DataByteArray(sourcePath.toString()));
         }
 
+        Text value = null;
+        Tuple t = null;
         try {
             boolean notDone = in.nextKeyValue();
             if (!notDone) {
                 return null;
             }
-            Text value = (Text) in.getCurrentValue();
+            value = (Text) in.getCurrentValue();
             byte[] buf = value.getBytes();
             int len = value.getLength();
             int start = 0;
@@ -257,7 +259,7 @@ LoadPushDown, LoadMetadata, StoreMetadata {
             if (start <= len && (mRequiredColumns==null || (mRequiredColumns.length>fieldID && mRequiredColumns[fieldID]))) {
                 readField(buf, start, len);
             }
-            Tuple t =  mTupleFactory.newTupleNoCopy(mProtoTuple);
+            t =  mTupleFactory.newTupleNoCopy(mProtoTuple);
 
             return dontLoadSchema ? t : applySchema(t);
         } catch (InterruptedException e) {
@@ -265,47 +267,57 @@ LoadPushDown, LoadMetadata, StoreMetadata {
             String errMsg = "Error while reading input";
             throw new ExecException(errMsg, errCode,
                     PigException.REMOTE_ENVIRONMENT, e);
+        } catch (Exception e) {
+            String mRequiredColumnsString = mRequiredColumns == null ? null : Arrays.toString(mRequiredColumns);
+            throw new RuntimeException("Error while reading current value: " + value + "\nCurrent tuple: " + t + "\nmRequiredColumns: " + mRequiredColumnsString, e);
         }
     }
 
     private Tuple applySchema(Tuple tup) throws IOException {
-        if ( caster == null) {
-            caster = getLoadCaster();
-        }
-        if (signature != null && schema == null) {
-            Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass(),
-                    new String[] {signature});
-            String serializedSchema = p.getProperty(signature+".schema");
-            if (serializedSchema == null) return tup;
-            try {
-                schema = new ResourceSchema(Utils.getSchemaFromString(serializedSchema));
-            } catch (ParserException e) {
-                mLog.error("Unable to parse serialized schema " + serializedSchema, e);
+        String serializedSchema = null;
+        ResourceFieldSchema[] fieldSchemas = null;
+        try {
+            if ( caster == null) {
+                caster = getLoadCaster();
             }
-        }
-
-        if (schema != null) {
-
-            ResourceFieldSchema[] fieldSchemas = schema.getFields();
-            int tupleIdx = 0;
-            // If some fields have been projected out, the tuple
-            // only contains required fields.
-            // We walk the requiredColumns array to find required fields,
-            // and cast those.
-            for (int i = 0; i < fieldSchemas.length; i++) {
-                if (mRequiredColumns == null || (mRequiredColumns.length>i && mRequiredColumns[i])) {
-                    Object val = null;
-                    if(tup.get(tupleIdx) != null){
-                        byte[] bytes = ((DataByteArray) tup.get(tupleIdx)).get();
-                        val = CastUtils.convertToType(caster, bytes,
-                                fieldSchemas[i], fieldSchemas[i].getType());
-                    }
-                    tup.set(tupleIdx, val);
-                    tupleIdx++;
+            if (signature != null && schema == null) {
+                Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass(),
+                        new String[] {signature});
+                serializedSchema = p.getProperty(signature+".schema");
+                if (serializedSchema == null) return tup;
+                try {
+                    schema = new ResourceSchema(Utils.getSchemaFromString(serializedSchema));
+                } catch (ParserException e) {
+                    mLog.error("Unable to parse serialized schema " + serializedSchema, e);
                 }
             }
+
+            if (schema != null) {
+
+                fieldSchemas = schema.getFields();
+                int tupleIdx = 0;
+                // If some fields have been projected out, the tuple
+                // only contains required fields.
+                // We walk the requiredColumns array to find required fields,
+                // and cast those.
+                for (int i = 0; i < fieldSchemas.length; i++) {
+                    if (mRequiredColumns == null || (mRequiredColumns.length>i && mRequiredColumns[i])) {
+                        Object val = null;
+                        if(tup.get(tupleIdx) != null){
+                            byte[] bytes = ((DataByteArray) tup.get(tupleIdx)).get();
+                            val = CastUtils.convertToType(caster, bytes,
+                                    fieldSchemas[i], fieldSchemas[i].getType());
+                        }
+                        tup.set(tupleIdx, val);
+                        tupleIdx++;
+                    }
+                }
+            }
+            return tup;
+        } catch (Exception e) {
+            String fieldSchemaString = fieldSchemas == null ? null : Arrays.deepToString(fieldSchemas);
+            throw new RuntimeException("Signature: " + signature + "\nSchema: " + schema + "\nCaster: " + caster + "\nSerializedSchema: " + serializedSchema + "\nFieldSchema: " + fieldSchemaString, e);
         }
-        return tup;
     }
 
     @Override
