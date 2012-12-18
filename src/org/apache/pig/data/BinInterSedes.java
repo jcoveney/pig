@@ -109,8 +109,6 @@ public class BinInterSedes implements InterSedes {
     public static final byte LONG_0 = 34;
     public static final byte LONG_1 = 35;
 
-    public static final byte DATETIME = 50;
-
     public static final byte TUPLE_0 = 36;
     public static final byte TUPLE_1 = 37;
     public static final byte TUPLE_2 = 38;
@@ -122,8 +120,10 @@ public class BinInterSedes implements InterSedes {
     public static final byte TUPLE_8 = 44;
     public static final byte TUPLE_9 = 45;
 
-    public static final byte BIGINTEGER = 40;
-    public static final byte BIGDECIMAL = 41;
+    public static final byte BIGINTEGER = 46;
+    public static final byte BIGDECIMAL = 47;
+
+    public static final byte DATETIME = 48;
 
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();
     private static BagFactory mBagFactory = BagFactory.getInstance();

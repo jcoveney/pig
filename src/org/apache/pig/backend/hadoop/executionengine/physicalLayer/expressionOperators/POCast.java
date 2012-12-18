@@ -1531,6 +1531,13 @@ public class POCast extends ExpressionOperator {
             res.returnStatus = POStatus.STATUS_ERR;
             return res;
         }
+
+        }
+
+        Result res = new Result();
+        res.returnStatus = POStatus.STATUS_ERR;
+        return res;
+
     }
 
     @SuppressWarnings({ "unchecked", "deprecation" })
