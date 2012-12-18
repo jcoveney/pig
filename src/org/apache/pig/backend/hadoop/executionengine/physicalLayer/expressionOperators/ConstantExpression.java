@@ -22,6 +22,8 @@ import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 
+import org.joda.time.DateTime;
+
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -137,6 +139,12 @@ public class ConstantExpression extends ExpressionOperator {
     @Override
     public Result getNext(Long l) throws ExecException {
         return genericGetNext(l, DataType.LONG);
+
+    }
+
+    @Override
+    public Result getNext(DateTime dt) throws ExecException {
+        return genericGetNext(dt, DataType.DATETIME);
 
     }
 

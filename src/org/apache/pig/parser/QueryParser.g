@@ -224,6 +224,7 @@ op_clause : define_clause
           | limit_clause
           | sample_clause
           | order_clause
+          | rank_clause
           | cross_clause
           | join_clause
           | union_clause
@@ -319,7 +320,7 @@ field_def_list : field_def ( COMMA field_def )*
 type : simple_type | tuple_type | bag_type | map_type
 ;
 
-simple_type : BOOLEAN | INT | LONG | FLOAT | DOUBLE | BIGINTEGER | BIGDECIMAL | CHARARRAY | BYTEARRAY
+simple_type : BOOLEAN | INT | LONG | FLOAT | DOUBLE | DATETIME | BIGINTEGER | BIGDECIMAL | CHARARRAY | BYTEARRAY
 ;
 
 tuple_type : TUPLE? LEFT_PAREN field_def_list? RIGHT_PAREN
@@ -401,7 +402,8 @@ unary_cond : expr rel_op^ expr
            | bool_cond
 ;
 
-bool_cond: expr -> ^(BOOL_COND expr);
+bool_cond : expr -> ^(BOOL_COND expr)
+;
 
 not_cond : NOT^ unary_cond
 ;
@@ -506,6 +508,24 @@ limit_clause : LIMIT^ rel ( (INTEGER SEMI_COLON) => INTEGER | (LONGINTEGER SEMI_
 sample_clause : SAMPLE^ rel ( (DOUBLENUMBER SEMI_COLON) => DOUBLENUMBER | expr )
 ;
 
+rank_clause : RANK^ rel ( rank_by_statement )?
+;
+
+rank_by_statement : BY^ rank_by_clause ( DENSE )?
+;
+
+rank_by_clause : STAR ( ASC | DESC )?
+			   | rank_list
+;
+
+rank_list : rank_col ( COMMA rank_col )*
+         -> rank_col+
+;
+
+rank_col : col_range ( ASC | DESC )?
+         | col_ref ( ASC | DESC )?
+;
+
 order_clause : ORDER^ rel BY! order_by_clause ( USING! func_clause )?
 ;
 
@@ -586,12 +606,18 @@ cube_clause : CUBE^ cube_item
 cube_item : rel ( cube_by_clause )
 ;
 
-cube_by_clause : BY^ cube_by_expr_list
+cube_by_clause : BY^ cube_or_rollup
+;
+
+cube_or_rollup : cube_rollup_list ( COMMA cube_rollup_list )*
+                -> cube_rollup_list+
+;
+
+cube_rollup_list : ( CUBE | ROLLUP )^ cube_by_expr_list
 ;
 
 cube_by_expr_list : LEFT_PAREN cube_by_expr ( COMMA cube_by_expr )* RIGHT_PAREN
-                       -> cube_by_expr+
-                        | cube_by_expr
+                   -> cube_by_expr+
 ;
 
 cube_by_expr : col_range  | expr | STAR
@@ -732,6 +758,7 @@ eid : rel_str_op
     | FILTER
     | FOREACH
     | CUBE
+    | ROLLUP
     | ORDER
     | DISTINCT
     | COGROUP
@@ -764,6 +791,7 @@ eid : rel_str_op
     | DOUBLE
     | BIGINTEGER
     | BIGDECIMAL
+    | DATETIME
     | CHARARRAY
     | BYTEARRAY
     | BAG

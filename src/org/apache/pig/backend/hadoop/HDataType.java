@@ -21,6 +21,8 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Map;
 
+import org.joda.time.DateTime;
+
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
@@ -35,6 +37,7 @@ import org.apache.pig.impl.io.NullableDoubleWritable;
 import org.apache.pig.impl.io.NullableFloatWritable;
 import org.apache.pig.impl.io.NullableIntWritable;
 import org.apache.pig.impl.io.NullableLongWritable;
+import org.apache.pig.impl.io.NullableDateTimeWritable;
 import org.apache.pig.impl.io.NullableText;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
@@ -53,6 +56,7 @@ public class HDataType {
     static NullableLongWritable longWrit = new NullableLongWritable();
     static NullableBigIntegerWritable bigIntWrit = new NullableBigIntegerWritable();
     static NullableBigDecimalWritable bigDecWrit = new NullableBigDecimalWritable();
+    static NullableDateTimeWritable dtWrit = new NullableDateTimeWritable();
     static NullableBag defDB = new NullableBag();
     static NullableTuple defTup = new NullableTuple();
     static Map<Byte, String> typeToName = null;
@@ -88,11 +92,16 @@ public class HDataType {
         case DataType.LONG:
             return new NullableLongWritable((Long)o);
 
+<<<<<<< HEAD
         case DataType.BIGINTEGER:
             return new NullableBigIntegerWritable((BigInteger)o);
 
         case DataType.BIGDECIMAL:
             return new NullableBigDecimalWritable((BigDecimal)o);
+=======
+        case DataType.DATETIME:
+            return new NullableDateTimeWritable((DateTime)o);
+>>>>>>> 54fc0939dc68b5c33a382ef4d8893bd5f3a7afa8
 
         case DataType.TUPLE:
             return new NullableTuple((Tuple)o);
@@ -145,6 +154,10 @@ public class HDataType {
                 NullableLongWritable nLongWrit = new NullableLongWritable();
                 nLongWrit.setNull(true);
                 return nLongWrit;
+            case DataType.DATETIME:
+                NullableDateTimeWritable nDateTimeWrit = new NullableDateTimeWritable();
+                nDateTimeWrit.setNull(true);
+                return nDateTimeWrit;
             case DataType.TUPLE:
                 NullableTuple ntuple = new NullableTuple();
                 ntuple.setNull(true);
@@ -197,11 +210,16 @@ public class HDataType {
         case DataType.LONG:
             wcKey = longWrit;
             break;
+<<<<<<< HEAD
         case DataType.BIGINTEGER:
             wcKey = bigIntWrit;
             break;
         case DataType.BIGDECIMAL:
             wcKey = bigDecWrit;
+=======
+        case DataType.DATETIME:
+            wcKey = dtWrit;
+>>>>>>> 54fc0939dc68b5c33a382ef4d8893bd5f3a7afa8
             break;
         case DataType.TUPLE:
             wcKey = defTup;
@@ -237,10 +255,15 @@ public class HDataType {
             return DataType.INTEGER;
         else if (o instanceof NullableLongWritable)
             return DataType.LONG;
+<<<<<<< HEAD
         else if (o instanceof NullableBigIntegerWritable)
             return DataType.BIGINTEGER;
         else if (o instanceof NullableBigDecimalWritable)
             return DataType.BIGDECIMAL;
+=======
+        else if (o instanceof NullableDateTimeWritable)
+            return DataType.DATETIME;
+>>>>>>> 54fc0939dc68b5c33a382ef4d8893bd5f3a7afa8
         else if (o instanceof NullableBag)
             return DataType.BAG;
         else if (o instanceof NullableTuple)

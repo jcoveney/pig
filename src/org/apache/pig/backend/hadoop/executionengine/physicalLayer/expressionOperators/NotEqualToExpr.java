@@ -71,6 +71,7 @@ public class NotEqualToExpr extends BinaryComparisonOperator {
         case DataType.BIGINTEGER:
         case DataType.BIGDECIMAL:
         case DataType.LONG:
+        case DataType.DATETIME:
         case DataType.CHARARRAY:
         case DataType.TUPLE:
         case DataType.MAP: {

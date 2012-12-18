@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.joda.time.DateTime;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -1218,6 +1220,19 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
             return ((BigInteger)v).subtract(BigInteger.ONE);
         case DataType.BIGDECIMAL:
             return ((BigDecimal)v).subtract(BigDecimal.ONE);
+        case DataType.DATETIME:
+            DateTime dt = (DateTime) v;
+            if (dt.getMillisOfSecond() != 0) {
+                return dt.minusMillis(1);
+            } else if (dt.getSecondOfMinute() != 0) {
+                return dt.minusSeconds(1);
+            } else if (dt.getMinuteOfHour() != 0) {
+                return dt.minusMinutes(1);
+            } else if (dt.getHourOfDay() != 0) {
+                return dt.minusHours(1);
+            } else {
+                return dt.minusDays(1);
+            }
         default:
             return null;
         }
@@ -1250,6 +1265,19 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
             return ((BigInteger)v).add(BigInteger.ONE);
         case DataType.BIGDECIMAL:
             return ((BigDecimal)v).add(BigDecimal.ONE);
+        case DataType.DATETIME:
+            DateTime dt = (DateTime) v;
+            if (dt.getMillisOfSecond() != 0) {
+                return dt.plusMillis(1);
+            } else if (dt.getSecondOfMinute() != 0) {
+                return dt.plusSeconds(1);
+            } else if (dt.getMinuteOfHour() != 0) {
+                return dt.plusMinutes(1);
+            } else if (dt.getHourOfDay() != 0) {
+                return dt.plusHours(1);
+            } else {
+                return dt.plusDays(1);
+            }
         default:
             return null;
         }
@@ -1279,6 +1307,8 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
             return new BigInteger(data);
         case DataType.BIGDECIMAL:
             return new BigDecimal(data);
+        case DataType.DATETIME:
+            return new DateTime(data);
         case DataType.CHARARRAY:
             return data;
         default:

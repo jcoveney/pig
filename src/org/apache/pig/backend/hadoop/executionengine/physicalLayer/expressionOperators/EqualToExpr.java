@@ -60,6 +60,7 @@ public class EqualToExpr extends BinaryComparisonOperator {
 
     @Override
     public Result getNext(Boolean bool) throws ExecException {
+      try {
         Result left, right;
 
         switch (operandType) {
@@ -71,6 +72,7 @@ public class EqualToExpr extends BinaryComparisonOperator {
         case DataType.BIGINTEGER:
         case DataType.BIGDECIMAL:
         case DataType.LONG:
+        case DataType.DATETIME:
         case DataType.CHARARRAY:
         case DataType.TUPLE:
         case DataType.MAP: {
@@ -92,6 +94,9 @@ public class EqualToExpr extends BinaryComparisonOperator {
         }
 
         }
+      } catch (RuntimeException e) {
+          throw new ExecException("exception while executing " + this.toString() + ": " + e.toString(), 2067, PigException.BUG, e);
+      }
     }
 
     @SuppressWarnings("unchecked")

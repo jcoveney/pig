@@ -90,6 +90,7 @@ op_clause : define_clause
           | limit_clause
           | sample_clause
           | order_clause
+          | rank_clause
           | cross_clause
           | join_clause
           | union_clause
@@ -178,6 +179,7 @@ simple_type
     | DOUBLE { sb.append($DOUBLE.text); }
     | BIGINTEGER { sb.append($BIGINTEGER.text); }
     | BIGDECIMAL { sb.append($BIGDECIMAL.text); }
+    | DATETIME { sb.append($DATETIME.text); }
     | CHARARRAY { sb.append($CHARARRAY.text); }
     | BYTEARRAY { sb.append($BYTEARRAY.text); }
 ;
@@ -208,16 +210,27 @@ func_args
 ;
 
 cube_clause
-  : ^( CUBE { sb.append($CUBE.text).append(" "); } cube_item )
+    : ^( CUBE { sb.append($CUBE.text).append(" "); } cube_item )
 ;
 
 cube_item
-  : rel ( cube_by_clause )
+    : rel ( cube_by_clause )
 ;
 
 cube_by_clause
-    : ^( BY { sb.append(" ").append($BY.text).append(" ("); }
-    cube_by_expr ( { sb.append(", "); } cube_by_expr )* { sb.append(")"); } )
+    : ^( BY { sb.append(" ").append($BY.text); } cube_or_rollup )
+;
+
+cube_or_rollup
+    : cube_rollup_list ( { sb.append(", "); } cube_rollup_list )*
+;
+
+cube_rollup_list
+    : ^( ( CUBE { sb.append($CUBE.text).append("("); } | ROLLUP { sb.append($ROLLUP.text).append("("); } ) cube_by_expr_list { sb.append(")"); })
+;
+
+cube_by_expr_list
+    : ( cube_by_expr ( { sb.append(", "); } cube_by_expr )* )
 ;
 
 cube_by_expr
@@ -352,6 +365,23 @@ limit_clause
 
 sample_clause
     : ^( SAMPLE { sb.append($SAMPLE.text).append(" "); } rel ( DOUBLENUMBER { sb.append(" ").append($DOUBLENUMBER.text); } | expr ) )
+;
+
+rank_clause
+    : ^( RANK { sb.append($RANK.text).append(" "); } rel ( rank_by_statement )? )
+;
+
+rank_by_statement
+	: ^( BY { sb.append(" ").append($BY.text); } rank_by_clause ( DENSE { sb.append(" ").append($DENSE.text); } )? )
+;
+
+rank_by_clause
+	: STAR { sb.append($STAR.text); } ( ASC { sb.append(" ").append($ASC.text); } | DESC { sb.append(" ").append($DESC.text); } )?
+    | rank_col ( { sb.append(", "); } rank_col )*
+;
+
+rank_col
+	: ( col_range | col_ref ) ( ASC { sb.append(" ").append($ASC.text); } | DESC { sb.append(" ").append($DESC.text); } )?
 ;
 
 order_clause
@@ -578,8 +608,10 @@ eid : rel_str_op
     | FILTER    { sb.append($FILTER.text); }
     | FOREACH   { sb.append($FOREACH.text); }
     | CUBE      { sb.append($CUBE.text); }
+    | ROLLUP    { sb.append($ROLLUP.text); }
     | MATCHES   { sb.append($MATCHES.text); }
     | ORDER     { sb.append($ORDER.text); }
+    | RANK      { sb.append($RANK.text); }
     | DISTINCT  { sb.append($DISTINCT.text); }
     | COGROUP   { sb.append($COGROUP.text); }
     | JOIN      { sb.append($JOIN.text); }
@@ -612,7 +644,7 @@ eid : rel_str_op
     | DOUBLE    { sb.append($DOUBLE.text); }
     | BIGINTEGER{ sb.append($BIGINTEGER.text); }
     | BIGDECIMAL{ sb.append($BIGDECIMAL.text); }
-    | DOUBLE    { sb.append($DOUBLE.text); }
+    | DATETIME  { sb.append($DATETIME.text); }
     | CHARARRAY { sb.append($CHARARRAY.text); }
     | BYTEARRAY { sb.append($BYTEARRAY.text); }
     | BAG       { sb.append($BAG.text); }

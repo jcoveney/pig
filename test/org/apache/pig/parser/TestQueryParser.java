@@ -26,6 +26,7 @@ import junit.framework.Assert;
 
 import org.antlr.runtime.CharStream;
 import org.antlr.runtime.CommonTokenStream;
+import org.antlr.runtime.MismatchedTokenException;
 import org.antlr.runtime.RecognitionException;
 import org.antlr.runtime.tree.CommonTree;
 import org.antlr.runtime.tree.Tree;
@@ -62,27 +63,27 @@ public class TestQueryParser {
         shouldPass("A = load 'x'; B=A;");
     }
     
-    @Test
+    @Test(expected=RecognitionException.class)
     public void testNegative2() throws IOException, RecognitionException {
         shouldFail("A = load 'x'; B=(A);");
     }
 
-    @Test
+    @Test(expected=RecognitionException.class)
     public void testNegative3() throws IOException, RecognitionException {
         shouldFail("A = load 'x';B = (A) as (a:int, b:long);");
     }
 
-    @Test
+    @Test(expected=RecognitionException.class)
     public void testNegative4() throws IOException, RecognitionException {
         shouldFail("A = load 'x'; B = ( filter A by $0 == 0 ) as (a:bytearray, b:long);");
     }
     
-    @Test
+    @Test(expected=RecognitionException.class)
     public void testNegative5() throws IOException, RecognitionException {
         shouldFail("A = load 'x'; D = group A by $0:long;");
     }
     
-    @Test
+    @Test(expected=RecognitionException.class)
     public void testNegative6() throws IOException, RecognitionException {
         shouldFail("A = load '/Users/gates/test/data/studenttab10'; B = foreach A generate $0, 3.0e10.1;");
     }
@@ -177,7 +178,7 @@ public class TestQueryParser {
         shouldPass( query );
     }
     
-    @Test
+    @Test(expected=RecognitionException.class)
     public void testCubeNegative1() throws IOException, RecognitionException {
 	// cube keyword used as alias
     	String query = "x = load 'cubedata' as (a, b, c, d); " +
@@ -185,7 +186,7 @@ public class TestQueryParser {
     	shouldFail( query );
     }
     
-    @Test
+    @Test(expected=RecognitionException.class)
     public void testCubeNegative2() throws IOException, RecognitionException {
 	// syntax error - brackets missing
     	String query = "x = load 'cubedata' as (a, b, c, d); " +
@@ -193,7 +194,7 @@ public class TestQueryParser {
     	shouldFail( query );
     }
     
-    @Test
+    @Test(expected=RecognitionException.class)
     public void testCubeNegative3() throws IOException, RecognitionException {
 	// syntax error - BY missing
     	String query = "x = load 'cubedata' as (a, b, c, d); " +
@@ -201,7 +202,7 @@ public class TestQueryParser {
     	shouldFail( query );
     }
     
-    @Test
+    @Test(expected=RecognitionException.class)
     public void testCubeNegative4() throws IOException, RecognitionException {
 	// syntax error - UDF at the end 
     	String query = "x = load 'cubedata' as (a, b, c, d); " +
@@ -209,11 +210,27 @@ public class TestQueryParser {
     	shouldFail( query );
     }
     
+    @Test(expected=RecognitionException.class)
+    public void testCubeNegative5() throws IOException, RecognitionException {
+	// syntax error - specifying just dimensions 
+    	String query = "x = load 'cubedata' as (a, b, c, d); " +
+    				   "y = cube x by (a, b, c), CUBE(c);";
+    	shouldFail( query );
+    }
+    
+    @Test(expected=RecognitionException.class)
+    public void testCubeNegative6() throws IOException, RecognitionException {
+	// syntax error - dangling dimension 
+    	String query = "x = load 'cubedata' as (a, b, c, d); " +
+    				   "y = cube x by CUBE(a, b, c), y, ROLLUP(c);";
+    	shouldFail( query );
+    }
+    
     @Test
     public void testCubePositive1() throws IOException, RecognitionException {
 	// syntactically correct
     	String query = "x = load 'cubedata' as (a, b, c, d);" + 
-    				   "y = cube x by (a, b, c);" +
+    				   "y = cube x by cube(a, b, c);" +
     				   "z = foreach y generate flatten(group) as (a, b, c), COUNT(x) as count;" +
     				   "store z into 'cube_output';";
     	shouldPass( query );
@@ -223,7 +240,7 @@ public class TestQueryParser {
     public void testCubePositive2() throws IOException, RecognitionException {
 	// all columns using *
     	String query = "x = load 'cubedata' as (a, b, c, d);" + 
-    				   "y = cube x by (*);" +
+    				   "y = cube x by rollup(*), rollup($2..$3);" +
     				   "z = foreach y generate flatten(group) as (a, b, c, d), COUNT(x) as count;" +
     				   "store z into 'cube_output';";
     	shouldPass( query );
@@ -234,7 +251,7 @@ public class TestQueryParser {
     public void testCubePositive3() throws IOException, RecognitionException {
 	// range projection
     	String query = "x = load 'cubedata' as (a, b, c, d);" + 
-    				   "y = cube x by ($0, $1);" +
+    				   "y = cube x by cube($0, $1);" +
     				   "z = foreach y generate flatten(group) as (a, b), COUNT(x) as count;" +
     				   "store z into 'cube_output';";
     	shouldPass( query );
@@ -371,12 +388,7 @@ public class TestQueryParser {
 
     private void shouldFail(String query) throws RecognitionException, IOException {
         System.out.println("Testing: " + query);
-        try {
-            parse( query );
-        } catch(Exception ex) {
-            return;
-        }
-        Assert.fail( query + " should have failed" );
+        parse( query );
     }
     
     private int parse(String query) throws IOException, RecognitionException  {
@@ -403,5 +415,62 @@ public class TestQueryParser {
                      + "d = foreach c generate val_0, tuple_0::val_0, bag_0::map_0;";
         PigServer pig = new PigServer(ExecType.LOCAL);
         Util.registerMultiLineQuery(pig, query);
+    }
+
+
+    //RANK
+    @Test
+    public void testRankPositive1() throws IOException, RecognitionException {
+        shouldPass("B = rank A;");
+    }
+
+    @Test
+    public void testRankPositive2() throws IOException, RecognitionException {
+        shouldPass("B = rank A by x;");
+    }
+
+    @Test
+    public void testRankPositive3() throws IOException, RecognitionException {
+        shouldPass("B = rank A by x DESC;");
+    }
+
+    @Test
+    public void testRankPositive4() throws IOException, RecognitionException {
+        shouldPass("B = rank A by x, y ASC, w DESC, z ASC;");
+    }
+
+    @Test
+    public void testRankPositive5() throws IOException, RecognitionException {
+        String query = "A = load 'data' as (x:int, y:chararray, z:int, rz:chararray);";
+        query += "B = rank A by x..z;";
+        shouldPass(query);
+    }
+
+    @Test
+    public void testRankPositive6() throws IOException, RecognitionException {
+        String query = "A = load 'data' as (x:int, y:chararray, z:int, rz:chararray);";
+        query += "B = rank A by *;";
+        shouldPass(query);
+    }
+
+    @Test
+    public void testRankPositive7() throws IOException, RecognitionException {
+        String query = "A = load 'data' as (x:int, y:chararray, z:int, rz:chararray);";
+        query += "B = rank A by x DESC DENSE;";
+        shouldPass(query);
+    }
+
+    @Test
+    public void testRankPositive8() throws IOException, RecognitionException {
+        String query = "A = load 'data' as (x:int, y:chararray, z:int, rz:chararray);";
+        query += "B = rank A by x DESC,y ASC DENSE;";
+        shouldPass(query);
+    }
+
+    @Test
+    public void testRankPositive9() throws IOException, RecognitionException {
+        String query = "A = load 'data' as (x:int, y:chararray, z:int, rz:chararray);";
+        query += "B = rank A by * DENSE;";
+        shouldPass(query);
     }
 }

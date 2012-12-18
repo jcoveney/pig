@@ -123,6 +123,7 @@ op_clause : define_clause
           | limit_clause
           | sample_clause
           | order_clause
+          | rank_clause
           | cross_clause
           | join_clause
           | union_clause
@@ -210,7 +211,7 @@ type : simple_type | tuple_type | bag_type | map_type
 ;
 
 simple_type
-    : BOOLEAN | INT | LONG | FLOAT | DOUBLE | BIGINTEGER | BIGDECIMAL | CHARARRAY | BYTEARRAY
+    : BOOLEAN | INT | LONG | FLOAT | DOUBLE | DATETIME | BIGINTEGER | BIGDECIMAL | CHARARRAY | BYTEARRAY
 ;
 
 tuple_type
@@ -238,15 +239,27 @@ func_args
 ;
 
 cube_clause
-  : ^( CUBE cube_item )
+    : ^( CUBE cube_item )
 ;
 
 cube_item
-  : rel ( cube_by_clause )
+    : rel ( cube_by_clause )
 ;
 
 cube_by_clause
-    : ^( BY cube_by_expr+ )
+    : ^( BY cube_or_rollup )
+;
+
+cube_or_rollup
+    : cube_rollup_list+
+;
+
+cube_rollup_list
+    : ^( ( CUBE | ROLLUP ) cube_by_expr_list )
+;
+
+cube_by_expr_list
+    : cube_by_expr+
 ;
 
 cube_by_expr
@@ -376,6 +389,23 @@ limit_clause
 
 sample_clause
     :	 ^( SAMPLE rel ( DOUBLENUMBER | expr ) )
+;
+
+rank_clause
+	: ^( RANK rel ( rank_by_statement )? )
+;
+
+rank_by_statement
+	: ^( BY rank_by_clause ( DENSE )? )
+;
+
+rank_by_clause
+	: STAR ( ASC | DESC )?
+    | rank_col+
+;
+
+rank_col
+	: ( col_range | col_ref ) ( ASC | DESC )?
 ;
 
 order_clause
@@ -552,17 +582,10 @@ const_expr : literal
 literal : scalar | map | bag | tuple
 ;
 
-scalar
-    : INTEGER
-    | LONGINTEGER
-    | FLOATNUMBER
-    | DOUBLENUMBER
-    | BIGINTEGERNUMBER
-    | BIGDECIMALNUMBER
-    | QUOTEDSTRING
-    | NULL
-    | TRUE
-    | FALSE
+scalar : num_scalar | QUOTEDSTRING | NULL | TRUE | FALSE
+;
+
+num_scalar : MINUS? ( INTEGER | LONGINTEGER | FLOATNUMBER | DOUBLENUMBER | BIGINTEGERNUMBER | BIGDECIMALNUMBER )
 ;
 
 map
@@ -593,8 +616,10 @@ eid : rel_str_op
     | FILTER
     | FOREACH
     | CUBE
+    | ROLLUP
     | MATCHES
     | ORDER
+    | RANK
     | DISTINCT
     | COGROUP
     | JOIN
@@ -625,6 +650,7 @@ eid : rel_str_op
     | LONG
     | FLOAT
     | DOUBLE
+    | DATETIME
     | CHARARRAY
     | BIGINTEGER
     | BIGDECIMAL

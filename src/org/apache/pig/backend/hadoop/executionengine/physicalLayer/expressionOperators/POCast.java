@@ -26,6 +26,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.FuncSpec;
@@ -41,6 +44,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.builtin.ToDate;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
@@ -249,6 +253,13 @@ public class POCast extends ExpressionOperator {
             return res;
         }
 
+        case DataType.DATETIME: {
+            Result res = new Result();
+            res.returnStatus = POStatus.STATUS_ERR;
+            return res;
+        }
+
+
         }
 
         Result res = new Result();
@@ -386,6 +397,12 @@ public class POCast extends ExpressionOperator {
             return res;
         }
 
+        case DataType.DATETIME: {
+            Result res = new Result();
+            res.returnStatus = POStatus.STATUS_ERR;
+            return res;
+        }
+
         }
 
         Result res = new Result();
@@ -411,6 +428,12 @@ public class POCast extends ExpressionOperator {
         }
 
         case DataType.MAP: {
+            Result res = new Result();
+            res.returnStatus = POStatus.STATUS_ERR;
+            return res;
+        }
+
+        case DataType.DATETIME: {
             Result res = new Result();
             res.returnStatus = POStatus.STATUS_ERR;
             return res;
@@ -633,6 +656,15 @@ public class POCast extends ExpressionOperator {
             return res;
         }
 
+        case DataType.DATETIME: {
+            DateTime dt = null;
+            Result res = in.getNext(dt);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = Integer.valueOf(Long.valueOf(((DateTime) res.result).getMillis()).intValue());
+            }
+            return res;
+        }
+
         case DataType.CHARARRAY: {
             String str = null;
             Result res = in.getNext(str);
@@ -773,6 +805,15 @@ public class POCast extends ExpressionOperator {
             return res;
         }
 
+        case DataType.DATETIME: {
+            DateTime dt = null;
+            Result res = in.getNext(dt);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = Long.valueOf(((DateTime) res.result).getMillis());
+            }
+            return res;
+        }
+
         case DataType.CHARARRAY: {
             String str = null;
             Result res = in.getNext(str);
@@ -908,6 +949,15 @@ public class POCast extends ExpressionOperator {
             Result res = in.getNext(f);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
                 res.result = new Double(((Float) res.result).doubleValue());
+            }
+            return res;
+        }
+
+        case DataType.DATETIME: {
+            DateTime dt = null;
+            Result res = in.getNext(dt);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = new Double(Long.valueOf(((DateTime) res.result).getMillis()).doubleValue());
             }
             return res;
         }
@@ -1053,6 +1103,15 @@ public class POCast extends ExpressionOperator {
             return res;
         }
 
+        case DataType.DATETIME: {
+            DateTime dt = null;
+            Result res = in.getNext(dt);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = new Float(Long.valueOf(((DateTime) res.result).getMillis()).floatValue());
+            }
+            return res;
+        }
+
         case DataType.CHARARRAY: {
             String str = null;
             Result res = in.getNext(str);
@@ -1076,6 +1135,142 @@ public class POCast extends ExpressionOperator {
             Result res = in.getNext(bd);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
                 res.result = Float.valueOf(((BigDecimal)res.result).floatValue());
+            }
+            return res;
+        }
+
+        }
+
+        Result res = new Result();
+        res.returnStatus = POStatus.STATUS_ERR;
+        return res;
+    }
+
+    @Override
+    public Result getNext(DateTime dt) throws ExecException {
+        PhysicalOperator in = inputs.get(0);
+        Byte resultType = in.getResultType();
+        switch (resultType) {
+        case DataType.BAG: {
+            Result res = new Result();
+            res.returnStatus = POStatus.STATUS_ERR;
+            return res;
+        }
+
+        case DataType.TUPLE: {
+            Result res = new Result();
+            res.returnStatus = POStatus.STATUS_ERR;
+            return res;
+        }
+
+        case DataType.MAP: {
+            Result res = new Result();
+            res.returnStatus = POStatus.STATUS_ERR;
+            return res;
+        }
+
+        case DataType.BYTEARRAY: {
+            DataByteArray dba = null;
+            Result res = in.getNext(dba);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                try {
+                    dba = (DataByteArray) res.result;
+                } catch (ClassCastException e) {
+                    // res.result is not of type ByteArray. But it can be one of the types from which cast is still possible.
+                    if (realType == null) {
+                        // Find the type in first call and cache it.
+                        realType = DataType.findType(res.result);
+                    }
+                    try {
+                        res.result = DataType.toDateTime(res.result, realType);
+                    } catch (ClassCastException cce) {
+                        // Type has changed. Need to find type again and try casting it again.
+                        realType = DataType.findType(res.result);
+                        res.result = DataType.toDateTime(res.result, realType);
+                    }
+                    return res;
+                }
+                try {
+                    if (null != caster) {
+                        res.result = caster.bytesToDateTime(dba.get());
+                    } else {
+                        int errCode = 1075;
+                        String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to datetime.";
+                        throw new ExecException(msg, errCode, PigException.INPUT);
+                    }
+                } catch (ExecException ee) {
+                    throw ee;
+                } catch (IOException e) {
+                    log.error("Error while casting from ByteArray to DateTime");
+                }
+            }
+            return res;
+        }
+
+        case DataType.INTEGER: {
+            Integer dummyI = null;
+            Result res = in.getNext(dummyI);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = new DateTime(((Integer) res.result).longValue());
+            }
+            return res;
+        }
+
+        case DataType.DOUBLE: {
+            Double d = null;
+            Result res = in.getNext(d);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = new DateTime(((Double) res.result).longValue());
+            }
+            return res;
+        }
+
+        case DataType.LONG: {
+            Long l = null;
+            Result res = in.getNext(l);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = new DateTime(((Long) res.result).longValue());
+            }
+            return res;
+        }
+
+        case DataType.FLOAT: {
+            Float f = null;
+            Result res = in.getNext(f);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = new DateTime(((Float) res.result).longValue());
+            }
+            return res;
+        }
+
+        case DataType.BIGINTEGER: {
+            Result res = new Result();
+            res.returnStatus = POStatus.STATUS_ERR;
+            return res;
+        }
+
+        case DataType.BIGDECIMAL: {
+            Result res = new Result();
+            res.returnStatus = POStatus.STATUS_ERR;
+            return res;
+        }
+
+        case DataType.DATETIME: {
+            Result res = in.getNext(dt);
+
+            return res;
+        }
+
+        case DataType.CHARARRAY: {
+            String str = null;
+            Result res = in.getNext(str);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                DateTimeZone dtz = ToDate.extractDateTimeZone((String) res.result);
+                if (dtz == null) {
+                    res.result = new DateTime((String) res.result);
+                } else {
+                    res.result = new DateTime((String) res.result, dtz);
+                }
             }
             return res;
         }
@@ -1195,6 +1390,15 @@ public class POCast extends ExpressionOperator {
             Result res = in.getNext(f);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
                 res.result = ((Float) res.result).toString();
+            }
+            return res;
+        }
+
+        case DataType.DATETIME: {
+            DateTime dt = null;
+            Result res = in.getNext(dt);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = ((DateTime) res.result).toString();
             }
             return res;
         }
@@ -1320,17 +1524,13 @@ public class POCast extends ExpressionOperator {
 
         case DataType.BIGINTEGER:
 
-        case DataType.BIGDECIMAL:{
+        case DataType.BIGDECIMAL:
+
+        case DataType.DATETIME: {
             Result res = new Result();
             res.returnStatus = POStatus.STATUS_ERR;
             return res;
         }
-
-        }
-
-        Result res = new Result();
-        res.returnStatus = POStatus.STATUS_ERR;
-        return res;
     }
 
     @SuppressWarnings({ "unchecked", "deprecation" })
@@ -1504,6 +1704,9 @@ public class POCast extends ExpressionOperator {
             case DataType.FLOAT:
                 result = Integer.valueOf(((Float)obj).intValue());
                 break;
+            case DataType.DATETIME:
+                result = Integer.valueOf(Long.valueOf(((DateTime)obj).getMillis()).intValue());
+                break;
             case DataType.CHARARRAY:
                 result = CastUtils.stringToInteger((String)obj);
                 break;
@@ -1545,6 +1748,9 @@ public class POCast extends ExpressionOperator {
                 break;
             case DataType.FLOAT:
                 result = new Double(((Float)obj).doubleValue());
+                break;
+            case DataType.DATETIME:
+                result = new Double(Long.valueOf(((DateTime)obj).getMillis()).doubleValue());
                 break;
             case DataType.CHARARRAY:
                 result = CastUtils.stringToDouble((String)obj);
@@ -1588,6 +1794,9 @@ public class POCast extends ExpressionOperator {
             case DataType.FLOAT:
                 result = Long.valueOf(((Float)obj).longValue());
                 break;
+            case DataType.DATETIME:
+                result = Long.valueOf(((DateTime)obj).getMillis());
+                break;
             case DataType.CHARARRAY:
                 result = CastUtils.stringToLong((String)obj);
                 break;
@@ -1630,6 +1839,9 @@ public class POCast extends ExpressionOperator {
             case DataType.FLOAT:
                 result = obj;
                 break;
+            case DataType.DATETIME:
+                result = new Float(Long.valueOf(((DateTime)obj).getMillis()).floatValue());
+                break;
             case DataType.CHARARRAY:
                 result = CastUtils.stringToFloat((String)obj);
                 break;
@@ -1638,6 +1850,44 @@ public class POCast extends ExpressionOperator {
                 break;
             case DataType.BIGDECIMAL:
                 result = Float.valueOf(((BigDecimal)obj).floatValue());
+                break;
+            default:
+                throw new ExecException("Cannot convert "+ obj + " to " + fs, 1120, PigException.INPUT);
+            }
+            break;
+        case DataType.DATETIME:
+            switch (DataType.findType(obj)) {
+            case DataType.BYTEARRAY:
+                if (null != caster) {
+                    result = caster.bytesToDateTime(((DataByteArray)obj).get());
+                } else {
+                    int errCode = 1075;
+                    String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to datetime.";
+                    throw new ExecException(msg, errCode, PigException.INPUT);
+                }
+                break;
+            case DataType.INTEGER:
+                result = new DateTime(((Integer)obj).longValue());
+                break;
+            case DataType.DOUBLE:
+                result = new DateTime(((Double)obj).longValue());
+                break;
+            case DataType.LONG:
+                result = new DateTime(((Long)obj).longValue());
+                break;
+            case DataType.FLOAT:
+                result = new DateTime(((Float)obj).longValue());
+                break;
+            case DataType.DATETIME:
+                result = (DateTime)obj;
+                break;
+            case DataType.CHARARRAY:
+                DateTimeZone dtz = ToDate.extractDateTimeZone((String) obj);
+                if (dtz == null) {
+                    result = new DateTime((String) obj);
+                } else {
+                    result = new DateTime((String) obj, dtz);
+                }
                 break;
             default:
                 throw new ExecException("Cannot convert "+ obj + " to " + fs, 1120, PigException.INPUT);
@@ -1673,6 +1923,9 @@ public class POCast extends ExpressionOperator {
                 break;
             case DataType.FLOAT:
                 result = ((Float) obj).toString();
+                break;
+            case DataType.DATETIME:
+                result = ((DateTime)obj).toString();
                 break;
             case DataType.CHARARRAY:
                 result = obj;
@@ -1859,6 +2112,8 @@ public class POCast extends ExpressionOperator {
 
         case DataType.FLOAT:
 
+        case DataType.DATETIME:
+
         case DataType.CHARARRAY:
 
         case DataType.BOOLEAN:
@@ -1967,6 +2222,8 @@ public class POCast extends ExpressionOperator {
         case DataType.DOUBLE:
 
         case DataType.LONG:
+
+        case DataType.DATETIME:
 
         case DataType.FLOAT:
 

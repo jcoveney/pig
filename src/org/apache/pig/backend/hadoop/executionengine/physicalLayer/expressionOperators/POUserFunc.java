@@ -18,6 +18,8 @@
 
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
+import static org.apache.pig.PigConfiguration.TIME_UDFS_PROP;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.lang.reflect.Type;
@@ -27,6 +29,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.joda.time.DateTime;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
@@ -43,17 +50,26 @@ import org.apache.pig.builtin.MonitoredUDF;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
+import org.apache.pig.data.SchemaTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.data.TupleMaker;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.tools.pigstats.PigStatusReporter;
 
 public class POUserFunc extends ExpressionOperator {
+    private static final Log LOG = LogFactory.getLog(POUserFunc.class);
+    private final static String TIMING_COUNTER = "approx_microsecs";
+    private final static String INVOCATION_COUNTER = "approx_invocations";
+    private final static int TIMING_FREQ = 100;
 
+    private transient String counterGroup;
     /**
      *
      */
@@ -73,6 +89,9 @@ public class POUserFunc extends ExpressionOperator {
     private boolean isAccumulationDone;
     private String signature;
     private boolean haveCheckedIfTerminatingAccumulator;
+
+    private long numInvocations = 0L;
+    private boolean doTiming = false;
 
     public PhysicalOperator getReferencedOperator() {
         return referencedOperator;
@@ -115,6 +134,7 @@ public class POUserFunc extends ExpressionOperator {
         this.setSignature(signature);
         Properties props = UDFContext.getUDFContext().getUDFProperties(func.getClass());
     	Schema tmpS=(Schema)props.get("pig.evalfunc.inputschema."+signature);
+
     	if(tmpS!=null)
     		this.func.setInputSchema(tmpS);
         if (func.getClass().isAnnotationPresent(MonitoredUDF.class)) {
@@ -131,6 +151,9 @@ public class POUserFunc extends ExpressionOperator {
         this.func.setPigLogger(pigLogger);
     }
 
+    private transient TupleMaker inputTupleMaker;
+    private boolean usingSchemaTupleFactory;
+
     @Override
     public Result processInput() throws ExecException {
 
@@ -141,6 +164,37 @@ public class POUserFunc extends ExpressionOperator {
         if(!initialized) {
             func.setReporter(reporter);
             func.setPigLogger(pigLogger);
+            Configuration jobConf = UDFContext.getUDFContext().getJobConf();
+            if (jobConf != null) {
+                doTiming = "true".equalsIgnoreCase(jobConf.get(TIME_UDFS_PROP, "false"));
+                counterGroup = funcSpec.toString();
+            } else {
+                LOG.warn("jobConf not available. Not tracking UDF timing regardless of user preference.");
+            }
+            // We initialize here instead of instantiateFunc because this is called
+            // when actual processing has begun, whereas a function can be instantiated
+            // on the frontend potentially (mainly for optimization)
+            Schema tmpS = func.getInputSchema();
+            if (tmpS != null) {
+                //Currently, getInstanceForSchema returns null if no class was found. This works fine...
+                //if it is null, the default will be used. We pass the context because if it happens that
+                //the same Schema was generated elsewhere, we do not want to override user expectations
+                inputTupleMaker = SchemaTupleFactory.getInstance(tmpS, false, GenContext.UDF);
+                if (inputTupleMaker == null) {
+                    LOG.debug("No SchemaTupleFactory found for Schema ["+tmpS+"], using default TupleFactory");
+                    usingSchemaTupleFactory = false;
+                } else {
+                    LOG.debug("Using SchemaTupleFactory for Schema: " + tmpS);
+                    usingSchemaTupleFactory = true;
+                }
+
+                //In the future, we could optionally use SchemaTuples for output as well
+            }
+
+            if (inputTupleMaker == null) {
+                inputTupleMaker = TupleFactory.getInstance();
+            }
+
             initialized = true;
         }
 
@@ -164,9 +218,14 @@ public class POUserFunc extends ExpressionOperator {
             detachInput();
             return res;
         } else {
-            res.result = TupleFactory.getInstance().newTuple();
+            //we decouple this because there may be cases where the size is known and it isn't a schema
+            // tuple factory
+            boolean knownSize = usingSchemaTupleFactory;
+            int knownIndex = 0;
+            res.result = inputTupleMaker.newTuple();
 
             Result temp = null;
+
             for(PhysicalOperator op : inputs) {
                 temp = op.getNext(getDummy(op.getResultType()), op.getResultType());
                 if(temp.returnStatus!=POStatus.STATUS_OK) {
@@ -180,14 +239,23 @@ public class POUserFunc extends ExpressionOperator {
                         Tuple trslt = (Tuple) temp.result;
                         Tuple rslt = (Tuple) res.result;
                         for(int i=0;i<trslt.size();i++) {
+                            if (knownSize) {
+                                rslt.set(knownIndex++, trslt.get(i));
+                            } else {
                             rslt.append(trslt.get(i));
+                        }
                         }
                         continue;
                     }
                 }
+                if (knownSize) {
+                    ((Tuple)res.result).set(knownIndex++, temp.result);
+                } else {
                 ((Tuple)res.result).append(temp.result);
             }
+            }
             res.returnStatus = temp.returnStatus;
+
             return res;
         }
     }
@@ -215,6 +283,13 @@ public class POUserFunc extends ExpressionOperator {
     private Result getNext() throws ExecException {
         Result result = processInput();
         String errMsg = "";
+        long startNanos = 0;
+        boolean timeThis = doTiming && (numInvocations++ % TIMING_FREQ == 0);
+        if (timeThis) {
+            startNanos = System.nanoTime();
+            PigStatusReporter.getInstance().getCounter(counterGroup, INVOCATION_COUNTER).increment(TIMING_FREQ);
+
+        }
         try {
             if(result.returnStatus == POStatus.STATUS_OK) {
                 if (isAccumulative()) {
@@ -264,9 +339,11 @@ public class POUserFunc extends ExpressionOperator {
                     result.result = func.exec((Tuple) result.result);
                     }
                 }
-                return result;
             }
-
+            if (timeThis) {
+                PigStatusReporter.getInstance().getCounter(counterGroup, TIMING_COUNTER).increment(
+                        ( Math.round((System.nanoTime() - startNanos) / 1000)) * TIMING_FREQ);
+            }
             return result;
         } catch (ExecException ee) {
             throw ee;
@@ -348,6 +425,12 @@ public class POUserFunc extends ExpressionOperator {
         return getNext();
     }
 
+    @Override
+    public Result getNext(DateTime dt) throws ExecException {
+
+        return getNext();
+    }
+ 
     @Override
     public Result getNext(Map m) throws ExecException {
         return getNext();

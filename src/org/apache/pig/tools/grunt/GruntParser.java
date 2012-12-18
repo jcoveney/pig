@@ -32,6 +32,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Enumeration;
@@ -75,6 +76,8 @@ import org.apache.pig.tools.pigscript.parser.PigScriptParserTokenManager;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
+import org.fusesource.jansi.Ansi;
+import org.fusesource.jansi.AnsiConsole;
 
 @SuppressWarnings("deprecation")
 public class GruntParser extends PigScriptParser {
@@ -406,12 +409,21 @@ public class GruntParser extends PigScriptParser {
             log.warn("'aliases' statement is ignored while processing 'explain -script' or '-check'");
         }
     }
-    
+
+    @Override
+	protected void printClear() {
+        AnsiConsole.systemInstall();
+        Ansi ansi = Ansi.ansi();
+        System.out.println( ansi.eraseScreen() );
+        System.out.println( ansi.cursor(0, 0) );
+        AnsiConsole.systemUninstall();
+    }
+
     @Override
     protected void processRegister(String jar) throws IOException {
         mPigServer.registerJar(jar);
     }
-    
+
     @Override
     protected void processRegister(String path, String scriptingLang, String namespace) throws IOException, ParseException {
         if(path.endsWith(".jar")) {
@@ -1033,7 +1045,34 @@ public class GruntParser extends PigScriptParser {
             try {
                 executeBatch();
                 
-                Process executor = Runtime.getRuntime().exec(cmdTokens);
+                // For sh command, create a process with the following syntax
+                // <shell exe> <invoke arg> <command-as-string>
+                String  shellName = "sh";
+                String  shellInvokeArg = "-c";
+
+                // Insert cmd /C in front of the array list to execute to
+                // support built-in shell commands like mkdir on Windows
+                if (System.getProperty("os.name").startsWith("Windows")) {
+                    shellName      = "cmd";
+                    shellInvokeArg = "/C";
+                }
+
+                List<String> stringList = new ArrayList<String>();
+                stringList.add(shellName);
+                stringList.add(shellInvokeArg);
+
+                StringBuffer commandString = new StringBuffer();
+                for (String currToken : cmdTokens) {
+                    commandString.append(" ");
+                    commandString.append(currToken);
+                }
+
+                stringList.add(commandString.toString());
+
+                String[] newCmdTokens = stringList.toArray(new String[0]);
+
+                Process executor = Runtime.getRuntime().exec(newCmdTokens);
+
                 StreamPrinter outPrinter = new StreamPrinter(executor.getInputStream(), null, System.out);
                 StreamPrinter errPrinter = new StreamPrinter(executor.getErrorStream(), null, System.err);
     

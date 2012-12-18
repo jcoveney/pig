@@ -15,3 +15,6 @@ pig-withouthadoop.jar
 *.rej
 *.class
 *.swp
+*.classpath
+*.project
+*.crc

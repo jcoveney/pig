@@ -138,6 +138,7 @@ op_clause : define_clause
           | limit_clause
           | sample_clause
           | order_clause
+          | rank_clause
           | cross_clause
           | join_clause
           | union_clause
@@ -232,6 +233,7 @@ simple_type returns [byte typev]
   | DOUBLE { $typev = DataType.DOUBLE; }
   | BIGINTEGER { $typev = DataType.BIGINTEGER; }
   | BIGDECIMAL { $typev = DataType.BIGDECIMAL; }
+  | DATETIME { $typev = DataType.DATETIME; }
   | CHARARRAY { $typev = DataType.CHARARRAY; }
   | BYTEARRAY { $typev = DataType.BYTEARRAY; }
 ;
@@ -259,19 +261,31 @@ func_args : func_args_string+
 ;
 
 cube_clause
-  : ^( CUBE cube_item )
+ : ^( CUBE cube_item )
 ;
 
 cube_item
-  : rel ( cube_by_clause )
+ : rel ( cube_by_clause )
 ;
 
 cube_by_clause
-    : ^( BY cube_by_expr+ )
+ : ^( BY cube_or_rollup )
+;
+
+cube_or_rollup
+ : cube_rollup_list+
+;
+
+cube_rollup_list
+ : ^( ( CUBE | ROLLUP ) cube_by_expr_list )
+;
+
+cube_by_expr_list
+ : cube_by_expr+
 ;
 
 cube_by_expr
-    : col_range | expr | STAR
+ : col_range | expr | STAR
 ;
 
 group_clause
@@ -385,6 +399,20 @@ limit_clause : ^( LIMIT rel ( INTEGER | LONGINTEGER | expr ) )
 ;
 
 sample_clause : ^( SAMPLE rel ( DOUBLENUMBER | expr ) )
+;
+
+rank_clause : ^( RANK rel ( rank_by_statement )? )
+;
+
+rank_by_statement : ^( BY rank_by_clause ( DENSE )? )
+;
+
+rank_by_clause : STAR ( ASC | DESC )?
+               | rank_col+
+;
+
+rank_col : col_range (ASC | DESC)?
+         | col_ref ( ASC | DESC )?
 ;
 
 order_clause : ^( ORDER rel order_by_clause func_clause? )
@@ -585,8 +613,10 @@ eid : rel_str_op
     | FILTER
     | FOREACH
     | CUBE
+    | ROLLUP
     | MATCHES
     | ORDER
+    | RANK
     | DISTINCT
     | COGROUP
     | JOIN
@@ -619,6 +649,7 @@ eid : rel_str_op
     | DOUBLE
     | BIGINTEGER
     | BIGDECIMAL
+    | DATETIME
     | CHARARRAY
     | BYTEARRAY
     | BAG

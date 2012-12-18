@@ -190,6 +190,7 @@ public class POSort extends PhysicalOperator {
             case DataType.LONG:
             case DataType.BIGINTEGER:
             case DataType.BIGDECIMAL:
+            case DataType.DATETIME:
             case DataType.TUPLE:
                 res = Op.getNext(getDummy(resultType), resultType);
                 break;
@@ -301,19 +302,16 @@ public class POSort extends PhysicalOperator {
 
 	@Override
 	public boolean supportsMultipleInputs() {
-
 		return false;
 	}
 
 	@Override
 	public boolean supportsMultipleOutputs() {
-
 		return false;
 	}
 
 	@Override
 	public void visit(PhyPlanVisitor v) throws VisitorException {
-
 		v.visitSort(this);
 	}
 

@@ -24,6 +24,8 @@ import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 
+import org.joda.time.DateTime;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.ComparisonFunc;
@@ -126,6 +128,11 @@ public class POUserComparisonFunc extends ExpressionOperator {
 
     @Override
     public Result getNext(Long l) throws ExecException {
+        return getNext();
+    }
+
+    @Override
+    public Result getNext(DateTime dt) throws ExecException {
         return getNext();
     }
 

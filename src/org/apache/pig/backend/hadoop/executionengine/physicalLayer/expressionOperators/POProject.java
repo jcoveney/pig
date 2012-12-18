@@ -24,6 +24,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.joda.time.DateTime;
+
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -366,6 +368,11 @@ public class POProject extends ExpressionOperator {
 
     @Override
     public Result getNext(Boolean b) throws ExecException {
+        return getNext();
+    }
+
+    @Override
+    public Result getNext(DateTime dt) throws ExecException {
         return getNext();
     }
 

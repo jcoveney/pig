@@ -95,18 +95,6 @@ public class DefaultTuple extends AbstractTuple {
     }
 
     /**
-     * Make this tuple reference the contents of another. This method does not copy the underlying data. It maintains
-     * references to the data from the original tuple (and possibly even to the data structure holding the data).
-     *
-     * @param t
-     *            Tuple to reference.
-     */
-    @Override
-    public void reference(Tuple t) {
-        mFields = t.getAll();
-    }
-
-    /**
      * Find the size of the tuple. Used to be called arity().
      *
      * @return number of fields in the tuple.
@@ -381,6 +369,13 @@ public class DefaultTuple extends AbstractTuple {
                                 rc = new BigDecimal(str1).compareTo(new BigDecimal(str2));
                             break;
                         }
+                        case DataType.DATETIME:
+                            long dtv1 = bb1.getLong();
+                            bb1.position(bb1.position() + 2); // move cursor forward without read the timezone bytes
+                            long dtv2 = bb2.getLong();
+                            bb2.position(bb2.position() + 2);
+                            rc = (dtv1 < dtv2 ? -1 : (dtv1 == dtv2 ? 0 : 1));
+                            break;
                         case DataType.BYTEARRAY:
                             int basz1 = bb1.getInt();
                             int basz2 = bb2.getInt();
@@ -504,7 +499,7 @@ public class DefaultTuple extends AbstractTuple {
 
     @Override
     public int hashCode() {
-        int hash = 1;
+        int hash = 17;
         for (Iterator<Object> it = mFields.iterator(); it.hasNext();) {
             Object o = it.next();
             if (o != null) {

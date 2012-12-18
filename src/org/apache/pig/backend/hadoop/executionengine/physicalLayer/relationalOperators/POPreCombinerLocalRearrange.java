@@ -148,6 +148,7 @@ public class POPreCombinerLocalRearrange extends PhysicalOperator {
                 case DataType.LONG:
                 case DataType.BIGINTEGER:
                 case DataType.BIGDECIMAL:
+                case DataType.DATETIME:
                 case DataType.MAP:
                 case DataType.TUPLE:
                     res = op.getNext(getDummy(op.getResultType()), op.getResultType());
