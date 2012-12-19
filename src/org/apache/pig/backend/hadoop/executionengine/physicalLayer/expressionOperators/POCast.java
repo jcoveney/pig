@@ -26,9 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.FuncSpec;
@@ -55,6 +52,8 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.CastUtils;
 import org.apache.pig.impl.util.LogUtils;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 /**
  * This is just a cast that converts DataByteArray into either String or
@@ -1244,14 +1243,20 @@ public class POCast extends ExpressionOperator {
         }
 
         case DataType.BIGINTEGER: {
-            Result res = new Result();
-            res.returnStatus = POStatus.STATUS_ERR;
+            BigInteger dummy = null;
+            Result res = in.getNext(dummy);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = new DateTime(((BigInteger) res.result).longValue());
+            }
             return res;
         }
 
         case DataType.BIGDECIMAL: {
-            Result res = new Result();
-            res.returnStatus = POStatus.STATUS_ERR;
+            BigDecimal dummy = null;
+            Result res = in.getNext(dummy);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                res.result = new DateTime(((BigDecimal) res.result).longValue());
+            }
             return res;
         }
 
@@ -1896,6 +1901,12 @@ public class POCast extends ExpressionOperator {
                     result = new DateTime((String) obj, dtz);
                 }
                 break;
+            case DataType.BIGINTEGER:
+                result = new DateTime(((BigInteger)obj).longValue());
+                break;
+            case DataType.BIGDECIMAL:
+                result = new DateTime(((BigDecimal)obj).longValue());
+                break;
             default:
                 throw new ExecException("Cannot convert "+ obj + " to " + fs, 1120, PigException.INPUT);
             }
@@ -1985,6 +1996,9 @@ public class POCast extends ExpressionOperator {
             case DataType.BIGDECIMAL:
                 result = ((BigDecimal)obj).toBigInteger();
                 break;
+            case DataType.DATETIME:
+                result = BigInteger.valueOf(((DateTime)obj).getMillis());
+                break;
             default:
                 throw new ExecException("Cannot convert "+ obj + " to " + fs, 1120, PigException.INPUT);
             }
@@ -2025,6 +2039,9 @@ public class POCast extends ExpressionOperator {
                 break;
             case DataType.BIGDECIMAL:
                 result = (BigDecimal)obj;
+                break;
+            case DataType.DATETIME:
+                result = BigDecimal.valueOf(((DateTime)obj).getMillis());
                 break;
             default:
                 throw new ExecException("Cannot convert "+ obj + " to " + fs, 1120, PigException.INPUT);
