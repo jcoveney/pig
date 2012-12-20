@@ -20,12 +20,16 @@ package org.apache.pig.parser;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.antlr.runtime.IntStream;
 import org.antlr.runtime.RecognitionException;
@@ -94,11 +98,123 @@ import org.apache.pig.newplan.logical.rules.OptimizerUtils;
 import org.apache.pig.newplan.logical.visitor.ProjStarInUdfExpander;
 import org.apache.pig.newplan.logical.visitor.ProjectStarExpander;
 
+import com.google.common.collect.Sets;
+
 public class LogicalPlanBuilder {
 
     private LogicalPlan plan = new LogicalPlan();
 
-    private Map<String, Operator> operators = new HashMap<String, Operator>();
+    private Map<String, Operator> operators = new StackMap<String, Operator>();
+    
+    public static class StackMap<K,V> implements Map<K,V> {
+		Deque<Map<K,V>> stack = new ArrayDeque<Map<K,V>>();
+		
+		public StackMap() {
+			stack.addFirst(new HashMap<K,V>()); // This is the "global" scope HashMap
+		}
+		
+		@Override
+		public V get(Object key) {
+			Iterator<Map<K,V>> it = stack.descendingIterator();
+			while (it.hasNext()) {
+				V val = it.next().get(key);
+				if (val != null) {
+					return val;
+				}
+			}
+			return null;
+		}
+		
+		@Override
+		public V put(K key, V value) {
+			return stack.getLast().put(key, value);
+		}
+		
+		public void addStack() {
+			stack.addLast(new HashMap<K,V>());
+		}
+		
+		public Map<K,V> popStack() {
+			return stack.removeLast();
+		}
+
+		//TODO decide on the semantics of this. Could add up all the sizes, OR could add up the total number of unique keys
+		@Override
+		public int size() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public boolean isEmpty() {
+			for (Map<K,V> m : stack) {
+				if (!m.isEmpty()) {
+					return false;
+				}
+			}
+			return true;
+		}
+
+		@Override
+		public boolean containsKey(Object key) {
+			for (Map<K,V> m : stack) {
+				if (m.containsKey(key)) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		@Override
+		public boolean containsValue(Object value) {
+			for (Map<K,V> m : stack) {
+				if (m.containsValue(value)) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		//TODO decide on semantics. Should it remove nay instance? Or just in scope? I'm thinking just in scope...
+		@Override
+		public V remove(Object key) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public void putAll(Map<? extends K, ? extends V> m) {
+			stack.getLast().putAll(m);
+		}
+
+		//TODO figure out
+		@Override
+		public void clear() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public Set<K> keySet() {
+			Set<K> keySet = Sets.newHashSet();
+			for (Map<K,V> m : stack) {
+				keySet.addAll(m.keySet());
+			}
+			return keySet;
+		}
+
+		//TODO this needs to return repeat values, which is the tricky part. Also, need to think about how to deal with repeat values
+		//TODO I could just iterate over myself like HashMap does
+		@Override
+		public Collection<V> values() {
+			throw new UnsupportedOperationException();
+		}
+
+		//TODO just need to implements. The issue is that we do not want repeat keys in the entry set. We can make a special Entry
+		//TODO class that only does equals based on the key and then we can convert to an entry, or somesuch. We can use a tree set with
+		//TODO a custom comparator
+		@Override
+		public Set<Map.Entry<K, V>> entrySet() {
+			throw new UnsupportedOperationException();
+		}
+    }
 
     Map<String, String> fileNameMap;
 
