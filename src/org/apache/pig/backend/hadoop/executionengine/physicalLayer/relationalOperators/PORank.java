@@ -142,7 +142,7 @@ public class PORank extends PhysicalOperator {
      * Here is read the task identifier in order to get the corresponding cumulative sum,
      * and the local counter at the tuple. These values are summed and prepended to the tuple.
      * @param input processed by POCounter
-     * @result tuple with the prepend rank value.
+     * @return input as Result. The input.result tuple owns the prepend rank value 
      **/
     public Result addRank(Result input) throws ExecException {
         int i = 1;
@@ -156,6 +156,10 @@ public class PORank extends PhysicalOperator {
 
         Long rank = PigMapReduce.sJobConfInternal.get().getLong( nameCounter , -1L );
         
+        if(illustrator != null) {
+            rank = 0L;
+        }
+
         if(rank == -1) {
             log.error("Error on reading counter "+ nameCounter);
             throw new RuntimeException("Unable to read counter "+ nameCounter);
