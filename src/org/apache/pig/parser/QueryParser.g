@@ -36,6 +36,7 @@ options {
 tokens {
     QUERY;
     STATEMENT;
+    SCOPE_STATEMENT;
     FUNC;
     FUNC_REF;
     FUNC_EVAL;
@@ -150,12 +151,17 @@ query : statement* EOF
 ;
 
 statement : SEMI_COLON!
+          | scope_statement
           | general_statement
           | foreach_statement
           | split_statement  
           | inline_statement        
           | import_statement
           | realias_statement
+;
+
+scope_statement : LEFT_CURLY statement RIGHT_CURLY
+               -> ^( SCOPE_STATEMENT statement )
 ;
 
 import_statement : import_clause SEMI_COLON!

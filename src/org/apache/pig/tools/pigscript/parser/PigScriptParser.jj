@@ -245,7 +245,10 @@ TOKEN_MGR_DECLS : {
 | 	<(["a"-"z", "A"-"Z"])+(["a"-"z", "A"-"Z"] | ["0"-"9"] | "_")*(" " | "\t")*"="> : PIG_START
 | 	< <IDENTIFIER> (" " | "\t")* ("," (" " | "\t")* <IDENTIFIER> )* (" " | "\t")* "="> : PIG_START
 |   < <IDENTIFIER> (" " | "\t")* "(" > : PIG_START
+| <"{"> : PIG_START
 }
+
+//TODO in the case of a {, we need to increment a value. If that value >0, we loop to PIG_START instead of finishing (and thus not giving a chance to end curly)
 
 <PIG_START> MORE :
 {

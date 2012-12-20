@@ -98,7 +98,8 @@ catch(RecognitionException re) {
 query : ^( QUERY statement* )
 ;
 
-statement : general_statement
+statement : scope_statement
+          | general_statement
           | split_statement
           | realias_statement
 ;
@@ -107,6 +108,9 @@ split_statement : split_clause
 ;
 
 realias_statement : realias_clause
+;
+
+scope_statement : ^( SCOPE_STATEMENT statement )
 ;
 
 general_statement : ^( STATEMENT ( alias { aliases.add( $alias.name ); } )? op_clause parallel_clause? )
