@@ -213,6 +213,7 @@ content : LEFT_CURLY ( content | ~(LEFT_CURLY | RIGHT_CURLY) )* RIGHT_CURLY
 ;
 
 op_clause : define_clause 
+          | global_clause
           | load_clause
           | group_clause
           | cube_clause
@@ -265,6 +266,9 @@ import_clause : IMPORT^ QUOTEDSTRING
 ;
 
 define_clause : DEFINE^ alias ( cmd | func_clause | macro_clause)
+;
+
+global_clause : GLOBAL^ alias
 ;
 
 cmd : EXECCOMMAND^ ( ship_clause | cache_clause | input_clause | output_clause | error_clause )*
@@ -752,6 +756,7 @@ eid : rel_str_op
     | IMPORT
     | RETURNS
     | DEFINE
+    | GLOBAL
     | LOAD
     | FILTER
     | FOREACH

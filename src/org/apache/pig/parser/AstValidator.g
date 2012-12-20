@@ -130,6 +130,7 @@ alias returns[String name, CommonTree node]
 ;
 
 op_clause : define_clause 
+          | global_clause
           | load_clause
           | group_clause
           | store_clause
@@ -150,6 +151,9 @@ op_clause : define_clause
 ;
 
 define_clause : ^( DEFINE alias ( cmd | func_clause ) )
+;
+
+global_clause : ^( GLOBAL alias )
 ;
 
 cmd
@@ -607,6 +611,7 @@ eid : rel_str_op
     | IMPORT
     | RETURNS
     | DEFINE
+    | GLOBAL
     | LOAD
     | FILTER
     | FOREACH

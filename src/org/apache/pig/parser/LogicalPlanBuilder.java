@@ -104,7 +104,7 @@ public class LogicalPlanBuilder {
 
     private LogicalPlan plan = new LogicalPlan();
 
-    private Map<String, Operator> operators = new StackMap<String, Operator>();
+    private StackMap<String, Operator> operators = new StackMap<String, Operator>();
     
     public static class StackMap<K,V> implements Map<K,V> {
 		Deque<Map<K,V>> stack = new ArrayDeque<Map<K,V>>();
@@ -128,6 +128,10 @@ public class LogicalPlanBuilder {
 		@Override
 		public V put(K key, V value) {
 			return stack.getLast().put(key, value);
+		}
+		
+		public V putHead(K key, V value) {
+			return stack.getFirst().put(key, value);
 		}
 		
 		public void addStack() {
@@ -244,6 +248,16 @@ public class LogicalPlanBuilder {
         this.scope = "test";
         this.fileNameMap = new HashMap<String, String>();
         this.intStream = input;
+    }
+    
+    void makeRelationGlobal(String alias, SourceLocation sourceLocation) throws ParserValidationException {
+    	Operator op = operators.get(alias);
+    	if (op != null) {
+    		operators.putHead(alias, op);
+    	} else {
+    		throw new ParserValidationException(intStream, sourceLocation, new FrontendException("Referred to alias that does not exist: " + alias));
+    	}
+    	
     }
 
     Operator lookupOperator(String alias) {

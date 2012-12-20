@@ -239,6 +239,7 @@ TOKEN_MGR_DECLS : {
 {
     <"split"> : PIG_START
 |   <"define"> : PIG_START
+|   <"global"> : PIG_START
 |	<"store"> : PIG_START
 |	<"import"> : PIG_START
 | 	<(["a"-"z", "A"-"Z"])+(["a"-"z", "A"-"Z"] | ["0"-"9"] | "_")*(" " | "\t")*"="> : PIG_START

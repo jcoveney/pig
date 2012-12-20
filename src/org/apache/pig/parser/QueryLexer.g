@@ -69,6 +69,9 @@ RETURNS : 'RETURNS'
 DEFINE : 'DEFINE'
 ;
 
+GLOBAL : 'GLOBAL'
+;
+
 LOAD   : 'LOAD'
 ;
 

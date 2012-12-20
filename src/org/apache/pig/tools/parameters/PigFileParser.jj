@@ -93,6 +93,7 @@ TOKEN_MGR_DECLS : {
 <DEFAULT> MORE :
 {
     <"define" (<WS>)+ <IDENTIFIER> (<WS>)* "(" > : PIG_START
+|   <"global" > : PIG_START
 }
 
 <PIG_START> MORE :

@@ -114,7 +114,8 @@ alias
         }
 ;
 
-op_clause : define_clause 
+op_clause : define_clause
+          | global_clause
           | load_clause
           | group_clause
           | store_clause
@@ -136,6 +137,10 @@ op_clause : define_clause
 
 define_clause 
     : ^( DEFINE IDENTIFIER  ( cmd | func_clause ) )
+;
+
+global_clause
+    : ^( GLOBAL IDENTIFIER )
 ;
 
 cmd 
@@ -612,6 +617,7 @@ eid : rel_str_op
     | IMPORT
     | RETURNS
     | DEFINE
+    | GLOBAL
     | LOAD
     | FILTER
     | FOREACH

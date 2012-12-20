@@ -206,6 +206,7 @@ alias returns[String name]: IDENTIFIER { $name = $IDENTIFIER.text; }
 
 op_clause returns[String alias] : 
             define_clause 
+          | global_clause
           | load_clause { $alias = $load_clause.alias; }
           | group_clause { $alias = $group_clause.alias; }
           | store_clause { $alias = $store_clause.alias; }
@@ -233,6 +234,13 @@ define_clause
    {
        builder.defineFunction( $alias.name, $func_clause.funcSpec );
    }
+;
+
+global_clause
+ : ^( GLOBAL alias )
+  {
+      builder.makeRelationGlobal( $alias.name, new SourceLocation((PigParserNode)$global_clause.start) );
+  }
 ;
 
 cmd[String alias] returns[StreamingCommand command]

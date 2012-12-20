@@ -81,7 +81,8 @@ alias
     : IDENTIFIER { sb.append($IDENTIFIER.text); }
 ;
 
-op_clause : define_clause 
+op_clause : define_clause
+          | global_clause
           | load_clause
           | group_clause
           | store_clause
@@ -104,6 +105,10 @@ op_clause : define_clause
 define_clause 
     : ^( DEFINE IDENTIFIER { sb.append($DEFINE.text).append(" ").append($IDENTIFIER.text).append(" "); } 
         ( cmd | func_clause ) )
+;
+
+global_clause
+    : ^( GLOBAL IDENTIFIER { sb.append($GLOBAL.text).append(" ").append($IDENTIFIER.text); } ) 
 ;
 
 cmd 
