@@ -16,3 +16,4 @@ pig-withouthadoop.jar
 *.class
 *.classpath
 *.project
+.settings
