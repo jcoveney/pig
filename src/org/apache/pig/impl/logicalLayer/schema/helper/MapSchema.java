@@ -10,23 +10,40 @@ import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import com.google.common.collect.Lists;
 
 public class MapSchema extends ColumnSchema {
-	private List<ColumnSchema> valueColumns;
+	private List<ColumnSchema> valueColumns = null;
+
+	public MapSchema(String alias, TupleSchema ts) {
+	  this(alias, ts.getColumns());
+	}
+
+	public MapSchema(String alias) {
+	  this(alias, (ColumnSchema[])null);
+	}
 
 	public MapSchema(String alias, ColumnSchema... valueColumns) {
 		super(alias, DataType.MAP);
-		this.valueColumns = Lists.newArrayList(valueColumns);
+		if (valueColumns != null) {
+		  this.valueColumns = Lists.newArrayList(valueColumns);
+		}
 	}
 
 	@Override
 	public FieldSchema toFieldSchema(boolean fillInNullAliases) throws FrontendException {
-		Schema s = new Schema();
-		for (ColumnSchema column : valueColumns) {
-			s.add(column.toFieldSchema(fillInNullAliases)); //TODO make this match what Utils.getSchemaFromString does
+		Schema s = null;
+		if (valueColumns != null) {
+  		s = new Schema();
+  		for (ColumnSchema column : valueColumns) {
+  			s.add(column.toFieldSchema(fillInNullAliases));
+  		}
+  		if (fillInNullAliases) {
+  			RelationSchema.fixSchemaAliases(s);
+  		}
+  		s = new Schema(new FieldSchema(null, s, DataType.TUPLE));
 		}
-		if (fillInNullAliases) {
-			RelationSchema.fixSchemaAliases(s);
-		}
-		Schema s2 = new Schema(new FieldSchema(null, s, DataType.TUPLE)); 
-		return new FieldSchema(getAlias(), s2, getDataType());
+		return new FieldSchema(getAlias(), s, getDataType());
+	}
+
+	public ColumnSchema[] getValueColumns() {
+    return valueColumns.toArray(new ColumnSchema[valueColumns.size()]);
 	}
 }
