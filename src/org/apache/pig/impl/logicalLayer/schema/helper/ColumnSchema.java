@@ -20,5 +20,9 @@ public abstract class ColumnSchema {
 		return dataType;
 	}
 	
-	public abstract FieldSchema toFieldSchema() throws FrontendException;
+	public FieldSchema toFieldSchema() throws FrontendException {
+		return toFieldSchema(false);
+	}
+	
+	public abstract FieldSchema toFieldSchema(boolean fillInNullAliases) throws FrontendException;
 }

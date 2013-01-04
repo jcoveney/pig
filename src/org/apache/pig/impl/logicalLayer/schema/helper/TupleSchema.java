@@ -26,10 +26,13 @@ public class TupleSchema extends ColumnSchema {
 	}
 
 	@Override
-	public FieldSchema toFieldSchema() throws FrontendException {
+	public FieldSchema toFieldSchema(boolean fillInNullAliases) throws FrontendException {
 		Schema s = new Schema();
 		for (ColumnSchema column : columns) {
-			s.add(column.toFieldSchema());
+			s.add(column.toFieldSchema(fillInNullAliases));
+		}
+		if (fillInNullAliases) {
+			RelationSchema.fixSchemaAliases(s);
 		}
 		return new FieldSchema(getAlias(), s, getDataType());
 	}

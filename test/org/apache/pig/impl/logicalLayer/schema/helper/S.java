@@ -1,6 +1,10 @@
 package org.apache.pig.impl.logicalLayer.schema.helper;
 
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.logicalLayer.schema.helper.PrimitiveSchema.*;
+import org.apache.pig.impl.util.NumValCarrier;
 
 public class S {
 	private S() {}
@@ -69,7 +73,7 @@ public class S {
 		return new ChararraySchema(alias);
 	}
 	
-	public static ChararraySchema charraray() {
+	public static ChararraySchema chararray() {
 		return new ChararraySchema(null);
 	}
 	

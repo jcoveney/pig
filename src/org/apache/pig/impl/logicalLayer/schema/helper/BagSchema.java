@@ -18,8 +18,8 @@ public class BagSchema extends ColumnSchema {
 	}
 	
 	@Override
-	public FieldSchema toFieldSchema() throws FrontendException {
-		Schema s = new Schema(schema.toFieldSchema());
+	public FieldSchema toFieldSchema(boolean fillInNullAliases) throws FrontendException {
+		Schema s = new Schema(schema.toFieldSchema(fillInNullAliases)); //TODO make this match what Utils.getSchemaFromString does for b{(x:int)}
 		return new FieldSchema(getAlias(), s, getDataType());
 	}
 }

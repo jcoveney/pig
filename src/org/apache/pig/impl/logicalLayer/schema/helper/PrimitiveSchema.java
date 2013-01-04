@@ -7,8 +7,9 @@ public abstract class PrimitiveSchema extends ColumnSchema {
 	public PrimitiveSchema(String alias, byte dataType) {
 		super(alias, dataType);
 	}
-
-	public FieldSchema toFieldSchema() {
+	
+	@Override
+	public FieldSchema toFieldSchema(boolean fillInNullAliases) {
 		return new FieldSchema(getAlias(), getDataType());
 	}
 	

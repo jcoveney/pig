@@ -18,10 +18,13 @@ public class MapSchema extends ColumnSchema {
 	}
 
 	@Override
-	public FieldSchema toFieldSchema() throws FrontendException {
+	public FieldSchema toFieldSchema(boolean fillInNullAliases) throws FrontendException {
 		Schema s = new Schema();
 		for (ColumnSchema column : valueColumns) {
-			s.add(column.toFieldSchema());
+			s.add(column.toFieldSchema(fillInNullAliases)); //TODO make this match what Utils.getSchemaFromString does
+		}
+		if (fillInNullAliases) {
+			RelationSchema.fixSchemaAliases(s);
 		}
 		Schema s2 = new Schema(new FieldSchema(null, s, DataType.TUPLE)); 
 		return new FieldSchema(getAlias(), s2, getDataType());
