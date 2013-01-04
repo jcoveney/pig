@@ -20,6 +20,8 @@ public abstract class ColumnSchema {
 		return dataType;
 	}
 	
+	public abstract ColumnSchema fromSchema();
+	
 	public FieldSchema toFieldSchema() throws FrontendException {
 		return toFieldSchema(false);
 	}

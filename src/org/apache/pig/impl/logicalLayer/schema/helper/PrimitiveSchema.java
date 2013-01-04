@@ -3,7 +3,7 @@ package org.apache.pig.impl.logicalLayer.schema.helper;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 
-public abstract class PrimitiveSchema extends ColumnSchema {
+public class PrimitiveSchema extends ColumnSchema {
 	public PrimitiveSchema(String alias, byte dataType) {
 		super(alias, dataType);
 	}

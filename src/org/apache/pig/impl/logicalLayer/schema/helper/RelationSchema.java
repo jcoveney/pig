@@ -2,6 +2,7 @@ package org.apache.pig.impl.logicalLayer.schema.helper;
 
 import java.util.List;
 
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
@@ -49,6 +50,31 @@ public class RelationSchema {
 			if (fs.alias == null) {
 				fs.alias = nvc.makeNameFromDataType(fs.type);
 			}
+		}
+	}
+	
+	public static RelationSchema fromSchema(Schema schema) {
+		RelationSchema rs = new RelationSchema();
+		for (FieldSchema fs : schema.getFields()) {
+			rs.add(fromFieldSchema(fs));
+		}
+		return rs;
+	}
+	
+	public static ColumnSchema fromFieldSchema(FieldSchema fieldSchema) {
+		switch (fieldSchema.type) {
+		case DataType.BAG:
+			
+			break;
+		case DataType.MAP:
+			
+			break;
+			
+		case DataType.TUPLE:
+			
+			break;
+		default:
+			return new PrimitiveSchema(fieldSchema.alias, fieldSchema.type);
 		}
 	}
 }
