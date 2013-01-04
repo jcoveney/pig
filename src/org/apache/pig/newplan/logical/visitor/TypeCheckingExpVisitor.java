@@ -187,32 +187,32 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         if (lhsType == DataType.INTEGER) {
             if (rhsType == DataType.INTEGER) {
                 //do nothing
-            } else if (rhsType == DataType.LONG) {
-                insertCast(binOp, DataType.LONG, binOp.getLhs());
-            } else if (rhsType == DataType.BIGINTEGER) {
-                insertCast(binOp, DataType.BIGINTEGER, binOp.getLhs());
+            } else if (rhsType == DataType.LONG || rhsType == DataType.BIGINTEGER) {
+                insertCast(binOp, rhsType, binOp.getLhs());
             } else {
                 error = true;
             }
         } else if (lhsType == DataType.LONG) {
             if (rhsType == DataType.INTEGER) {
-                insertCast(binOp, DataType.LONG, binOp.getRhs());
+                insertCast(binOp, lhsType, binOp.getRhs());
+            } else if (rhsType == DataType.BIGINTEGER) {
+                insertCast(binOp, rhsType, binOp.getLhs());
             } else if (rhsType == DataType.LONG) {
                 //do nothing
-            } else if (rhsType == DataType.BIGINTEGER) {
-                insertCast(binOp, DataType.BIGINTEGER, binOp.getLhs());
             } else {
                 error = true;
             }
         } else if (lhsType == DataType.BIGINTEGER) {
-            if (rhsType == DataType.INTEGER) {
-                insertCast(binOp, DataType.BIGINTEGER, binOp.getRhs());
-            } else if (rhsType == DataType.LONG) {
-                insertCast(binOp, DataType.BIGINTEGER, binOp.getRhs());
+            if (rhsType == DataType.INTEGER || rhsType == DataType.LONG) {
+                insertCast(binOp, lhsType, binOp.getRhs());
             } else if (rhsType == DataType.BIGINTEGER) {
                 //do nothing
             } else {
                 error = true;
+            }
+        } else if (lhsType == DataType.BYTEARRAY) {
+            if (rhsType == DataType.INTEGER || rhsType == DataType.LONG || rhsType == DataType.BIGINTEGER) {
+                insertCast(binOp, rhsType, binOp.getLhs());
             }
         } else {
             error = true;

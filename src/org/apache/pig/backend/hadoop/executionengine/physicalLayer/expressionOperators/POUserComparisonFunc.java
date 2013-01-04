@@ -71,7 +71,7 @@ public class POUserComparisonFunc extends ExpressionOperator {
 
     private void instantiateFunc() {
         this.func = (ComparisonFunc) PigContext.instantiateFuncFromSpec(this.funcSpec);
-        this.func.setReporter(reporter);
+        this.func.setReporter(getReporter());
     }
 
     public ComparisonFunc getComparator() {

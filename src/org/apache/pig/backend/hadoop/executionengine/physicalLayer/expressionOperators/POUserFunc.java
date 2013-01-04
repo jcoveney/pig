@@ -147,7 +147,7 @@ public class POUserFunc extends ExpressionOperator {
         //making the initializations here basically useless. Look at the processInput
         //method where these variables are re-initialized. At that point, the PhysicalOperator
         //is set up correctly with the reporter and pigLogger references
-        this.func.setReporter(reporter);
+        this.func.setReporter(getReporter());
         this.func.setPigLogger(pigLogger);
     }
 
@@ -162,7 +162,7 @@ public class POUserFunc extends ExpressionOperator {
         // cheap to call the setReporter call everytime as to check whether I
         // have (hopefully java will inline it).
         if(!initialized) {
-            func.setReporter(reporter);
+            func.setReporter(getReporter());
             func.setPigLogger(pigLogger);
             Configuration jobConf = UDFContext.getUDFContext().getJobConf();
             if (jobConf != null) {
@@ -207,8 +207,8 @@ public class POUserFunc extends ExpressionOperator {
         }
 
         //Should be removed once the model is clear
-        if(reporter!=null) {
-            reporter.progress();
+        if(getReporter()!=null) {
+            getReporter().progress();
         }
 
 
