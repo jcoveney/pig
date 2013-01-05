@@ -23,21 +23,23 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.helper.BagSchema;
+import org.apache.pig.impl.logicalLayer.schema.helper.ColumnSchema;
+import org.apache.pig.impl.logicalLayer.schema.helper.RelationSchema;
+import org.apache.pig.impl.logicalLayer.schema.helper.TupleSchema;
+import org.apache.pig.impl.logicalLayer.schema.helper.VerifySchema;
 
 /**
- * Flatten a bag into a tuple.  This UDF performs only flattening at the first level, 
+ * Flatten a bag into a tuple.  This UDF performs only flattening at the first level,
  * it doesn't recursively flatten nested bags.
- * 
+ *
  * Example: {(a),(b),(c)} --> (a,b,c)
  *          {(a,b), (c,d), (e,f)} --> (a,b,c,d,e,f);
- * 
+ *
  * If input bag is null, this UDF will return null;
- * 
+ *
  */
 public class BagToTuple extends EvalFunc<Tuple> {
 
@@ -47,20 +49,20 @@ public class BagToTuple extends EvalFunc<Tuple> {
 		if (inputTuple.size() != 1) {
 			throw new ExecException("Expecting 1 input, found " + inputTuple.size(), PigException.INPUT);
 		}
-		
+
 		if (inputTuple.get(0) == null) {
 			return null;
 		}
-		
+
 		if (!(inputTuple.get(0) instanceof DataBag)) {
-		  throw new ExecException("Usage BagToTuple(DataBag)", PigException.INPUT);			
+		  throw new ExecException("Usage BagToTuple(DataBag)", PigException.INPUT);
 		}
-		
-		
+
+
 		DataBag inputBag = (DataBag) (inputTuple.get(0));
 		try {
 			Tuple outputTuple = null;
-			
+
 			long outputTupleSize = getOuputTupleSize(inputBag);
 
 			// TupleFactory.newTuple(int size) can only support up to Integer.MAX_VALUE
@@ -90,7 +92,7 @@ public class BagToTuple extends EvalFunc<Tuple> {
 	/**
 	 * Calculate the size of the output tuple based on the sum
      * of the size of each tuple in the input bag
-	 * 
+	 *
 	 * @param bag
 	 * @return total # of data elements in a tab
 	 */
@@ -105,41 +107,11 @@ public class BagToTuple extends EvalFunc<Tuple> {
 	}
 
 	@Override
-	public Schema outputSchema(Schema inputSchema) {
-		try {
-			if ((inputSchema == null) || inputSchema.size() != 1) {
-				throw new RuntimeException("Expecting 1 input, found " + 
-						((inputSchema == null) ? 0 : inputSchema.size()));
-			}
-
-			Schema.FieldSchema inputFieldSchema = inputSchema.getField(0);
-			if (inputFieldSchema.type != DataType.BAG) {
-				throw new RuntimeException("Expecting a bag of tuples: {()}");
-			}
-
-			// first field in the bag schema
-			Schema.FieldSchema firstFieldSchema = inputFieldSchema.schema.getField(0);
-			if ((firstFieldSchema == null) || (firstFieldSchema.schema == null)
-					|| firstFieldSchema.schema.size() < 1) {
-				throw new RuntimeException("Expecting a bag of tuples: {()}, found: " + inputSchema);
-			}
-
-			if (firstFieldSchema.type != DataType.TUPLE) {
-				throw new RuntimeException("Expecting a bag of tuples: {()}, found: " + inputSchema);
-			}
-
-			// now for output schema
-			Schema tupleOutputSchema = new Schema();
-			for (int i = 0; i < firstFieldSchema.schema.size(); ++i) {
-				tupleOutputSchema.add(firstFieldSchema.schema.getField(i));
-			}
-			return new Schema(new Schema.FieldSchema(getSchemaName(this
-					.getClass().getName().toLowerCase(), inputSchema), tupleOutputSchema,
-					DataType.TUPLE));
-		} catch (FrontendException e) {
-			e.printStackTrace();
-			return null;
-		}
+	public ColumnSchema<Tuple> outputSchemaHelper(RelationSchema input) {
+	    VerifySchema.verify(input, VerifySchema.VSType.BAG_WITH_STUFF);
+	    String newAlias = getSchemaName(getClass().getName().toLowerCase(), input);
+	    ColumnSchema<?> schema = input.getColumn(0);
+	    TupleSchema tup = ((BagSchema)schema).getTupleSchema();
+	    return tup.setAlias(newAlias);
 	}
-
 }

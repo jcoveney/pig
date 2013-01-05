@@ -1,5 +1,7 @@
 package org.apache.pig.builtin;
 
+import static org.apache.pig.impl.logicalLayer.schema.helper.S.sdatetime;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,6 +12,8 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.helper.ColumnSchema;
+import org.apache.pig.impl.logicalLayer.schema.helper.RelationSchema;
 import org.joda.time.DateTime;
 import org.joda.time.Period;
 
@@ -56,13 +60,13 @@ public class AddDuration extends EvalFunc<DateTime> {
         if (input == null || input.size() < 2) {
             return null;
         }
-        
+
         return ((DateTime) input.get(0)).plus(new Period((String) input.get(1)));
     }
-    
+
     @Override
-    public Schema outputSchema(Schema input) {
-        return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input), DataType.DATETIME));
+    public ColumnSchema<DateTime> outputSchemaHelper(RelationSchema input) {
+        return sdatetime(getSchemaName(this.getClass().getName().toLowerCase(), input));
     }
 
     @Override

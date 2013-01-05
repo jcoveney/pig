@@ -36,6 +36,8 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.helper.ColumnSchema;
+import org.apache.pig.impl.logicalLayer.schema.helper.RelationSchema;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.parser.ParserException;
@@ -73,7 +75,7 @@ public abstract class EvalFunc<T>  {
      * should be logged to this via {@link PigLogger#warn}.
      */
     protected PigLogger pigLogger;
-    
+
     private static int nextSchemaId; // for assigning unique ids to UDF columns
     protected String getSchemaName(String name, Schema input) {
         String alias = name + "_";
@@ -84,21 +86,25 @@ public abstract class EvalFunc<T>  {
         alias += ++nextSchemaId;
         return alias;
     }
-    
+
+    protected String getSchemaName(String name, RelationSchema input) {
+        return getSchemaName(name, input.toSchema(false));
+    }
+
     /**
      * Return type of this instance of EvalFunc.
      */
     protected Type returnType;
-    
+
     public EvalFunc(){
-        
+
         //Figure out what the return type is by following the object hierarchy upto the EvalFunc
-        
+
         Class<?> superClass = getClass();
         Type superType = getClass();
-        
+
         Deque<Type> geneticsStack = new LinkedList<Type>();
-        
+
         // Go up the hierachy of the class up to the EvalFunc
         while (!superClass.isAssignableFrom(EvalFunc.class))
         {
@@ -106,8 +112,8 @@ public abstract class EvalFunc<T>  {
             superClass = superClass.getSuperclass();
             geneticsStack.push(superType);
         }
-        
-        // From EvalFunc (superclass), go downward (subclass), 
+
+        // From EvalFunc (superclass), go downward (subclass),
         // find the first class materialize the genetics
         Type materializedType = null;
         while (!geneticsStack.isEmpty()) {
@@ -116,10 +122,10 @@ public abstract class EvalFunc<T>  {
                 // We materialized something, eg, materialized the type to Double,
                 // or materialized the type to Map<String, Object>, or materialized the type
                 // to T(another genetics). In the 1st case, getActualTypeArguments()
-                // returns a class, we can tell easily; In the 2nd and 3th case, 
-                // getActualTypeArguments() returns a ParameterizedType, 
+                // returns a class, we can tell easily; In the 2nd and 3th case,
+                // getActualTypeArguments() returns a ParameterizedType,
                 // we cannot tell 2nd case from 3th case.
-                // So we need further check if the type inside materializedType 
+                // So we need further check if the type inside materializedType
                 // are materialized (case 2)
                 materializedType = ((ParameterizedType)aType).getActualTypeArguments()[0];
             }
@@ -133,14 +139,14 @@ public abstract class EvalFunc<T>  {
         }
 
         String errMsg = getClass() + "extends the raw type EvalFunc. It should extend the parameterized type EvalFunc<T> instead.";
-        
+
         if (returnType==null)
             throw new RuntimeException(errMsg);
-        
+
         //Type check the initial, intermediate, and final functions
         if (this instanceof Algebraic){
             Algebraic a = (Algebraic)this;
-            
+
             errMsg = "function of " + getClass().getName() + " is not of the expected type.";
             if (getReturnTypeFromSpec(new FuncSpec(a.getInitial())) != Tuple.class)
                 throw new RuntimeException("Initial " + errMsg);
@@ -149,9 +155,9 @@ public abstract class EvalFunc<T>  {
             if (!getReturnTypeFromSpec(new FuncSpec(a.getFinal())).equals(returnType))
                     throw new RuntimeException("Final " + errMsg);
         }
-        
+
     }
-    
+
 
     private Type getReturnTypeFromSpec(FuncSpec funcSpec){
         try{
@@ -160,7 +166,7 @@ public abstract class EvalFunc<T>  {
             throw new RuntimeException(funcSpec + " does not specify an eval func", e);
         }
     }
-    
+
     /**
      * Get the Type that this EvalFunc returns.
      * @return Type
@@ -168,7 +174,7 @@ public abstract class EvalFunc<T>  {
     public Type getReturnType(){
         return returnType;
     }
-        
+
     // report that progress is being made (otherwise hadoop times out after 600 seconds working on one outer tuple)
     /**
      * Utility method to allow UDF to report progress.  If exec will take more than a
@@ -179,7 +185,7 @@ public abstract class EvalFunc<T>  {
         if (reporter != null) reporter.progress();
         else warn("No reporter object provided to UDF.", PigWarning.PROGRESS_REPORTER_NOT_PROVIDED);
     }
-    
+
     /**
      * Issue a warning.  Warning messages are aggregated and reported to
      * the user.
@@ -196,22 +202,22 @@ public abstract class EvalFunc<T>  {
      * Default implementation is a no-op.
      */
     public void finish(){}
-    
-    
-    
+
+
+
     /**
      * This callback method must be implemented by all subclasses. This
      * is the method that will be invoked on every Tuple of a given dataset.
      * Since the dataset may be divided up in a variety of ways the programmer
      * should not make assumptions about state that is maintained between
      * invocations of this method.
-     * 
+     *
      * @param input the Tuple to be processed.
      * @return result, of type T.
      * @throws IOException
      */
     abstract public T exec(Tuple input) throws IOException;
-    
+
     /**
      * Report the schema of the output of this UDF.  Pig will make use of
      * this in error checking, optimization, and planning.  The schema
@@ -231,7 +237,25 @@ public abstract class EvalFunc<T>  {
             throw new RuntimeException(e);
         }
     }
-    
+
+    //TODO could also make this convert outputSchema and then go from there, so if they override this it takes precedence
+    @SuppressWarnings("unchecked")
+    public ColumnSchema<T> outputSchemaHelper(RelationSchema input) {
+        Schema result = outputSchema(input.toSchema(false));
+        if (result != null) {
+            if (result.size() == 1) {
+                try {
+                    return (ColumnSchema<T>)RelationSchema.fromFieldSchema(result.getField(0));
+                } catch (FrontendException e) {
+                    throw new RuntimeException(e); //Should be impossible given the check
+                }
+            } else {
+                throw new RuntimeException("outputSchema function returns an invalid Schema! Should only return a schema of 1 field. Returns: " + result);
+            }
+        }
+        return null;
+    }
+
     /**
      * This function should be overriden to return true for functions that return their values
      * asynchronously.  Currently pig never attempts to execute a function
@@ -257,7 +281,7 @@ public abstract class EvalFunc<T>  {
     public final void setReporter(PigProgressable reporter) {
         this.reporter = reporter;
     }
-    
+
     /**
      * Allow a UDF to specify type specific implementations of itself.  For example,
      * an implementation of arithmetic sum might have int and float implementations,
@@ -267,7 +291,7 @@ public abstract class EvalFunc<T>  {
      * @return A List containing FuncSpec objects representing the EvalFunc class
      * which can handle the inputs corresponding to the schema in the objects.  Each
      * FuncSpec should be constructed with a schema that describes the input for that
-     * implementation.  For example, the sum function above would return two elements in its 
+     * implementation.  For example, the sum function above would return two elements in its
      * list:
      * <ol>
      * <li>FuncSpec(this.getClass().getName(), new Schema(new Schema.FieldSchema(null, DataType.DOUBLE)))
@@ -289,44 +313,44 @@ public abstract class EvalFunc<T>  {
     public List<String> getCacheFiles() {
         return null;
     }
-    
+
     public PigLogger getPigLogger() {
         return pigLogger;
     }
 
     /**
-     * Set the PigLogger object.  Called by Pig to provide a reference 
+     * Set the PigLogger object.  Called by Pig to provide a reference
      * to the UDF.
      * @param pigLogger PigLogger object.
      */
     public final void setPigLogger(PigLogger pigLogger) {
         this.pigLogger = pigLogger;
     }
-    
+
     public Log getLogger() {
     	return log;
     }
-    
+
     private Schema inputSchemaInternal=null;
     /**
      * This method will be called by Pig both in the front end and back end to
      * pass a unique signature to the {@link EvalFunc}. The signature can be used
-     * to store into the {@link UDFContext} any information which the 
+     * to store into the {@link UDFContext} any information which the
      * {@link EvalFunc} needs to store between various method invocations in the
      * front end and back end.
      * @param signature a unique signature to identify this EvalFunc
      */
     public void setUDFContextSignature(String signature) {
     }
-    
+
     /**
-     * This method is for internal use. It is called by Pig core in both front-end 
+     * This method is for internal use. It is called by Pig core in both front-end
      * and back-end to setup the right input schema for EvalFunc
      */
     public void setInputSchema(Schema input){
     	this.inputSchemaInternal=input;
     }
-    	
+
     /**
      * This method is intended to be called by the user in {@link EvalFunc} to get the input
      * schema of the EvalFunc
