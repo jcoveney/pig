@@ -21,8 +21,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Map;
 
-import org.joda.time.DateTime;
-
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
@@ -33,14 +31,15 @@ import org.apache.pig.impl.io.NullableBigDecimalWritable;
 import org.apache.pig.impl.io.NullableBigIntegerWritable;
 import org.apache.pig.impl.io.NullableBooleanWritable;
 import org.apache.pig.impl.io.NullableBytesWritable;
+import org.apache.pig.impl.io.NullableDateTimeWritable;
 import org.apache.pig.impl.io.NullableDoubleWritable;
 import org.apache.pig.impl.io.NullableFloatWritable;
 import org.apache.pig.impl.io.NullableIntWritable;
 import org.apache.pig.impl.io.NullableLongWritable;
-import org.apache.pig.impl.io.NullableDateTimeWritable;
 import org.apache.pig.impl.io.NullableText;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
+import org.joda.time.DateTime;
 
 /**
  * A class of helper methods for converting from pig data types to hadoop
@@ -213,6 +212,7 @@ public class HDataType {
             break;
         case DataType.BIGDECIMAL:
             wcKey = bigDecWrit;
+            break;
         case DataType.DATETIME:
             wcKey = dtWrit;
             break;

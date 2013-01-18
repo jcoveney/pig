@@ -26,16 +26,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import org.apache.hadoop.io.Writable;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 /**
  * This class was used to handle reading and writing of intermediate
@@ -178,7 +174,7 @@ public class DataReaderWriter {
                 return Double.valueOf(in.readDouble());
 
             case DataType.BIGINTEGER:
-                return new BigInteger((String)readDatum(in, in.readByte()));
+                return new BigInteger(((DataByteArray)readDatum(in, in.readByte())).get());
 
             case DataType.BIGDECIMAL:
                 return new BigDecimal((String)readDatum(in, in.readByte()));
@@ -318,7 +314,7 @@ public class DataReaderWriter {
 
             case DataType.BIGINTEGER:
                 out.writeByte(DataType.BIGINTEGER);
-                writeDatum(out, ((BigInteger)val).toString());
+                writeDatum(out, ((BigInteger)val).toByteArray());
                 break;
 
             case DataType.BIGDECIMAL:

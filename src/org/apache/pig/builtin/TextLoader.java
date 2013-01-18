@@ -22,8 +22,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Map;
 
-import org.joda.time.DateTime;
-
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
@@ -41,6 +39,7 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.joda.time.DateTime;
 
 
 /**
@@ -124,7 +123,7 @@ public class TextLoader extends LoadFunc implements LoadCaster {
         String msg = "TextLoader does not support conversion to Double.";
         throw new ExecException(msg, errCode, PigException.BUG);
     }
-    
+
     /**
      * TextLoader does not support conversion to DateTime
      * @throws IOException if the value cannot be cast.
@@ -245,14 +244,14 @@ public class TextLoader extends LoadFunc implements LoadCaster {
     @Override
     public BigInteger bytesToBigInteger(byte[] b) throws IOException {
         int errCode = 2109;
-        String msg = "TextLoader does not support conversion from BigInteger.";
+        String msg = "TextLoader does not support conversion to BigInteger.";
         throw new ExecException(msg, errCode, PigException.BUG);
     }
 
     @Override
     public BigDecimal bytesToBigDecimal(byte[] b) throws IOException {
         int errCode = 2109;
-        String msg = "TextLoader does not support conversion from BigDecimal.";
+        String msg = "TextLoader does not support conversion to BigDecimal.";
         throw new ExecException(msg, errCode, PigException.BUG);
     }
 

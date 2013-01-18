@@ -92,9 +92,12 @@ public class SizeUtil {
             // boolean takes 1 byte , +7 to round it to 8
             return 1 + 8 + 7;
 
+        //used http://javamoods.blogspot.fr/2009/03/how-big-is-bigdecimal.html as reference
         case DataType.BIGINTEGER:
+            return 56;
+
         case DataType.BIGDECIMAL:
-            return 56; //TODO need to give a REAL value here!
+            return 32;
 
         case DataType.NULL:
             return 0;

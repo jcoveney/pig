@@ -22,8 +22,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Map;
 
-import org.joda.time.DateTime;
-
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.pig.LoadStoreCaster;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
@@ -31,6 +29,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
+import org.joda.time.DateTime;
 
 public class HBaseBinaryConverter implements LoadStoreCaster {
 

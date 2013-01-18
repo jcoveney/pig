@@ -326,25 +326,17 @@ public class DefaultTuple extends AbstractTuple {
                             rc = Double.compare(dv1, dv2);
                             break;
                         case DataType.BIGINTEGER: {
-                            byte catype1 = bb1.get();
-                            byte catype2 = bb2.get();
-                            int casz1 = (catype1 == DataType.CHARARRAY) ? bb1.getShort() : bb1.getInt();
-                            int casz2 = (catype2 == DataType.CHARARRAY) ? bb2.getShort() : bb2.getInt();
-                            byte[] ca1 = new byte[casz1];
-                            byte[] ca2 = new byte[casz2];
-                            bb1.get(ca1);
-                            bb2.get(ca2);
-                            String str1 = null,
-                            str2 = null;
-                            try {
-                                str1 = new String(ca1, DataReaderWriter.UTF8);
-                                str2 = new String(ca2, DataReaderWriter.UTF8);
-                            } catch (UnsupportedEncodingException uee) {
-                                mLog.warn("Unsupported string encoding", uee);
-                                uee.printStackTrace();
+                            if (bb1.get() != DataType.BYTEARRAY || bb2.get() != DataType.BYTEARRAY) {
+                                throw new RuntimeException("Issue in comparing raw byts for DefaultTuple! BIGINTEGER was not serialized with BYTEARRAY");
                             }
-                            if (str1 != null && str2 != null)
-                                rc = new BigInteger(str1).compareTo(new BigInteger(str2));
+
+                            int basz1 = bb1.getInt();
+                            int basz2 = bb2.getInt();
+                            byte[] ba1 = new byte[basz1];
+                            byte[] ba2 = new byte[basz2];
+                            bb1.get(ba1);
+                            bb2.get(ba2);
+                            rc = new BigInteger(ba1).compareTo(new BigInteger(ba2));
                             break;
                         }
                         case DataType.BIGDECIMAL: {
