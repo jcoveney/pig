@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3057: Make PigStorage.readField() protected (pablomar and billgraham via billgraham)
+
 PIG-2788: improved string interpolation of variables (jcoveney)
 
 PIG-2362: Rework Ant build.xml to use macrodef instead of antcall (azaroth via cheolsoo)
@@ -67,6 +69,8 @@ OPTIMIZATIONS
 PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
+
+PIG-3071: Update hcatalog jar and path to hbase storage handler jar in pig script (arpitgupta via cheolsoo)
 
 PIG-3029 TestTypeCheckingValidatorNewLP has some path reference issues for cross-platform execution (jgordon via gates)
 
@@ -421,6 +425,10 @@ PIG-2337: Provide UDF with input schema (xutingz via daijy)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-3022: TestRegisteredJarVisibility.testRegisteredJarVisibility fails with hadoop-2.0.x (rohini via cheolsoo)
+
+PIG-3125: Fix zebra compilation error (cheolsoo)
 
 PIG-3051: java.lang.IndexOutOfBoundsException failure with LimitOptimizer + ColumnPruning (knoguchi via rohini)
 
