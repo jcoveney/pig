@@ -307,7 +307,7 @@ public class POCast extends ExpressionOperator {
                 }
                 try {
                     if (null != caster) {
-                        res.result = caster.bytesToBigInteger(dba.get());
+                        res.result = caster.bytesToBigDecimal(dba.get());
                     } else {
                         int errCode = 1075;
                         String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to BigDecimal.";

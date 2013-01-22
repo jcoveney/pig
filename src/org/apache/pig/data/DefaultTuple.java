@@ -327,7 +327,7 @@ public class DefaultTuple extends AbstractTuple {
                             break;
                         case DataType.BIGINTEGER: {
                             if (bb1.get() != DataType.BYTEARRAY || bb2.get() != DataType.BYTEARRAY) {
-                                throw new RuntimeException("Issue in comparing raw byts for DefaultTuple! BIGINTEGER was not serialized with BYTEARRAY");
+                                throw new RuntimeException("Issue in comparing raw bytes for DefaultTuple! BIGINTEGER was not serialized with BYTEARRAY");
                             }
 
                             int basz1 = bb1.getInt();

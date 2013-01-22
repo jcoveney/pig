@@ -19,14 +19,11 @@ package org.apache.pig.data;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-
-import org.apache.pig.backend.executionengine.ExecException;
 import java.util.Map;
-
-import org.joda.time.DateTime;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.joda.time.DateTime;
 
 public interface TypeAwareTuple extends Tuple {
     public void setInt(int idx, int val) throws ExecException;
@@ -35,8 +32,8 @@ public interface TypeAwareTuple extends Tuple {
     public void setLong(int idx, long val) throws ExecException;
     public void setString(int idx, String val) throws ExecException;
     public void setBoolean(int idx, boolean val) throws ExecException;
-    public void setBigInteger(int idx, boolean val) throws ExecException;
-    public void setBigDecimal(int idx, boolean val) throws ExecException;
+    public void setBigInteger(int idx, BigInteger val) throws ExecException;
+    public void setBigDecimal(int idx, BigDecimal val) throws ExecException;
     public void setBytes(int idx, byte[] val) throws ExecException;
     public void setTuple(int idx, Tuple val) throws ExecException;
     public void setDataBag(int idx, DataBag val) throws ExecException;

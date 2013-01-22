@@ -1225,7 +1225,7 @@ public class DataType {
             default:
                 int errCode = 1071;
                 String msg = "Cannot convert a " + findTypeName(o) +
-                " to a BigInteger.";
+                " to a BigDecimal.";
                 throw new ExecException(msg, errCode, PigException.INPUT);
             }
         } catch (ClassCastException cce) {
