@@ -24,6 +24,16 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3057: Make PigStorage.readField() protected (pablomar and billgraham via billgraham)
+
+PIG-2788: improved string interpolation of variables (jcoveney)
+
+PIG-2362: Rework Ant build.xml to use macrodef instead of antcall (azaroth via cheolsoo)
+
+PIG-2857: Add a -tagPath option to PigStorage (prkommireddi via cheolsoo)
+
+PIG-2341: Need better documentation on Pig/HBase integration (jthakrar and billgraham via billgraham)
+
 PIG-3075: Allow AvroStorage STORE Operations To Use Schema Specified By URI (nwhite via cheolsoo)
 
 PIG-3062: Change HBaseStorage to permit overriding pushProjection (billgraham)
@@ -59,6 +69,36 @@ OPTIMIZATIONS
 PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
+
+PIG-3071: Update hcatalog jar and path to hbase storage handler jar in pig script (arpitgupta via cheolsoo)
+
+PIG-3029 TestTypeCheckingValidatorNewLP has some path reference issues for cross-platform execution (jgordon via gates)
+
+PIG-3120: setStoreFuncUDFContextSignature called with null signature (jdler via cheolsoo)
+
+PIG-3115: Distinct Build-in Function Doesn't Handle Null Bags (njw45 via daijy)
+
+PIG-2433: Jython import module not working if module path is in classpath (rohini)
+
+PIG-2769 a simple logic causes very long compiling time on pig 0.10.0 (nwhite via gates)
+
+PIG-2251: PIG leaks Zookeeper connections when using HBaseStorage (jamarkha via cheolsoo)
+
+PIG-3112: Errors and lacks in document "User Defined Functions" (miyakawataku via cheolsoo)
+
+PIG-3050: Fix FindBugs multithreading warnings (cheolsoo)
+
+PIG-3066: Fix TestPigRunner in trunk (cheolsoo)
+
+PIG-3101: Increase io.sort.mb in YARN MiniCluste (cheolsoo)
+
+PIG-3100: If a .pig_schema file is present, can get an index out of bounds error (jcoveney)
+
+PIG-3096: Make PigUnit thread safe (cheolsoo)
+
+PIG-3095: "which" is called many, many times for each Pig STREAM statement (nwhite via cheolsoo)
+
+PIG-3085: Errors and lacks in document "Built In Functions" (miyakawataku via cheolsoo)
 
 PIG-3084: Improve exceptions messages in POPackage (julien)
 
@@ -386,6 +426,18 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-3022: TestRegisteredJarVisibility.testRegisteredJarVisibility fails with hadoop-2.0.x (rohini via cheolsoo)
+
+PIG-3125: Fix zebra compilation error (cheolsoo)
+
+PIG-3051: java.lang.IndexOutOfBoundsException failure with LimitOptimizer + ColumnPruning (knoguchi via rohini)
+
+PIG-3076: make TestScalarAliases more reliable (julien)
+
+PIG-3020: "Duplicate uid in schema" error when joining two relations derived from the same load statement (jcoveney)
+
+PIG-3044: hotfix to remove divide by 0 error (jcoveney)
+
 PIG-3033: test-patch failed with javadoc warnings (fang fang chen via cheolsoo)
 
 PIG-3058: Upgrade junit to at least 4.8 (fang fang chen via cheolsoo)
@@ -588,6 +640,12 @@ PIG-2352: e2e test harness' use of environment variables causes unintended effec
 Release 0.10.1 - Unreleased
 
 BUG FIXES
+
+PIG-3107: bin and autocomplete are missing in src release (daijy)
+
+PIG-3106: Missing license header in several java file (daijy)
+
+PIG-3099: Pig unit test fixes for TestGrunt(1), TestStore(2), TestEmptyInputDir(3) (vikram.dixit via daijy)
 
 PIG-2953: "which" utility does not exist on Windows (daijy)
 
