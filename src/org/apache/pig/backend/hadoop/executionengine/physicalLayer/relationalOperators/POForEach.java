@@ -475,8 +475,8 @@ public class POForEach extends PhysicalOperator {
                     }
 
                 }
-                if(reporter!=null) {
-                    reporter.progress();
+                if(getReporter()!=null) {
+                    getReporter().progress();
                 }
                 res.result = createTuple(data);
                 res.returnStatus = POStatus.STATUS_OK;
