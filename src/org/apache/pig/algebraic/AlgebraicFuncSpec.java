@@ -13,6 +13,6 @@ public class AlgebraicFuncSpec<T> {
      * Returns a String suitable for instantiation via the algebraic interface.
      */
     public String getFuncString() {
-        return null;
+        return clazz.getName();
     }
 }

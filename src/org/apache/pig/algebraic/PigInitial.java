@@ -12,13 +12,12 @@ import org.apache.pig.data.TupleFactory;
 public abstract class PigInitial<T> extends EvalFunc<Tuple> {
     private static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
-    public abstract T eval(Tuple input);
+    public abstract T eval(Tuple input) throws IOException;
 
     @Override
     public Tuple exec(Tuple input) throws IOException {
-        DataBag bag = (DataBag)input.get(0);
         Tuple t = mTupleFactory.newTuple(1);
-        t.set(0, eval(bag.iterator().next()));
+        t.set(0, eval(((DataBag)input.get(0)).iterator().next()));
         return t;
     }
 }

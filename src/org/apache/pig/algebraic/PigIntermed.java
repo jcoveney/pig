@@ -13,13 +13,12 @@ import org.apache.pig.data.TupleFactory;
 public abstract class PigIntermed<T> extends EvalFunc<Tuple> {
     private static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
-    public abstract T eval(Iterator<T> input);
+    public abstract T eval(Iterator<T> input) throws IOException;
 
     @Override
     public Tuple exec(Tuple input) throws IOException {
-        DataBag bag = (DataBag)input.get(0);
         Tuple t = mTupleFactory.newTuple(1);
-        t.set(0, eval(new IntermedIterator<T>(bag.iterator())));
+        t.set(0, eval(new IntermedIterator<T>(((DataBag)input.get(0)).iterator())));
         return t;
     }
 }

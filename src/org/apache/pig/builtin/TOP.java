@@ -48,18 +48,18 @@ import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
  * long field. This is efficient as priority queue provides constant time - O(1)
  * removal of the least element and O(log n) time for heap restructuring. The
  * UDF is especially helpful for turning the nested grouping operation inside
- * out and retaining top-n in a nested group. 
- * 
+ * out and retaining top-n in a nested group.
+ *
  * Assumes all tuples in the bag contain an element of the same type in the compared column.
- * 
- * Sample usage: 
- * A = LOAD 'test.tsv' as (first: chararray, second: chararray); 
+ *
+ * Sample usage:
+ * A = LOAD 'test.tsv' as (first: chararray, second: chararray);
  * B = GROUP A BY (first, second);
  * C = FOREACH B generate FLATTEN(group), COUNT(*) as count;
- * D = GROUP C BY first; // again group by first 
- * topResults = FOREACH D { 
- *          result = Top(10, 2, C); // and retain top 10 occurrences of 'second' in first 
- *          GENERATE FLATTEN(result); 
+ * D = GROUP C BY first; // again group by first
+ * topResults = FOREACH D {
+ *          result = Top(10, 2, C); // and retain top 10 occurrences of 'second' in first
+ *          GENERATE FLATTEN(result);
  *  }
  */
 public class TOP extends EvalFunc<DataBag> implements Algebraic{
@@ -68,7 +68,7 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
     static TupleFactory mTupleFactory = TupleFactory.getInstance();
     private Random randomizer = new Random();
 
-    static class TupleComparator implements Comparator<Tuple> {
+    public static class TupleComparator implements Comparator<Tuple> {
         private final int fieldNum;
         private byte datatype;
         private boolean typeFound=false;
@@ -77,7 +77,7 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
             this.fieldNum = fieldNum;
         }
 
-        /*          
+        /*
          * (non-Javadoc)
          * @see java.util.Comparator#compare(java.lang.Object, java.lang.Object)
          */
@@ -124,7 +124,7 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
             if (log.isDebugEnabled()) {
                 if (randomizer.nextInt(1000) == 1) {
                     log.debug("outputting a bag: ");
-                    for (Tuple t : outputBag) 
+                    for (Tuple t : outputBag)
                         log.debug("outputting "+t.toDelimitedString("\t"));
                     log.debug("==================");
                 }
@@ -149,7 +149,7 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
      */
     @Override
@@ -203,7 +203,7 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
             if (tuple == null || tuple.size() < 3) {
                 return null;
             }
-            
+
             try {
                 int n = (Integer) tuple.get(0);
                 int fieldNum = (Integer) tuple.get(1);
@@ -219,7 +219,7 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
                 }
                 retTuple.set(0, n);
                 retTuple.set(1,fieldNum);
-                retTuple.set(2, outputBag);               
+                retTuple.set(2, outputBag);
                 return retTuple;
             } catch (Exception e) {
                 throw new RuntimeException("General Exception executing function: " + e);
@@ -233,9 +233,9 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
         /* The input is a tuple that contains a single bag.
          * This bag contains outputs of the Initial step --
          * tuples of the format (limit, index, { top_tuples })
-         * 
+         *
          * We need to take the top of tops and return a similar tuple.
-         * 
+         *
          * (non-Javadoc)
          * @see org.apache.pig.EvalFunc#exec(org.apache.pig.data.Tuple)
          */
@@ -273,7 +273,7 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
                         allInputBagsNull = false;
                         updateTop(store, n, inputBag);
                     }
-                }   
+                }
 
                 Tuple retTuple = mTupleFactory.newTuple(3);
                 retTuple.set(0, n);
@@ -286,8 +286,8 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
                     }
                 }
                 retTuple.set(2, outputBag);
-                if (log.isDebugEnabled()) { 
-                    if (randomizer.nextInt(1000) == 1) log.debug("outputting "+retTuple.toDelimitedString("\t")); 
+                if (log.isDebugEnabled()) {
+                    if (randomizer.nextInt(1000) == 1) log.debug("outputting "+retTuple.toDelimitedString("\t"));
                 }
                 return retTuple;
             } catch (ExecException e) {
@@ -296,9 +296,9 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
                 throw new RuntimeException("General Exception executing function: " + e);
             }
         }
-        
+
     }
-    
+
     static public class Final extends EvalFunc<DataBag> {
 
         private static final Log log = LogFactory.getLog(Final.class);
@@ -308,11 +308,11 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
 
         /*
          * The input to this function is a tuple that contains a single bag.
-         * This bag, in turn, contains outputs of the Intermediate step -- 
+         * This bag, in turn, contains outputs of the Intermediate step --
          * tuples of the format (limit, index, { top_tuples } )
-         * 
+         *
          * we want to return a bag of top tuples
-         * 
+         *
          * (non-Javadoc)
          * @see org.apache.pig.EvalFunc#exec(org.apache.pig.data.Tuple)
          */
@@ -350,12 +350,12 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
                         allInputBagsNull = false;
                         updateTop(store, n, inputBag);
                     }
-                }   
+                }
 
                 if (allInputBagsNull) {
                     return null;
                 }
-                
+
                 DataBag outputBag = mBagFactory.newDefaultBag();
                 for (Tuple t : store) {
                     outputBag.add(t);

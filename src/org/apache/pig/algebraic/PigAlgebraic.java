@@ -7,22 +7,32 @@ import org.apache.pig.classification.InterfaceStability;
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
 public abstract class PigAlgebraic<InterT, FinT> extends AlgebraicEvalFunc<FinT> {
-    public abstract AlgebraicFuncSpec<PigInitial<InterT>> getInitialClass();
-    public abstract AlgebraicFuncSpec<PigIntermed<InterT>> getIntermedClass();
-    public abstract AlgebraicFuncSpec<PigFinal<InterT,FinT>> getFinalClass();
+    private AlgebraicFuncSpec<PigInitial<InterT>> getInitialAlgebraicFuncSpec() {
+        return new AlgebraicFuncSpec<PigInitial<InterT>>(getInitialClass());
+    }
+    private AlgebraicFuncSpec<PigIntermed<InterT>> getIntermedAlgebraicFuncSpec() {
+        return new AlgebraicFuncSpec<PigIntermed<InterT>>(getIntermedClass());
+    }
+    private AlgebraicFuncSpec<PigFinal<InterT,FinT>> getFinalAlgebraicFuncSpec() {
+        return new AlgebraicFuncSpec<PigFinal<InterT,FinT>>(getFinalClass());
+    }
+
+    public abstract Class<? extends PigInitial<InterT>> getInitialClass();
+    public abstract Class<? extends PigIntermed<InterT>> getIntermedClass();
+    public abstract Class<? extends PigFinal<InterT,FinT>> getFinalClass();
 
     @Override
     public String getInitial() {
-        return getInitialClass().getFuncString();
+        return getInitialAlgebraicFuncSpec().getFuncString();
     }
 
     @Override
     public String getIntermed() {
-        return getIntermedClass().getFuncString();
+        return getIntermedAlgebraicFuncSpec().getFuncString();
     }
 
     @Override
     public String getFinal() {
-        return getFinalClass().getFuncString();
+        return getFinalAlgebraicFuncSpec().getFuncString();
     }
 }
