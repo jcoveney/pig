@@ -203,7 +203,7 @@ public class UserFuncExpression extends LogicalExpression {
 
         Schema udfSchema = ef.outputSchema(translatedInputSchema);
         if (udfSchema != null && udfSchema.size() > 1) {
-            throw new FrontendException("Given UDF returns an improper Schema. Should only return Tuple, Bag, or a single item. Returns: " + udfSchema);
+            throw new FrontendException("Given UDF returns an improper Schema. Schema should only contain one field of a Tuple, Bag, or a single type. Returns: " + udfSchema);
         }
 
         //TODO appendability should come from a setting
