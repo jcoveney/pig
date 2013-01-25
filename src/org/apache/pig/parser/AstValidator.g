@@ -85,7 +85,22 @@ private void checkDuplication(int count, CommonTree node) throws ParserValidatio
     }
 }
 
-private Set<String> aliases = new HashSet<String>();
+private String lastRel = null;
+
+private String getLastRel(CommonTree node) throws UndefinedAliasException {
+    if (lastRel != null) {
+        return lastRel;
+    }
+    throw new UndefinedAliasException( input, new SourceLocation((PigParserNode)node), "@");
+}
+
+private Set<String> aliases = new HashSet<String>() {
+    @Override
+    public boolean add(String e) {
+        lastRel = e;
+        return super.add(e);
+    }
+};
 
 } // End of @members
 
@@ -126,6 +141,14 @@ alias returns[String name, CommonTree node]
    {
        $name = $IDENTIFIER.text;
        $node = $IDENTIFIER;
+   }
+;
+
+previous_rel returns[String name, CommonTree node]
+ : ARROBA
+   {
+       $name = getLastRel($ARROBA);
+       $node = $ARROBA;
    }
 ;
 
@@ -315,6 +338,7 @@ group_item
 ;
 
 rel : alias {  validateAliasRef( aliases, $alias.node, $alias.name ); }
+    | previous_rel { validateAliasRef( aliases, $previous_rel.node, $previous_rel.name ); }
     | op_clause parallel_clause?
 ;
 

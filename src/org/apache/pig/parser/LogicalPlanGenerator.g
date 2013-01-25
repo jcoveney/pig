@@ -633,7 +633,14 @@ rel
    {
        $statement::inputAlias = $alias.name;
    }
+ | previous_rel
+   {
+       $statement::inputAlias = $previous_rel.name;
+   }
  | inline_op
+;
+
+previous_rel returns[String name] : ARROBA { $name = builder.getLastRel(new SourceLocation((PigParserNode)$ARROBA)); }
 ;
 
 inline_op

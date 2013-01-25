@@ -433,7 +433,10 @@ stream_cmd : ( STDIN | STDOUT | QUOTEDSTRING )^ ( USING! func_clause )?
 cmd : EXECCOMMAND^ ( ship_clause | cache_clause | input_clause | output_clause | error_clause )*
 ;
 
-rel : IDENTIFIER | nested_op_clause
+rel : IDENTIFIER | previous_rel | nested_op_clause
+;
+
+previous_rel : ARROBA
 ;
 
 store_clause : STORE^ rel INTO! QUOTEDSTRING ( USING! func_clause )?
