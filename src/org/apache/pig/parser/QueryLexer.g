@@ -438,3 +438,6 @@ QMARK : '?'
 
 ARROBA : '@'
 ;
+
+FAT_ARROW : '=>'
+;

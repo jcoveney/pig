@@ -194,7 +194,7 @@ public class PigServer {
     public PigServer(ExecType execType, Properties properties) throws ExecException {
         this(new PigContext(execType, properties));
     }
-    
+
     public PigServer(ExecType execType, Configuration conf) throws ExecException {
         this(new PigContext(execType, conf));
     }
@@ -932,6 +932,9 @@ public class PigServer {
 
     private PigStats storeEx(String alias, String filename, String func)
     throws IOException {
+        if ("@".equals(alias)) {
+            alias = getLastRel();
+        }
         currDAG.parseQuery();
         currDAG.buildPlan( alias );
 
@@ -1352,6 +1355,7 @@ public class PigServer {
         private final Map<LogicalRelationalOperator, LogicalPlan> aliases = new HashMap<LogicalRelationalOperator, LogicalPlan>();
 
         private Map<String, Operator> operators = new HashMap<String, Operator>();
+        private String lastRel;
 
         private final List<String> scriptCache = new ArrayList<String>();
 
@@ -1608,6 +1612,7 @@ public class PigServer {
                 QueryParserDriver parserDriver = new QueryParserDriver( pigContext, scope, fileNameMap );
                 lp = parserDriver.parse( query );
                 operators = parserDriver.getOperators();
+                lastRel = parserDriver.getLastRel();
             } catch(Exception ex) {
                 scriptCache.remove( scriptCache.size() -1 ); // remove the bad script from the cache.
                 PigException pe = LogUtils.getPigException(ex);
@@ -1616,6 +1621,10 @@ public class PigServer {
                         + (pe == null ? ex.getMessage() : pe.getMessage());
                 throw new FrontendException (msg, errCode, PigException.INPUT , ex );
             }
+        }
+
+        public String getLastRel() {
+            return lastRel;
         }
 
         private String buildQuery() {
@@ -1756,5 +1765,9 @@ public class PigServer {
      */
     public void setValidateEachStatement(boolean validateEachStatement) {
         this.validateEachStatement = validateEachStatement;
+    }
+
+    public String getLastRel() {
+        return currDAG.getLastRel();
     }
 }
