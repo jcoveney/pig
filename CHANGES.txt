@@ -24,6 +24,10 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3073: POUserFunc creating log spam for large scripts (jcoveney)
+
+PIG-3082: outputSchema of a UDF allows two usages when describing a Tuple schema (jcoveney)
+
 PIG-3124:  Push FLATTENs After FILTERs If Possible (nwhite via daijy)
 
 PIG-3086: Allow A Prefix To Be Added To URIs In PigUnit Tests (nwhite via gates)
@@ -79,6 +83,8 @@ OPTIMIZATIONS
 PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
+
+PIG-3031: Update Pig to use a newer version of joda-time (zjshen via cheolsoo)
 
 PIG-3071: Update hcatalog jar and path to hbase storage handler jar in pig script (arpitgupta via cheolsoo)
 
@@ -435,6 +441,8 @@ PIG-2337: Provide UDF with input schema (xutingz via daijy)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-3109: Missing license headers (jarcec via cheolsoo)
 
 PIG-3022: TestRegisteredJarVisibility.testRegisteredJarVisibility fails with hadoop-2.0.x (rohini via cheolsoo)
 
