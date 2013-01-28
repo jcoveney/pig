@@ -18,7 +18,6 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -54,7 +53,6 @@ import org.apache.pig.builtin.COR;
 import org.apache.pig.builtin.COUNT;
 import org.apache.pig.builtin.COUNT_STAR;
 import org.apache.pig.builtin.COV;
-import org.apache.pig.builtin.CurrentTime;
 import org.apache.pig.builtin.DIFF;
 import org.apache.pig.builtin.DaysBetween;
 import org.apache.pig.builtin.Distinct;
@@ -406,7 +404,7 @@ public class TestBuiltin {
         Tuple t7 = TupleFactory.getInstance().newTuple(3);
         t7.set(0, "2009.01.07 AD at 01:07:01 +0800");
         t7.set(1, "yyyy.MM.dd G 'at' HH:mm:ss Z");
-        t7.set(2, "asia/singapore");
+        t7.set(2, "Asia/Singapore");
         DateTime dt7 = func4.exec(t7);
         assertEquals(dt7, new DateTime("2009-01-07T01:07:01.000+08:00", DateTimeZone.forID("+08:00")));
 
@@ -2011,6 +2009,17 @@ public class TestBuiltin {
         DataBag expectedBag = Util.createBagOfOneColumn(exp);
         assertEquals(expectedBag, result);
 
+    }
+
+    @Test
+    public void testDistinctIsNullSafe() throws Exception {
+        DataBag empty = bagFactory.newDefaultBag();
+        Tuple tupleOfNull = tupleFactory.newTuple(1);
+        Tuple tupleOfEmpty = tupleFactory.newTuple(empty);
+        assertEquals(empty, new Distinct().exec(tupleOfNull));
+        assertEquals(tupleOfEmpty, new Distinct.Initial().exec(tupleOfNull));
+        assertEquals(tupleOfEmpty, new Distinct.Intermediate().exec(tupleOfNull));
+        assertEquals(empty, new Distinct.Final().exec(tupleOfNull));
     }
 
     @Test
