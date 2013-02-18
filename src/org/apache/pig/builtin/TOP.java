@@ -67,6 +67,27 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
     static BagFactory mBagFactory = BagFactory.getInstance();
     static TupleFactory mTupleFactory = TupleFactory.getInstance();
     private Random randomizer = new Random();
+    private boolean useColumnName = false;
+
+    /**
+    * This is a helper function to cut down on using the same code in multiple places. Given
+    * the inputSchema via the new getInputSchema function and a value from the tuple
+    * that is either the Integer column number of the String column name, then
+    * it will return the fieldNum.
+    */
+    private static int getFieldNum(boolean useColumnName, Object colVal, Schema inputSchema) throws FrontendException {
+        if (useColumnName)
+            return inputSchema.getField(2).schema.getField(0).schema.getPosition((String)colVal);
+        else
+            return (Integer)colVal;
+    }
+
+    //by default, will use column number
+    public TOP() {}
+
+    public TOP(String useColumnName) {
+        this.useColumnName = Boolean.parseBoolean(useColumnName);
+    }
 
     static class TupleComparator implements Comparator<Tuple> {
         private final int fieldNum;
@@ -109,7 +130,7 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
         }
         try {
             int n = (Integer) tuple.get(0);
-            int fieldNum = (Integer) tuple.get(1);
+            int fieldNum = getFieldNum(useColumnName, tuple.get(1), getInputSchema());
             DataBag inputBag = (DataBag) tuple.get(2);
             if (inputBag == null) {
                 return null;
@@ -154,13 +175,20 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
      */
     @Override
     public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
+        List<FuncSpec> funcSpecs = new ArrayList<FuncSpec>(2);
+
         List<FieldSchema> fields = new ArrayList<FieldSchema>(3);
         fields.add(new Schema.FieldSchema(null, DataType.INTEGER));
         fields.add(new Schema.FieldSchema(null, DataType.INTEGER));
         fields.add(new Schema.FieldSchema(null, DataType.BAG));
-        FuncSpec funcSpec = new FuncSpec(this.getClass().getName(), new Schema(fields));
-        List<FuncSpec> funcSpecs = new ArrayList<FuncSpec>(1);
-        funcSpecs.add(funcSpec);
+        funcSpecs.add(new FuncSpec(this.getClass().getName(), new Schema(fields)));
+
+        fields = new ArrayList<FieldSchema>(3);
+        fields.add(new Schema.FieldSchema(null, DataType.INTEGER));
+        fields.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+        fields.add(new Schema.FieldSchema(null, DataType.BAG));
+        funcSpecs.add(new FuncSpec(this.getClass().getName(), new String[]{"true"}, new Schema(fields)));
+
         return funcSpecs;
     }
 
@@ -196,6 +224,17 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
      * <Int, Int, DataBag> -- same schema as expected input.
      */
     static public class Initial extends EvalFunc<Tuple> {
+        private boolean useColumnName = false;
+
+        //by default, will use column number
+        public Initial() {}
+
+        public Initial(String useColumnName) {
+            this.useColumnName = Boolean.parseBoolean(useColumnName);
+            System.out.println("Value of input useColumnName: "+useColumnName);//remove
+            System.out.println("Value of our useColumnName: "+this.useColumnName);//remove
+        }
+
         //private static final Log log = LogFactory.getLog(Initial.class);
         //private final Random randomizer = new Random();
         @Override
@@ -203,10 +242,10 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
             if (tuple == null || tuple.size() < 3) {
                 return null;
             }
-            
+            System.out.println("Value of useColumnName: "+useColumnName);//remove
             try {
                 int n = (Integer) tuple.get(0);
-                int fieldNum = (Integer) tuple.get(1);
+                int fieldNum = getFieldNum(useColumnName, tuple.get(1), getInputSchema());
                 DataBag inputBag = (DataBag) tuple.get(2);
                 if (inputBag == null) {
                     return null;
@@ -230,6 +269,10 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
     static public class Intermed extends EvalFunc<Tuple> {
         private static final Log log = LogFactory.getLog(Intermed.class);
         private final Random randomizer = new Random();
+
+        public Intermed() {}
+        public Intermed(String throwaway) {} //don't need the argument now
+
         /* The input is a tuple that contains a single bag.
          * This bag contains outputs of the Initial step --
          * tuples of the format (limit, index, { top_tuples })
@@ -304,7 +347,8 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
         private static final Log log = LogFactory.getLog(Final.class);
         private final Random randomizer = new Random();
 
-
+        public Final() {}
+        public Final(String throwaway) {} //don't need the argument now
 
         /*
          * The input to this function is a tuple that contains a single bag.

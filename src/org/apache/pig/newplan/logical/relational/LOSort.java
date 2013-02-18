@@ -25,6 +25,7 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.SortColInfo;
 import org.apache.pig.SortColInfo.Order;
 import org.apache.pig.SortInfo;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -110,6 +111,7 @@ public class LOSort extends LogicalRelationalOperator{
         input = (LogicalRelationalOperator)plan.getPredecessors(this).get(0);
         
         schema = input.getSchema();
+
         return schema;
     }
 
@@ -122,6 +124,20 @@ public class LOSort extends LogicalRelationalOperator{
         
     }
     
+    private SortInfo verifySortInfo(SortInfo sortInfo, LogicalSchema schema) throws FrontendException {
+        if (schema == null)
+            return sortInfo;
+
+        for (SortColInfo sci : sortInfo.getSortColInfoList()) {
+            int idx = sci.getColIndex();
+            byte type = schema.getField(idx).type;
+            if (type == DataType.BAG || type == DataType.MAP || type == DataType.TUPLE)
+                throw new FrontendException(this, "Improper sort key (#"+idx+") of type " + DataType.findTypeName(type));
+        }
+
+        return sortInfo;
+    }
+
     public SortInfo getSortInfo() throws FrontendException {
         LogicalSchema schema = this.getSchema();
         List<SortColInfo> sortColInfoList = new ArrayList<SortColInfo>();
@@ -144,14 +160,14 @@ public class LOSort extends LogicalRelationalOperator{
                 //there is no input schema, that is why project-star is still here
                 // we don't know how many columns are represented by this
                 //so don't add further columns to sort list
-                return new SortInfo(sortColInfoList);
+                return verifySortInfo(new SortInfo(sortColInfoList), schema);
             } 
             if(project.isRangeProject()){
                 if(project.getEndCol() < 0){
                     //stop here for 
                     // same reason as project-star condition above 
                     //(unkown number of columns this represents)
-                    return new SortInfo(sortColInfoList);
+                    return verifySortInfo(new SortInfo(sortColInfoList), schema);
                 }
                 //expand the project-range into multiple SortColInfos
                 for(int cnum = project.getStartCol(); cnum < project.getEndCol(); cnum++){
@@ -170,7 +186,7 @@ public class LOSort extends LogicalRelationalOperator{
                 );
             }
         }
-        return new SortInfo(sortColInfoList);
+        return verifySortInfo(new SortInfo(sortColInfoList), schema);
     }
 
     private Order getOrder(List<Boolean> mAscCols2, int i) {
