@@ -75,10 +75,6 @@ import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 
-import sun.tools.java.BinaryExceptionHandler;
-
-
-
 public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
 
     private CompilationMessageCollector msgCollector;
@@ -213,6 +209,8 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         } else if (lhsType == DataType.BYTEARRAY) {
             if (rhsType == DataType.INTEGER || rhsType == DataType.LONG || rhsType == DataType.BIGINTEGER) {
                 insertCast(binOp, rhsType, binOp.getLhs());
+            } else {
+                error = true;
             }
         } else {
             error = true;
@@ -440,7 +438,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
     }
 
     /**
-     * add cast to convert the input of {@link BinaryExceptionHandler} exp
+     * add cast to convert the input of exp
      *  {@link LogicalExpression} arg to type toType
      * @param exp
      * @param toType

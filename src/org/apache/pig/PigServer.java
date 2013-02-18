@@ -76,6 +76,7 @@ import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.impl.util.UriUtil;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.Operator;
@@ -124,6 +125,7 @@ public class PigServer {
     protected final Log log = LogFactory.getLog(getClass());
 
     public static final String PRETTY_PRINT_SCHEMA_PROPERTY = "pig.pretty.print.schema";
+    private static final String PIG_LOCATION_CHECK_STRICT = "pig.location.check.strict";
 
     /*
      * The data structure to support grunt shell operations.
@@ -155,6 +157,9 @@ public class PigServer {
     private boolean aggregateWarning = true;
 
     private boolean validateEachStatement = false;
+
+    // PigStats object used in execution of script
+    private PigStats pigStatsForExecute = null;
 
     private String constructScope() {
         // scope servers for now as a session id
@@ -252,6 +257,14 @@ public class PigServer {
     }
 
     /**
+     * Current DAG
+     * 
+     * @return
+     */
+    public Graph getCurrentDAG() {
+        return this.currDAG;
+    }
+    /**
      * Set the logging level to DEBUG.
      */
     public void debugOn() {
@@ -316,17 +329,17 @@ public class PigServer {
     }
 
     /**
-     * Submits a batch of Pig commands for execution.
-     *
-     * @return list of jobs being executed
+     * This method parses the scripts and builds the LogicalPlan. This method
+     * should be followed by {@link PigServer#executeBatch(boolean)} with
+     * argument as false. Do Not use {@link PigServer#executeBatch()} after
+     * calling this method as that will re-parse and build the script.
+     * 
      * @throws IOException
      */
-    public List<ExecJob> executeBatch() throws IOException {
-        PigStats stats = null;
-
+    public void parseAndBuild() throws IOException {
         if( !isMultiQuery ) {
             // ignore if multiquery is off
-            stats = PigStats.get();
+            pigStatsForExecute = PigStats.get();
         } else {
             if (currDAG == null || !isBatchOn()) {
                 int errCode = 1083;
@@ -335,10 +348,36 @@ public class PigServer {
             }
             currDAG.parseQuery();
             currDAG.buildPlan( null );
-            stats = execute();
+        }
+    }
+
+    /**
+     * Submits a batch of Pig commands for execution.
+     * 
+     * @return list of jobs being executed
+     * @throws IOException
+     */
+    public List<ExecJob> executeBatch() throws IOException {
+        return executeBatch(true);
+    }
+
+    /**
+     * Submits a batch of Pig commands for execution. Parse and build of script
+     * should be skipped if user called {@link PigServer#parseAndBuild()}
+     * before. Pass false as an argument in which case.
+     * 
+     * @param parseAndBuild
+     * @return
+     * @throws IOException
+     */
+    public List<ExecJob> executeBatch(boolean parseAndBuild) throws IOException {
+        if (parseAndBuild) {
+            parseAndBuild();
         }
 
-        return getJobs(stats);
+        pigStatsForExecute = execute();
+
+        return getJobs(pigStatsForExecute);
     }
 
     /**
@@ -1408,6 +1447,10 @@ public class PigServer {
         void markAsExecuted() {
         }
 
+        public LogicalPlan getLogicalPlan() {
+            return this.lp;
+        }
+
         /**
          * Get the operator with the given alias in the raw plan. Null if not
          * found.
@@ -1657,7 +1700,6 @@ public class PigServer {
         }
 
         private void postProcess() throws IOException {
-
             // The following code deals with store/load combination of
             // intermediate files. In this case we will replace the load
             // operator
@@ -1684,6 +1726,10 @@ public class PigServer {
                 }
             }
 
+            if ("true".equals(pigContext.getProperties().getProperty(PIG_LOCATION_CHECK_STRICT))) {
+                log.info("Output location strick check enabled");
+                checkDuplicateStoreLoc(storeOps);
+            }
 
             for (LOLoad load : loadOps) {
                 for (LOStore store : storeOps) {
@@ -1703,6 +1749,21 @@ public class PigServer {
             }
         }
 
+        /**
+         * This method checks whether the multiple sinks (STORE) use the same
+         * "file-based" location. If yes, throws a RuntimeException
+         * 
+         * @param storeOps
+         */
+        private void checkDuplicateStoreLoc(Set<LOStore> storeOps) {
+            Set<String> uniqueStoreLoc = new HashSet<String>();
+            for(LOStore store : storeOps) {
+                String fileName = store.getFileSpec().getFileName();
+                if(!uniqueStoreLoc.add(fileName) && UriUtil.isHDFSFileOrLocalOrS3N(fileName)) {
+                    throw new RuntimeException("Script contains 2 or more STORE statements writing to same location : "+ fileName);
+                }
+            }
+        }
 
         protected Graph duplicate() {
             // There are two choices on how we duplicate the logical plan
