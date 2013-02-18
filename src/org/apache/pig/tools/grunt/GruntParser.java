@@ -272,6 +272,12 @@ public class GruntParser extends PigScriptParser {
         if(mExplain == null) { // process only if not in "explain" mode
             if(alias==null) {
                 alias = mPigServer.getPigContext().getLastAlias();
+                // if describe is used immediately after launching grunt shell then
+                // last defined alias will be null
+                if (alias == null) {
+                    throw new IOException(
+                            "No previously defined alias found. Please define an alias and use 'describe' operator.");
+                }
             }
             if(alias.contains("::")) {
                 nestedAlias = alias.substring(alias.indexOf("::") + 2);
@@ -291,7 +297,15 @@ public class GruntParser extends PigScriptParser {
                                   String format, String target,
                                   List<String> params, List<String> files)
     throws IOException, ParseException {
-        processExplain(alias, script, isVerbose, format, target, params, files,
+        if (alias == null) {
+            alias = mPigServer.getPigContext().getLastAlias();
+            // if explain is used immediately after launching grunt shell then
+            // last defined alias will be null
+            if (alias == null && script == null) {
+                throw new ParseException("'explain' statement must be on an alias or on a script.");
+            }
+        }
+        processExplain(alias, script, isVerbose, format, target, params, files, 
                 false);
     }
 
@@ -691,6 +705,16 @@ public class GruntParser extends PigScriptParser {
     @Override
     protected void processDump(String alias) throws IOException
     {
+        if (alias == null) {
+            alias = mPigServer.getPigContext().getLastAlias();
+            // if dump is used immediately after launching grunt shell then
+            // last defined alias will be null
+            if (alias == null) {
+                throw new IOException(
+                        "No previously defined alias found. Please define an alias and use 'dump' operator.");
+            }
+        }
+
         if(mExplain == null) { // process only if not in "explain" mode
         	executeBatch();
         	if ("@".equals(alias)) {
@@ -737,7 +761,12 @@ public class GruntParser extends PigScriptParser {
                         throw e;
                     }
                 } else if (alias == null) {
-                    throw new ParseException("'illustrate' statement must be on an alias or on a script.");
+                    alias = mPigServer.getPigContext().getLastAlias();
+                    // if illustrate is used immediately after launching grunt shell then
+                    // last defined alias will be null
+                    if (alias == null) {
+                        throw new ParseException("'illustrate' statement must be on an alias or on a script.");
+                    }
                 }
                 mPigServer.getExamples(alias);
             } finally {
