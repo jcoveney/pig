@@ -257,6 +257,8 @@ parameter
     : IDENTIFIER
     | INTEGER
     | DOUBLENUMBER
+    | BIGDECIMALNUMBER
+    | BIGINTEGERNUMBER
     | QUOTEDSTRING
     | DOLLARVAR
 ;
@@ -271,7 +273,7 @@ inline_clause : inline_return_clause identifier_plus inline_param_clause
 
 // TYPES
 
-simple_type : BOOLEAN | INT | LONG | FLOAT | DOUBLE | DATETIME | CHARARRAY | BYTEARRAY
+simple_type : BOOLEAN | INT | LONG | FLOAT | DOUBLE | DATETIME | BIGINTEGER | BIGDECIMAL | CHARARRAY | BYTEARRAY
 ;
 
 implicit_tuple_type : LEFT_PAREN field_def_list? RIGHT_PAREN -> ^( TUPLE_TYPE field_def_list? )
@@ -437,7 +439,10 @@ stream_cmd : ( STDIN | STDOUT | QUOTEDSTRING )^ ( USING! func_clause )?
 cmd : EXECCOMMAND^ ( ship_clause | cache_clause | input_clause | output_clause | error_clause )*
 ;
 
-rel : identifier_plus | nested_op_clause
+rel : identifier_plus | previous_rel | nested_op_clause
+;
+
+previous_rel : ARROBA
 ;
 
 store_clause : STORE^ rel INTO! QUOTEDSTRING ( USING! func_clause )?
@@ -510,7 +515,6 @@ distinct_clause : DISTINCT^ rel partition_clause?
 
 partition_clause : PARTITION^ BY! func_name
 ;
-
 
 rel_list : rel ( COMMA rel )* -> rel+
 ;
@@ -903,6 +907,8 @@ eid_without_columns : rel_str_op
     | ASC
     | DESC
     | BOOL
+    | BIGINTEGER
+    | BIGDECIMAL
     | DATETIME
     | CHARARRAY
     | BYTEARRAY
