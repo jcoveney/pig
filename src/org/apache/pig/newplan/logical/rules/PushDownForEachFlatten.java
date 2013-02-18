@@ -44,6 +44,13 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.newplan.optimizer.Transformer;
 
+/**
+ * It's generally a good idea to do flattens as late as possible as
+ * they tend to generate more rows (and so more I/O). This optimization
+ * swaps the order of SORTs, CROSSes and JOINs that come after 
+ * FOREACH..GENERATE..FLATTENs. FILTERs are re-ordered by the 
+ * {@link FilterAboveForeach} rule so are ignored here. 
+ */
 public class PushDownForEachFlatten extends Rule {
 
     public PushDownForEachFlatten(String name) {
