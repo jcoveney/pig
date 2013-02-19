@@ -22,7 +22,11 @@ Trunk (unreleased changes)
 
 INCOMPATIBLE CHANGES
 
+PIG-3191: [piggybank] MultiStorage output filenames are not sortable (Danny Antonelli via jcoveney)
+
 IMPROVEMENTS
+
+PIG-3169: Remove temporary files that are not needed (Mark Wagner via jcoveney)
 
 PIG-3131: Document PluckTuple UDF (rjurney via jcoveney) 
 
