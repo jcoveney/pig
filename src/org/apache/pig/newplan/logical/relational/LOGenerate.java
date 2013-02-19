@@ -193,7 +193,9 @@ public class LOGenerate extends LogicalRelationalOperator {
             outputPlanSchemas = null;
         }
         
-        LOJoin.fixDuplicateUids(schema.getFields());
+        if (schema != null) {
+        	LogicalRelationalOperator.fixDuplicateUids(schema.getFields());
+        }
         
         return schema;
     }
