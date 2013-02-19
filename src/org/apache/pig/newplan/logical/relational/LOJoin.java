@@ -176,14 +176,14 @@ public class LOJoin extends LogicalRelationalOperator {
      * See PIG-3022 and PIG-3093 for more information.
      * @param fss a list of LogicalFieldSchemas to check the uids of
      */
-    private void fixDuplicateUids(List<LogicalFieldSchema> fss) {
+    public static void fixDuplicateUids(List<LogicalFieldSchema> fss) {
         Set<Long> uids = Sets.newHashSet();
         for (LogicalFieldSchema lfs : fss) {
             addFieldSchemaUidsToSet(uids, lfs);
         }
     }
 
-    private void addFieldSchemaUidsToSet(Set<Long> uids, LogicalFieldSchema lfs) {
+    private static void addFieldSchemaUidsToSet(Set<Long> uids, LogicalFieldSchema lfs) {
         while (!uids.add(lfs.uid)) {
             lfs.uid = LogicalExpression.getNextUid();
         }
