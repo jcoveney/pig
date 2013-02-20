@@ -19,7 +19,11 @@ import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
 import static org.objectweb.asm.Opcodes.RETURN;
 import static org.objectweb.asm.Opcodes.V1_6;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
@@ -102,6 +106,9 @@ public class InvokerGenerator extends EvalFunc<Object> {
         className_ = className;
         methodName_ = methodName;
         argumentTypes_ = argumentTypes.split(",");
+        if ("".equals(argumentTypes)) {
+        	argumentTypes_ = new String[0]; 
+        }
     }
 
     @Override
@@ -127,7 +134,7 @@ public class InvokerGenerator extends EvalFunc<Object> {
     protected void initialize() {
         Class<?> clazz;
         try {
-            clazz = PigContext.resolveClassName(className_);
+            clazz = PigContext.resolveClassName(className_); //TODO I should probably be using this for all of the Class<?> resolution
         } catch (IOException e) {
             throw new RuntimeException("Given className not found: " + className_, e);
         }
@@ -148,8 +155,9 @@ public class InvokerGenerator extends EvalFunc<Object> {
 
         Byte type = returnTypeMap.get(returnClazz);
 
-        if (type == null)
+        if (type == null) {
             throw new RuntimeException("Function returns invalid type: " + returnClazz);
+        }
 
         outputSchema = new Schema();
         outputSchema.add(new Schema.FieldSchema(null, type));
@@ -163,8 +171,9 @@ public class InvokerGenerator extends EvalFunc<Object> {
         Class<?>[] arguments = new Class<?>[argumentTypes.length];
         for (int i = 0; i < argumentTypes.length; i++) {
             Class<?> clazz = nameToClassObjectMap.get(argumentTypes[i]);
-            if (clazz == null)
+            if (clazz == null) {
                 throw new RuntimeException("Invalid argument type given: " + argumentTypes[i]);
+            }
             arguments[i] = clazz;
         }
         return arguments;
@@ -205,7 +214,7 @@ public class InvokerGenerator extends EvalFunc<Object> {
             boxIfPrimitive(mv, arg);
         }
         String signature = buildSignatureString(arguments, method.getReturnType());
-        mv.visitMethodInsn(isStatic ? INVOKESTATIC : INVOKEVIRTUAL, getMethodStyleName(method.getReturnType()), method.getName(), signature);
+        mv.visitMethodInsn(isStatic ? INVOKESTATIC : INVOKEVIRTUAL, getMethodStyleName(method.getDeclaringClass()), method.getName(), signature);
         mv.visitInsn(ARETURN);
         mv.visitMaxs(2, (isStatic ? 2 : 3) + arguments.length);
         mv.visitEnd();
@@ -298,6 +307,15 @@ public class InvokerGenerator extends EvalFunc<Object> {
 
         public static InvokerFunction getInvokerFunction(String name, byte[] buf) {
             try {
+            	//TODO remove
+            	try {
+					OutputStream os = new FileOutputStream(new File(name + ".class"));
+					os.write(buf);
+					os.close();
+				} catch (Exception e) {
+					throw new RuntimeException("AHHHH", e);
+				}
+            	//TODO remove
                 return new ByteClassLoader(buf).findClass(name).newInstance();
             } catch (InstantiationException e) {
                 throw new RuntimeException(e);

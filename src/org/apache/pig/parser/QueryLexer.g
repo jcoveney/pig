@@ -450,3 +450,6 @@ QMARK : '?'
 
 ARROBA : '@'
 ;
+
+AMPERSAND : '&'
+;

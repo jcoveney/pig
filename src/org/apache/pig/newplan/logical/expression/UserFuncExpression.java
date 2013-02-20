@@ -19,12 +19,16 @@
 package org.apache.pig.newplan.logical.expression;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.builtin.InvokerGenerator;
 import org.apache.pig.builtin.Nondeterministic;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
@@ -38,7 +42,11 @@ import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.newplan.logical.Util;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
+import org.apache.pig.parser.LogicalPlanBuilder;
 import org.apache.pig.parser.SourceLocation;
+
+import com.google.common.collect.Lists;
 
 public class UserFuncExpression extends LogicalExpression {
 
@@ -74,6 +82,18 @@ public class UserFuncExpression extends LogicalExpression {
     public UserFuncExpression(OperatorPlan plan, FuncSpec funcSpec, List<LogicalExpression> args, boolean viaDefine) {
         this( plan, funcSpec, args );
         this.viaDefine = viaDefine;
+    }
+    
+    private boolean lazilyInitializeInvokerFunction = false;
+    private List<LogicalExpression> saveArgsForLater = null;
+    private boolean invokerIsStatic = false;
+    private String funcName = null;
+    
+    public UserFuncExpression(OperatorPlan plan, FuncSpec funcSpec, List<LogicalExpression> args, boolean viaDefine, boolean lazilyInitializeInvokerFunction, boolean invokerIsStatic, String funcName) {
+        this( plan, funcSpec, viaDefine );
+        this.saveArgsForLater = args;
+        this.lazilyInitializeInvokerFunction = lazilyInitializeInvokerFunction;
+        this.funcName = funcName;
     }
 
     public FuncSpec getFuncSpec() {
@@ -168,6 +188,8 @@ public class UserFuncExpression extends LogicalExpression {
         mFuncSpec = funcSpec;
         ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(mFuncSpec);
     }
+    
+    private static Pattern splitClassAndMethod = Pattern.compile("^(.*)\\.([^.]*)$");
 
     @Override
     public LogicalSchema.LogicalFieldSchema getFieldSchema() throws FrontendException {
@@ -187,10 +209,113 @@ public class UserFuncExpression extends LogicalExpression {
             }
         }
 
+        if (lazilyInitializeInvokerFunction) {
+        	List<LogicalFieldSchema> fieldSchemas = Lists.newArrayList();
+        	for (LogicalExpression le : saveArgsForLater) {    	
+        		try {
+    				fieldSchemas.add(le.getFieldSchema());
+    			} catch (FrontendException e) {
+    				throw new RuntimeException(e);
+    			}
+        	}
+        	
+        	Class<?> funcClass;
+        	String funcMethodName;
+        	
+        	if (invokerIsStatic) {
+        		String funcClassName;
+        		Matcher m = splitClassAndMethod.matcher(funcName);
+            	if (m.matches()) {
+            		funcClassName = m.group(1);
+            		funcMethodName = m.group(2);
+            	} else {
+            		throw new RuntimeException("Invalid invoker function name: " + funcName); //TODO diff exception type?
+            	}
+            	try {
+            		funcClass = PigContext.resolveClassName(funcClassName);
+            	} catch (IOException e) {
+            		throw new RuntimeException("Invoker function name not found: " + funcName, e);
+            	}
+        	} else {
+            	funcClass = DataType.findTypeClass(fieldSchemas.get(0).type);
+            	if (funcClass.isPrimitive()) {
+            		funcClass = LogicalPlanBuilder.typeToClass(funcClass);
+            	}
+        		funcMethodName = funcName;
+        	}
+        	
+        	Class<?>[] parameterTypes = new Class<?>[fieldSchemas.size() - (invokerIsStatic ? 0 : 1)];
+        	int idx = 0;
+        	for (int i = invokerIsStatic ? 0 : 1; i < fieldSchemas.size(); i++) {
+        		parameterTypes[idx++] = DataType.findTypeClass(fieldSchemas.get(i).type);
+        	}
+        	
+        	List<Integer> primitiveParameters = Lists.newArrayList();
+        	
+        	for (int i = 0; i < parameterTypes.length; i++) {
+        		if (parameterTypes[i].isPrimitive()) {
+        			primitiveParameters.add(i);
+        		}
+        	}
+        	
+        	int tries = 1 << primitiveParameters.size();
+
+        	Method m = null;
+        	
+        	for (int i = 0; i < tries; i++) {
+        		Class<?>[] tmpParameterTypes = new Class<?>[parameterTypes.length];
+        		for (int j = 0; j < parameterTypes.length; j++) {
+        			tmpParameterTypes[j] = parameterTypes[j];
+        		}
+        		
+        		int tmp = i;
+        		int idx2 = 0;
+        		while (tmp > 0) {
+        			if (tmp % 2 == 1) {
+        				int toFlip = primitiveParameters.get(idx2);
+        				tmpParameterTypes[toFlip] = LogicalPlanBuilder.typeToClass(tmpParameterTypes[toFlip]); 
+        			}
+        			tmp >>= 1;
+        			idx2++;
+        		}
+        		
+            	try {
+        			m = funcClass.getMethod(funcMethodName, parameterTypes);
+        			if (m != null) {
+        				parameterTypes = tmpParameterTypes;
+        				break;
+        			}
+        		} catch (SecurityException e) {
+        			throw new RuntimeException("Not allowed to access method ["+funcMethodName+"] on class: " + funcClass, e);
+        		} catch (NoSuchMethodException e) {
+        			// we just continue, as we are searching for a match post-boxing
+        		}
+        	}
+        	
+        	if (m == null) {
+        		throw new RuntimeException("Given method ["+funcMethodName+"] does not exist on class: " + funcClass);
+        	}
+        	
+        	String[] ctorArgs = new String[3];
+        	ctorArgs[0] = funcClass.getName();
+        	ctorArgs[1] = funcMethodName;
+        	ctorArgs[2] = "";
+        	if (invokerIsStatic) {
+        		ctorArgs[2] += funcClass.getName();  
+        	}
+        	for (Class<?> param : parameterTypes) {
+        		ctorArgs[2] += param;
+        	}
+        	
+        	//TODO need to allow them to define such a function so it can be cached etc
+        	mFuncSpec = new FuncSpec(InvokerGenerator.class.getName(), ctorArgs);
+    	}
+        
         // Since ef only set one time, we never change its value, so we can optimize it by instantiate only once.
         // This significantly optimize the performance of frontend (PIG-1738)
-        if (ef==null)
+        if (ef==null) {
             ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(mFuncSpec);
+        }
 
         ef.setUDFContextSignature(signature);
         Properties props = UDFContext.getUDFContext().getUDFProperties(ef.getClass());
@@ -228,6 +353,7 @@ public class UserFuncExpression extends LogicalExpression {
         return fieldSchema;
     }
 
+    //TODO need to fix this to use the updated code, it currently won't copy properly if called before it's done (maybe that's ok?)
     @Override
     public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws FrontendException {
         UserFuncExpression copy =  null;

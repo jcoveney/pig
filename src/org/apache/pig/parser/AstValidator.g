@@ -363,7 +363,7 @@ cond : ^( OR cond cond )
      | ^( BOOL_COND expr )
 ;
 
-func_eval: ^( FUNC_EVAL func_name real_arg* )
+func_eval: ^( FUNC_EVAL func_name real_arg* ) | ^( INVOKER_FUNC_EVAL func_name IDENTIFIER real_arg* )
 ;
 
 real_arg : expr | STAR | col_range

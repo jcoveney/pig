@@ -39,6 +39,7 @@ tokens {
     FUNC;
     FUNC_REF;
     FUNC_EVAL;
+    INVOKER_FUNC_EVAL;
     CAST_EXPR;
     COL_RANGE;
     BIN_EXPR;
@@ -675,9 +676,18 @@ cast_expr
           | IDENTIFIER projection*
           | IDENTIFIER func_name_suffix? LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN projection* -> ^( FUNC_EVAL IDENTIFIER func_name_suffix? real_arg* ) projection*
           | func_name_without_columns LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN projection* -> ^( FUNC_EVAL func_name_without_columns real_arg* ) projection*
+          | invoker_func
           | paren_expr
           | curly_expr
           | bracket_expr
+;
+
+invoker_func  
+@init {
+    String staticStr = "true";
+}
+: AMPERSAND AMPERSAND AMPERSAND AMPERSAND ( real_arg { staticStr = "false"; } )? AMPERSAND IDENTIFIER LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN projection*
+              -> ^( INVOKER_FUNC_EVAL IDENTIFIER IDENTIFIER[staticStr] real_arg* ) projection*
 ;
 
 // now we have to deal with parentheses: in an expr, '(' can be the

@@ -19,6 +19,7 @@
 package org.apache.pig.parser;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.MalformedURLException;
@@ -28,6 +29,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.antlr.runtime.IntStream;
 import org.antlr.runtime.RecognitionException;
@@ -38,6 +41,7 @@ import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.builtin.CubeDimensions;
+import org.apache.pig.builtin.InvokerGenerator;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.RANDOM;
 import org.apache.pig.builtin.RollupDimensions;
@@ -49,6 +53,8 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.streaming.StreamingCommand;
@@ -95,6 +101,8 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchem
 import org.apache.pig.newplan.logical.rules.OptimizerUtils;
 import org.apache.pig.newplan.logical.visitor.ProjStarInUdfExpander;
 import org.apache.pig.newplan.logical.visitor.ProjectStarExpander;
+
+import com.google.common.collect.Lists;
 
 public class LogicalPlanBuilder {
 
@@ -1413,6 +1421,139 @@ public class LogicalPlanBuilder {
 
     }
 
+    //private static Pattern splitClassAndMethod = Pattern.compile("^(.*)\\.([^.]*)$");
+    
+    LogicalExpression buildInvokerUDF(SourceLocation loc, LogicalExpressionPlan plan, String funcName, boolean isStatic, List<LogicalExpression> args) throws RecognitionException {
+    	/*
+    	List<LogicalFieldSchema> fieldSchemas = Lists.newArrayList();
+    	for (LogicalExpression le : args) {    	
+    		try {
+				fieldSchemas.add(le.getFieldSchema());
+			} catch (FrontendException e) {
+				throw new RuntimeException(e);
+			}
+    	}
+    	
+    	Class<?> funcClass;
+    	String funcMethodName;
+    	
+    	if (isStatic) {
+    		String funcClassName;
+    		Matcher m = splitClassAndMethod.matcher(funcName);
+        	if (m.matches()) {
+        		funcClassName = m.group(1);
+        		funcMethodName = m.group(2);
+        	} else {
+        		throw new RuntimeException("Invalid invoker function name: " + funcName); //TODO diff exception type?
+        	}
+        	try {
+        		funcClass = PigContext.resolveClassName(funcClassName);
+        	} catch (IOException e) {
+        		throw new RuntimeException("Invoker function name not found: " + funcName, e);
+        	}
+    	} else {
+        	funcClass = DataType.findTypeClass(fieldSchemas.get(0).type);
+        	if (funcClass.isPrimitive()) {
+        		funcClass = typeToClass(funcClass);
+        	}
+    		funcMethodName = funcName;
+    	}
+    	
+    	Class<?>[] parameterTypes = new Class<?>[fieldSchemas.size() - (isStatic ? 0 : 1)];
+    	int idx = 0;
+    	for (int i = isStatic ? 0 : 1; i < fieldSchemas.size(); i++) {
+    		parameterTypes[idx++] = DataType.findTypeClass(fieldSchemas.get(i).type);
+    	}
+    	
+    	List<Integer> primitiveParameters = Lists.newArrayList();
+    	
+    	for (int i = 0; i < parameterTypes.length; i++) {
+    		if (parameterTypes[i].isPrimitive()) {
+    			primitiveParameters.add(i);
+    		}
+    	}
+    	
+    	int tries = 1 << primitiveParameters.size();
+
+    	Method m = null;
+    	
+    	for (int i = 0; i < tries; i++) {
+    		Class<?>[] tmpParameterTypes = new Class<?>[parameterTypes.length];
+    		for (int j = 0; j < parameterTypes.length; j++) {
+    			tmpParameterTypes[j] = parameterTypes[j];
+    		}
+    		
+    		int tmp = i;
+    		int idx2 = 0;
+    		while (tmp > 0) {
+    			if (tmp % 2 == 1) {
+    				int toFlip = primitiveParameters.get(idx2);
+    				tmpParameterTypes[toFlip] = typeToClass(tmpParameterTypes[toFlip]); 
+    			}
+    			tmp >>= 1;
+    			idx2++;
+    		}
+    		
+        	try {
+    			m = funcClass.getMethod(funcMethodName, parameterTypes);
+    			if (m != null) {
+    				parameterTypes = tmpParameterTypes;
+    				break;
+    			}
+    		} catch (SecurityException e) {
+    			throw new RuntimeException("Not allowed to access method ["+funcMethodName+"] on class: " + funcClass, e);
+    		} catch (NoSuchMethodException e) {
+    			// we just continue, as we are searching for a match post-boxing
+    		}
+    	}
+    	
+    	if (m == null) {
+    		throw new RuntimeException("Given method ["+funcMethodName+"] does not exist on class: " + funcClass);
+    	}
+    	
+    	String[] ctorArgs = new String[3];
+    	ctorArgs[0] = funcClass.getName();
+    	ctorArgs[1] = funcMethodName;
+    	ctorArgs[2] = "";
+    	if (!isStatic) {
+    		ctorArgs[2] += funcClass.getName();  
+    	}
+    	for (Class<?> param : parameterTypes) {
+    		ctorArgs[2] += param;
+    	}
+    	
+    	//TODO need to allow them to define such a function so it can be cached etc
+    	FuncSpec funcSpec = new FuncSpec(InvokerGenerator.class.getName(), ctorArgs);
+    	*/
+    	
+		LogicalExpression le = new UserFuncExpression(plan, new FuncSpec(InvokerGenerator.class.getName()), args, false, true, isStatic, funcName);
+		le.setLocation(loc);
+    			
+    	return le;
+    }
+    
+    public static Class<?> typeToClass(Class<?> clazz) {
+    	if (clazz == Integer.TYPE) {
+    		return Integer.class;
+    	} else if (clazz == Long.TYPE) {
+    		return Long.class;
+    	} else if (clazz == Float.TYPE) {
+    		return Long.class;
+    	} else if (clazz == Double.TYPE) {
+    		return Long.class;
+    	} else if (clazz == Boolean.TYPE) {
+    		return Long.class;
+    	} else if (clazz == Short.TYPE) {
+    		return Short.class;
+    	} else if (clazz == Byte.TYPE) {
+    		return Byte.class;
+    	} else if (clazz == Character.TYPE) {
+    		return Character.class;
+    	} else {
+    		throw new RuntimeException("Was not given a primitive TYPE class: " + clazz);
+    	}
+    }
+    
     LogicalExpression buildUDF(SourceLocation loc, LogicalExpressionPlan plan,
             String funcName, List<LogicalExpression> args)
     throws RecognitionException {
