@@ -37,6 +37,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 
+//TODO need to add support for ANY Pig type!
 //TODO statically cache the generated code based on the input Strings
 public class InvokerGenerator extends EvalFunc<Object> {
     private String className_;
@@ -100,6 +101,12 @@ public class InvokerGenerator extends EvalFunc<Object> {
         put("Boolean", Boolean.class);
         put("boolean", Boolean.TYPE);
         //put("byte[]", byte[].class);
+        put("java.lang.String",String.class);
+        put("java.lang.Integer", Integer.class);
+        put("java.lang.Long", Long.class);
+        put("java.lang.Float", Float.class);
+        put("java.lang.Double", Double.class);
+        put("java.lang.Boolean", Boolean.class);
     }};
 
     public InvokerGenerator(String className, String methodName, String argumentTypes) {
