@@ -90,7 +90,7 @@ public class UserFuncExpression extends LogicalExpression {
     private String funcName = null;
     
     public UserFuncExpression(OperatorPlan plan, FuncSpec funcSpec, List<LogicalExpression> args, boolean viaDefine, boolean lazilyInitializeInvokerFunction, boolean invokerIsStatic, String funcName) {
-        this( plan, funcSpec, viaDefine );
+        this( plan, funcSpec, args, viaDefine );
         this.saveArgsForLater = args;
         this.lazilyInitializeInvokerFunction = lazilyInitializeInvokerFunction;
         this.funcName = funcName;
@@ -304,7 +304,7 @@ public class UserFuncExpression extends LogicalExpression {
         		ctorArgs[2] += funcClass.getName();  
         	}
         	for (Class<?> param : parameterTypes) {
-        		ctorArgs[2] += param;
+        		ctorArgs[2] += param.getName();
         	}
         	
         	//TODO need to allow them to define such a function so it can be cached etc

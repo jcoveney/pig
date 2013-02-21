@@ -177,11 +177,16 @@ public class InvokerGenerator extends EvalFunc<Object> {
     private Class<?>[] getArgumentClassArray(String[] argumentTypes) {
         Class<?>[] arguments = new Class<?>[argumentTypes.length];
         for (int i = 0; i < argumentTypes.length; i++) {
-            Class<?> clazz = nameToClassObjectMap.get(argumentTypes[i]);
+            /*Class<?> clazz = nameToClassObjectMap.get(argumentTypes[i]);
             if (clazz == null) {
                 throw new RuntimeException("Invalid argument type given: " + argumentTypes[i]);
             }
-            arguments[i] = clazz;
+            arguments[i] = clazz;*/
+        	try {
+				arguments[i] = PigContext.resolveClassName(argumentTypes[i]);
+			} catch (IOException e) {
+				throw new RuntimeException("Unable to find class in PigContext: " + argumentTypes[i], e);
+			}
         }
         return arguments;
     }
