@@ -91,6 +91,8 @@ import org.apache.pig.parser.PigMacro;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.google.common.base.Joiner;
 }
 
 @members {
@@ -686,10 +688,11 @@ cast_expr
 invoker_func  
 @init {
     String staticStr = "true";
+    List<String> packageStr = Lists.newArrayList();
+    String methodStr = null;
 }
-//: INVOKE ( AMPERSAND | LEFT_PAREN real_arg { staticStr = "false"; } RIGHT_PAREN ) IDENTIFIER LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN
-: INVOKE ( AMPERSAND | LEFT_PAREN real_arg { staticStr = "false"; } RIGHT_PAREN ) IDENTIFIER LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN
-              -> ^( INVOKER_FUNC_EVAL IDENTIFIER IDENTIFIER[staticStr] real_arg* )
+: INVOKE ( AMPERSAND | LEFT_PAREN real_arg { staticStr = "false"; } RIGHT_PAREN ) ( packageName=IDENTIFIER PERIOD { packageStr.add($packageName.text); } )* methodName=IDENTIFIER { methodStr=$methodName.text; } LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN
+              -> ^( INVOKER_FUNC_EVAL IDENTIFIER[Joiner.on(".").join(packageStr)] IDENTIFIER[methodStr] IDENTIFIER[staticStr] real_arg* )
 ;
 
 // now we have to deal with parentheses: in an expr, '(' can be the

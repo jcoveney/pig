@@ -152,9 +152,9 @@ public class InvokerGenerator extends EvalFunc<Object> {
         try {
             method = clazz.getMethod(methodName_, arguments); //must match exactly
         } catch (SecurityException e) {
-            throw new RuntimeException("Not allowed to call given method: " + methodName_, e);
+            throw new RuntimeException("Not allowed to call given method["+methodName_+"] on class ["+className_+"] with arguments: " + argumentTypes_, e);
         } catch (NoSuchMethodException e) {
-            throw new RuntimeException("Given method name does not exist: " + methodName_, e);
+            throw new RuntimeException("Given method name ["+methodName_+"] does not exist on class ["+className_+"] with arguments: " + argumentTypes_, e);
         }
         boolean isStatic = Modifier.isStatic(method.getModifiers());
 
@@ -177,11 +177,6 @@ public class InvokerGenerator extends EvalFunc<Object> {
     private Class<?>[] getArgumentClassArray(String[] argumentTypes) {
         Class<?>[] arguments = new Class<?>[argumentTypes.length];
         for (int i = 0; i < argumentTypes.length; i++) {
-            /*Class<?> clazz = nameToClassObjectMap.get(argumentTypes[i]);
-            if (clazz == null) {
-                throw new RuntimeException("Invalid argument type given: " + argumentTypes[i]);
-            }
-            arguments[i] = clazz;*/
         	try {
 				arguments[i] = PigContext.resolveClassName(argumentTypes[i]);
 			} catch (IOException e) {
@@ -319,15 +314,6 @@ public class InvokerGenerator extends EvalFunc<Object> {
 
         public static InvokerFunction getInvokerFunction(String name, byte[] buf) {
             try {
-            	//TODO remove
-            	try {
-					OutputStream os = new FileOutputStream(new File(name + ".class"));
-					os.write(buf);
-					os.close();
-				} catch (Exception e) {
-					throw new RuntimeException("AHHHH", e);
-				}
-            	//TODO remove
                 return new ByteClassLoader(buf).findClass(name).newInstance();
             } catch (InstantiationException e) {
                 throw new RuntimeException(e);

@@ -45,6 +45,7 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 import org.apache.pig.parser.LogicalPlanBuilder;
 import org.apache.pig.parser.SourceLocation;
+import org.python.google.common.base.Joiner;
 
 import com.google.common.collect.Lists;
 
@@ -88,12 +89,15 @@ public class UserFuncExpression extends LogicalExpression {
     private List<LogicalExpression> saveArgsForLater = null;
     private boolean invokerIsStatic = false;
     private String funcName = null;
+    private String packageName = null;
     
-    public UserFuncExpression(OperatorPlan plan, FuncSpec funcSpec, List<LogicalExpression> args, boolean viaDefine, boolean lazilyInitializeInvokerFunction, boolean invokerIsStatic, String funcName) {
+    public UserFuncExpression(OperatorPlan plan, FuncSpec funcSpec, List<LogicalExpression> args, boolean viaDefine, boolean lazilyInitializeInvokerFunction, boolean invokerIsStatic, String packageName, String funcName) {
         this( plan, funcSpec, args, viaDefine );
         this.saveArgsForLater = args;
         this.lazilyInitializeInvokerFunction = lazilyInitializeInvokerFunction;
+        this.packageName = packageName;
         this.funcName = funcName;
+        this.invokerIsStatic = invokerIsStatic;
     }
 
     public FuncSpec getFuncSpec() {
@@ -189,8 +193,6 @@ public class UserFuncExpression extends LogicalExpression {
         ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(mFuncSpec);
     }
     
-    private static Pattern splitClassAndMethod = Pattern.compile("^(.*)\\.([^.]*)$");
-
     @Override
     public LogicalSchema.LogicalFieldSchema getFieldSchema() throws FrontendException {
         if (fieldSchema!=null)
@@ -266,28 +268,18 @@ public class UserFuncExpression extends LogicalExpression {
     	}
     	
     	Class<?> funcClass;
-    	String funcMethodName;
     	
     	if (invokerIsStatic) {
-    		String funcClassName;
-    		Matcher m = splitClassAndMethod.matcher(funcName);
-        	if (m.matches()) {
-        		funcClassName = m.group(1);
-        		funcMethodName = m.group(2);
-        	} else {
-        		throw new RuntimeException("Invalid invoker function name: " + funcName); //TODO diff exception type?
-        	}
         	try {
-        		funcClass = PigContext.resolveClassName(funcClassName);
+        		funcClass = PigContext.resolveClassName(packageName);
         	} catch (IOException e) {
-        		throw new RuntimeException("Invoker function name not found: " + funcName, e);
+        		throw new RuntimeException("Invoker function name not found: " + packageName, e);
         	}
     	} else {
         	funcClass = DataType.findTypeClass(fieldSchemas.get(0).type);
         	if (funcClass.isPrimitive()) {
         		funcClass = LogicalPlanBuilder.typeToClass(funcClass);
         	}
-    		funcMethodName = funcName;
     	}
     	
     	Class<?>[] parameterTypes = new Class<?>[fieldSchemas.size() - (invokerIsStatic ? 0 : 1)];
@@ -326,32 +318,31 @@ public class UserFuncExpression extends LogicalExpression {
     		}
     		
         	try {
-    			m = funcClass.getMethod(funcMethodName, parameterTypes);
+    			m = funcClass.getMethod(funcName, parameterTypes);
     			if (m != null) {
     				parameterTypes = tmpParameterTypes;
     				break;
     			}
     		} catch (SecurityException e) {
-    			throw new RuntimeException("Not allowed to access method ["+funcMethodName+"] on class: " + funcClass, e);
+    			throw new RuntimeException("Not allowed to access method ["+funcName+"] on class: " + funcClass, e);
     		} catch (NoSuchMethodException e) {
     			// we just continue, as we are searching for a match post-boxing
     		}
     	}
     	
     	if (m == null) {
-    		throw new RuntimeException("Given method ["+funcMethodName+"] does not exist on class: " + funcClass);
+    		throw new RuntimeException("Given method ["+funcName+"] does not exist on class: " + funcClass);
     	}
     	
     	String[] ctorArgs = new String[3];
     	ctorArgs[0] = funcClass.getName();
-    	ctorArgs[1] = funcMethodName;
+    	ctorArgs[1] = funcName;
     	ctorArgs[2] = "";
-    	if (invokerIsStatic) {
-    		ctorArgs[2] += funcClass.getName();  
-    	}
+    	List<String> params = Lists.newArrayList();
     	for (Class<?> param : parameterTypes) {
-    		ctorArgs[2] += param.getName();
+    		params.add(param.getName());
     	}
+    	ctorArgs[2] = Joiner.on(",").join(params);
     	
     	//TODO need to allow them to define such a function so it can be cached etc (esp. if they reuse)
     	mFuncSpec = new FuncSpec(InvokerGenerator.class.getName(), ctorArgs);
