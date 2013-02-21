@@ -39,6 +39,7 @@ tokens {
     FUNC;
     FUNC_REF;
     FUNC_EVAL;
+    INVOKE;
     INVOKER_FUNC_EVAL;
     CAST_EXPR;
     COL_RANGE;
@@ -673,10 +674,10 @@ cast_expr
           // careful with periods straight after the identifier, as we want those to be projections, not function
           // calls
           | col_ref_without_identifier projection*
+          | invoker_func projection*
           | IDENTIFIER projection*
           | IDENTIFIER func_name_suffix? LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN projection* -> ^( FUNC_EVAL IDENTIFIER func_name_suffix? real_arg* ) projection*
           | func_name_without_columns LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN projection* -> ^( FUNC_EVAL func_name_without_columns real_arg* ) projection*
-          | invoker_func
           | paren_expr
           | curly_expr
           | bracket_expr
@@ -686,8 +687,9 @@ invoker_func
 @init {
     String staticStr = "true";
 }
-: AMPERSAND AMPERSAND AMPERSAND AMPERSAND ( real_arg { staticStr = "false"; } )? AMPERSAND IDENTIFIER LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN projection*
-              -> ^( INVOKER_FUNC_EVAL IDENTIFIER IDENTIFIER[staticStr] real_arg* ) projection*
+//: INVOKE ( AMPERSAND | LEFT_PAREN real_arg { staticStr = "false"; } RIGHT_PAREN ) IDENTIFIER LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN
+: INVOKE ( AMPERSAND | LEFT_PAREN real_arg { staticStr = "false"; } RIGHT_PAREN ) IDENTIFIER LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN
+              -> ^( INVOKER_FUNC_EVAL IDENTIFIER IDENTIFIER[staticStr] real_arg* )
 ;
 
 // now we have to deal with parentheses: in an expr, '(' can be the

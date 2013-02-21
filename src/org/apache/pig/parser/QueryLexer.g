@@ -96,6 +96,9 @@ CUBE    : 'CUBE'
 ROLLUP	: 'ROLLUP'
 ;
 
+INVOKE  : 'INVOKE'
+;
+
 DISTINCT : 'DISTINCT'
 ;
 
