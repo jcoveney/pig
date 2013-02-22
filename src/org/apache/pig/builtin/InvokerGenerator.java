@@ -26,8 +26,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.DataType;
@@ -36,6 +38,9 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
+import org.python.google.common.collect.Maps;
+
+import com.google.common.collect.Sets;
 
 //TODO need to add support for ANY Pig type!
 //TODO statically cache the generated code based on the input Strings
@@ -152,16 +157,21 @@ public class InvokerGenerator extends EvalFunc<Object> {
         try {
             method = clazz.getMethod(methodName_, arguments); //must match exactly
         } catch (SecurityException e) {
-            throw new RuntimeException("Not allowed to call given method["+methodName_+"] on class ["+className_+"] with arguments: " + argumentTypes_, e);
+            throw new RuntimeException("Not allowed to call given method["+methodName_+"] on class ["+className_+"] with arguments: " + Arrays.toString(argumentTypes_), e);
         } catch (NoSuchMethodException e) {
-            throw new RuntimeException("Given method name ["+methodName_+"] does not exist on class ["+className_+"] with arguments: " + argumentTypes_, e);
+            throw new RuntimeException("Given method name ["+methodName_+"] does not exist on class ["+className_+"] with arguments: " + Arrays.toString(argumentTypes_), e);
         }
         boolean isStatic = Modifier.isStatic(method.getModifiers());
 
         Class<?> returnClazz = method.getReturnType();
+        Byte type;
+        if (returnClazz.isPrimitive()) {
+        	type = returnTypeMap.get(inverseTypeMap.get(returnClazz));
+        } else {
+        	type = returnTypeMap.get(returnClazz);	
+        }
 
-        Byte type = returnTypeMap.get(returnClazz);
-
+        //TODO add functionality so that if the user pairs this witha  cast that it will let you return object
         if (type == null) {
             throw new RuntimeException("Function returns invalid type: " + returnClazz);
         }
@@ -178,7 +188,10 @@ public class InvokerGenerator extends EvalFunc<Object> {
         Class<?>[] arguments = new Class<?>[argumentTypes.length];
         for (int i = 0; i < argumentTypes.length; i++) {
         	try {
-				arguments[i] = PigContext.resolveClassName(argumentTypes[i]);
+        		arguments[i]= nameToClassObjectMap.get(argumentTypes[i]);
+        		if (arguments[i] == null) { 
+        			arguments[i] = PigContext.resolveClassName(argumentTypes[i]);        			
+        		}
 			} catch (IOException e) {
 				throw new RuntimeException("Unable to find class in PigContext: " + argumentTypes[i], e);
 			}
@@ -193,6 +206,8 @@ public class InvokerGenerator extends EvalFunc<Object> {
     }
 
     private byte[] generateInvokerFunctionBytecode(String className, Method method, boolean isStatic, Class<?>[] arguments) {
+    	boolean isInterface = method.getDeclaringClass().isInterface();
+    	
         ClassWriter cw = new ClassWriter(0);
         cw.visit(V1_6, ACC_PUBLIC + ACC_SUPER, className, null, "java/lang/Object", new String[] { "org/apache/pig/builtin/InvokerFunction" });
 
@@ -213,17 +228,21 @@ public class InvokerGenerator extends EvalFunc<Object> {
         //puts the arguments on the stack
         next = 2;
 
-        if (!isStatic)
+        if (!isStatic) {
             mv.visitVarInsn(ALOAD, next++); //put the method receiver on the stack
+        }
 
         for (Class<?> arg : arguments) {
             mv.visitVarInsn(ALOAD, next++);
-            boxIfPrimitive(mv, arg);
+            unboxIfPrimitive(mv, arg);
         }
         String signature = buildSignatureString(arguments, method.getReturnType());
-        mv.visitMethodInsn(isStatic ? INVOKESTATIC : INVOKEVIRTUAL, getMethodStyleName(method.getDeclaringClass()), method.getName(), signature);
+        //TODO it can also be an INVOKEINTERFACE! need to figure out how to disambiguate that...
+        mv.visitMethodInsn(isStatic ? INVOKESTATIC : isInterface ? INVOKEINTERFACE : INVOKEVIRTUAL, getMethodStyleName(method.getDeclaringClass()), method.getName(), signature);
+        boxIfPrimitive(mv, method.getReturnType()); //TODO does this work?
         mv.visitInsn(ARETURN);
         mv.visitMaxs(2, (isStatic ? 2 : 3) + arguments.length);
+        //TODO if the outpuot is a primitive we need to box it
         mv.visitEnd();
 
         cw.visitEnd();
@@ -241,31 +260,43 @@ public class InvokerGenerator extends EvalFunc<Object> {
         }
         sig += ")";
 
-        if (!returnClazz.isPrimitive())
+        if (!returnClazz.isPrimitive()) {
             sig += "L" + getMethodStyleName(returnClazz) + ";";
-        else
+        } else {
             sig += getMethodStyleName(returnClazz);
-
+        }
         return sig;
 
     }
 
     private Class<?> getObjectVersion(Class<?> clazz) {
-        if (clazz.isPrimitive())
+        if (clazz.isPrimitive()) {
             return inverseTypeMap.get(clazz);
+        }
         return clazz;
 
     }
 
     private String getMethodStyleName(Class<?> clazz) {
-        if (!clazz.isPrimitive())
+        if (!clazz.isPrimitive()) {
             return clazz.getCanonicalName().replaceAll("\\.","/");
+        }
         return primitiveSignature.get(clazz);
     }
 
+    
     private void boxIfPrimitive(MethodVisitor mv, Class<?> clazz) {
-        if (!clazz.isPrimitive())
+    	if (!clazz.isPrimitive()) {
+    		return;
+    	}
+    	String boxedClass = getMethodStyleName(inverseTypeMap.get(clazz));
+    	mv.visitMethodInsn(INVOKESTATIC, boxedClass, "valueOf", "("+getMethodStyleName(clazz)+")L"+boxedClass+";");
+    }
+    
+    private void unboxIfPrimitive(MethodVisitor mv, Class<?> clazz) {
+        if (!clazz.isPrimitive()) {
             return;
+        }
         String methodName = clazz.getSimpleName()+"Value";
         mv.visitMethodInsn(INVOKEVIRTUAL, getMethodStyleName(inverseTypeMap.get(clazz)), methodName, "()"+getMethodStyleName(clazz));
     }
@@ -314,6 +345,15 @@ public class InvokerGenerator extends EvalFunc<Object> {
 
         public static InvokerFunction getInvokerFunction(String name, byte[] buf) {
             try {
+            	//TODO remove
+            	try {
+            		OutputStream os = new FileOutputStream(new File(name + ".class"));
+					os.write(buf);
+					os.close();
+				} catch (IOException e) {
+					throw new RuntimeException("AHHH", e);
+				}
+            	//TODO remove
                 return new ByteClassLoader(buf).findClass(name).newInstance();
             } catch (InstantiationException e) {
                 throw new RuntimeException(e);
