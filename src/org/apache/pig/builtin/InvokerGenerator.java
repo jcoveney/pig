@@ -237,12 +237,10 @@ public class InvokerGenerator extends EvalFunc<Object> {
             unboxIfPrimitive(mv, arg);
         }
         String signature = buildSignatureString(arguments, method.getReturnType());
-        //TODO it can also be an INVOKEINTERFACE! need to figure out how to disambiguate that...
         mv.visitMethodInsn(isStatic ? INVOKESTATIC : isInterface ? INVOKEINTERFACE : INVOKEVIRTUAL, getMethodStyleName(method.getDeclaringClass()), method.getName(), signature);
         boxIfPrimitive(mv, method.getReturnType()); //TODO does this work?
         mv.visitInsn(ARETURN);
         mv.visitMaxs(2, (isStatic ? 2 : 3) + arguments.length);
-        //TODO if the outpuot is a primitive we need to box it
         mv.visitEnd();
 
         cw.visitEnd();
@@ -345,15 +343,6 @@ public class InvokerGenerator extends EvalFunc<Object> {
 
         public static InvokerFunction getInvokerFunction(String name, byte[] buf) {
             try {
-            	//TODO remove
-            	try {
-            		OutputStream os = new FileOutputStream(new File(name + ".class"));
-					os.write(buf);
-					os.close();
-				} catch (IOException e) {
-					throw new RuntimeException("AHHH", e);
-				}
-            	//TODO remove
                 return new ByteClassLoader(buf).findClass(name).newInstance();
             } catch (InstantiationException e) {
                 throw new RuntimeException(e);
