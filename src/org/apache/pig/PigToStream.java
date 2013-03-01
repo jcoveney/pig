@@ -49,4 +49,15 @@ public interface PigToStream {
      */
     public byte[] serialize(Tuple t) throws IOException;
 
+    /**
+     * Given a tuple, produce an array of bytes to be passed to the streaming
+     * executable.
+     * @param t Tuple to serialize
+     * @param wrapFieldDelimiter Wrap field delimiter with an additional character to
+     *        handle data with the field delimiter as a valid character
+     * @param includeTypeInformation Include type information for every field in the serialized output.
+     * @return Serialized form of the tuple
+     * @throws IOException
+     */
+    public byte[] serialize(Tuple t, boolean wrapFieldDelimiter, boolean includeTypeInformation) throws IOException;
 }

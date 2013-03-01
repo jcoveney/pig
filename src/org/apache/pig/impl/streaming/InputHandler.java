@@ -20,6 +20,8 @@ package org.apache.pig.impl.streaming;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigToStream;
 import org.apache.pig.data.Tuple;
 
@@ -32,6 +34,8 @@ import org.apache.pig.data.Tuple;
  * manner via an external file which is subsequently read by the executable.
  */
 public abstract class InputHandler {
+    private static final Log log = LogFactory.getLog(InputHandler.class);
+
     /**
      * 
      */
@@ -63,7 +67,21 @@ public abstract class InputHandler {
      * @throws IOException
      */
     public void putNext(Tuple t) throws IOException {
-        out.write(serializer.serialize(t));
+        putNext(t, false, false);
+    }
+    
+    /**
+     * Send the given input <code>Tuple</code> to the managed executable.
+     *
+     * @param t input <code>Tuple</code>
+     * @param wrapFieldDelimiter if true use three character delimiters to avoid (most) conflicts with
+     * delimiters appearing in data.
+     * @param useTypeInformation if true prepend a single character indicating the type of all serialized values.
+     * @throws IOException
+     */
+    public void putNext(Tuple t, boolean wrapFieldDelimiter, boolean useTypeInformation) throws IOException {
+         byte[] output = serializer.serialize(t, wrapFieldDelimiter, useTypeInformation);
+         out.write(output);
     }
     
     /**

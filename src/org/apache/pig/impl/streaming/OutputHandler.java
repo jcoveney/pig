@@ -19,11 +19,14 @@ package org.apache.pig.impl.streaming;
 
 import java.io.IOException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.util.LineReader;
 import org.apache.pig.StreamToPig;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 
 /**
  * {@link OutputHandler} is responsible for handling the output of the 
@@ -35,6 +38,10 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
  * process wrote its output.
  */
 public abstract class OutputHandler {
+    private static final Log log = LogFactory.getLog(OutputHandler.class);
+    public static final Object END_OF_OUTPUT = new Object();
+    public static final String END_OF_RECORD = "|&";
+
     public enum OutputType {SYNCHRONOUS, ASYNCHRONOUS}
 
     /*
@@ -73,25 +80,53 @@ public abstract class OutputHandler {
     }
     
     /**
+     * Get the next output of the managed process based on the input FieldSchema
+     */
+    public Object getNext(FieldSchema fs) throws IOException {
+        Text val = getValue();
+        if (val == null) {
+            return END_OF_OUTPUT;
+        }
+        byte[] valBytes = val.getBytes();
+        return deserializer.deserializeStreamOutput(fs, valBytes);
+    }
+    
+    /**
      * Get the next output <code>Tuple</code> of the managed process.
      * 
      * @return the next output <code>Tuple</code> of the managed process
      * @throws IOException
      */
-    public Tuple getNext() throws IOException {
+    public Tuple getNextTuple() throws IOException {
+        Text value = getValue();
+        if (value == null) {
+            return null;
+        }
+        return deserializer.deserializeTuple(value.getBytes());
+    }
+
+    private Text getValue() throws IOException {
         if (in == null) {
             return null;
         }
 
         Text value = new Text();
-        int num = in.readLine(value);
+        Text line = new Text();
+        int num = in.readLine(line);
+        value.append(line.getBytes(), 0, line.getLength());
+        
         if (num <= 0) {
             return null;
         }
-        
-        byte[] newBytes = new byte[value.getLength()];
-        System.arraycopy(value.getBytes(), 0, newBytes, 0, value.getLength());
-        return deserializer.deserialize(newBytes);
+        while(!line.toString().endsWith(END_OF_RECORD)) {
+            num = in.readLine(line);
+            if (num <= 0) {
+                break;
+            }
+            value.append(line.getBytes(), 0, line.getLength());
+        }
+
+        return value;
     }
     
     /**

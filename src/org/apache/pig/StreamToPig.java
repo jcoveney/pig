@@ -22,6 +22,7 @@ import java.io.IOException;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 
 /**
  * The interface is used for the custom mapping of a byte array, received from
@@ -44,11 +45,22 @@ import org.apache.pig.data.Tuple;
 @InterfaceStability.Stable
 public interface StreamToPig {
     /**
+     * Given a byte array from a streaming executable and an expected schema produce
+     * the data matching that schema.
+     *
+     * @param fs
+     * @param bytes
+     * @return
+     * @throws IOException
+     */
+    public Object deserializeStreamOutput(FieldSchema fs, byte[] bytes) throws IOException;
+
+    /**
      *  Given a byte array from a streaming executable, produce a tuple.
      * @param bytes to deserialize.
      * @return Data as a Pig Tuple.
      */
-    public Tuple deserialize(byte[] bytes) throws IOException;
+    public Tuple deserializeTuple(byte[] bytes) throws IOException;
 
     /**
      * This will be called on the front end during planning and not on the back 

@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.PigToStream;
@@ -888,5 +889,10 @@ public class TestStreaming {
             return (TupleFormat.format(t) + recordDelimiter).getBytes();
         }
         
+        @Override
+        public byte[] serialize(Tuple t, boolean wrapFieldDelimiter, boolean useTypeInformation)
+                throws IOException {
+            throw new NotImplementedException();
+        }
     }
 }

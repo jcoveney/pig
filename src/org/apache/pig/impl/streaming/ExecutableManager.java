@@ -498,7 +498,7 @@ public class ExecutableManager {
                 // Read tuples from the executable and send it to
                 // Queue of POStream
                 Tuple tuple = null;
-                while ((tuple = outputHandler.getNext()) != null) {
+                while ((tuple = outputHandler.getNextTuple()) != null) {
                     processOutput(tuple);
                     outputBytes += tuple.getMemorySize();
                 }
