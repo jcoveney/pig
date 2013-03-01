@@ -285,6 +285,9 @@ public class GruntParser extends PigScriptParser {
                 mPigServer.dumpSchemaNested(alias, nestedAlias);
             }
             else {
+            	if ("@".equals(alias)) {
+            	    alias = mPigServer.getLastRel();
+            	}
                 mPigServer.dumpSchema(alias);
             }
         } else {
@@ -305,6 +308,9 @@ public class GruntParser extends PigScriptParser {
                 throw new ParseException("'explain' statement must be on an alias or on a script.");
             }
         }
+        if ("@".equals(alias)) {
+    	    alias = mPigServer.getLastRel();
+    	}
         processExplain(alias, script, isVerbose, format, target, params, files, 
                 false);
     }
@@ -768,6 +774,9 @@ public class GruntParser extends PigScriptParser {
                         throw new ParseException("'illustrate' statement must be on an alias or on a script.");
                     }
                 }
+                if ("@".equals(alias)) {
+            	    alias = mPigServer.getLastRel();
+            	}
                 mPigServer.getExamples(alias);
             } finally {
                 if (script != null) {

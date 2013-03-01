@@ -500,7 +500,8 @@ void parse() throws IOException:
 	|
 	(<DESCRIBE> | <DESCRIBE_SHORT>)
 	(
-		t1 = <IDENTIFIER>
+		(t1 = <IDENTIFIER>
+                | t1 = <PREVREL>)
 		{processDescribe(t1.image);}
 		|
 		{processDescribe(null);}
@@ -639,7 +640,8 @@ void Illustrate() throws IOException:
 		{files.add(t.image);}
 	)*
 	(
-		t = <IDENTIFIER>
+		(t = <IDENTIFIER>
+                | t = <PREVREL>)
 		{alias = t.image;}
 	)?
 	{processIllustrate(alias, script, target, params, files);}
@@ -700,7 +702,8 @@ void Explain() throws IOException:
 		{files.add(t.image);}
 	)*
 	(
-		t = <IDENTIFIER>
+		(t = <IDENTIFIER>
+                | t = <PREVREL>)
 		{alias = t.image;}
 	)?
 	{processExplain(alias, script, isVerbose, format, target, params, files);}
