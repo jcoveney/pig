@@ -225,9 +225,10 @@ abstract public class LogicalRelationalOperator extends Operator {
 	}
 
 	/**
-	 * In the case of a join it is possible for multiple columns to have been derived from the same
+	 * In the case of an operation which manipualtes columns (such as a foreach or a join)
+         * it is possible for multiple columns to have been derived from the same
 	 * column and thus have duplicate UID's. This detects that case and resets the uid.
-	 * See PIG-3022 and PIG-3093 for more information.
+	 * See PIG-3020 and PIG-3093 for more information.
 	 * @param fss a list of LogicalFieldSchemas to check the uids of
 	 */
 	public static void fixDuplicateUids(List<LogicalFieldSchema> fss) {
