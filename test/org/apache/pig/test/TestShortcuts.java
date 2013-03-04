@@ -8,6 +8,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.mock.Storage.Data;
@@ -25,7 +26,7 @@ public class TestShortcuts {
 
     @Before
     public void setup() throws ExecException, IOException {
-        server = new PigServer("local");
+        server = new PigServer(ExecType.LOCA);
         context = server.getPigContext();
         data = resetData(server);
         data.set("input", tuple("dog", "miami", 12), tuple("cat", "miami", 18), tuple("turtle", "tampa", 4),
@@ -246,4 +247,18 @@ public class TestShortcuts {
         Grunt grunt = new Grunt(new BufferedReader(reader), context);
         grunt.exec();
     }
+
+    @Test
+    public void testDumpWithPreviousRelation() throws Exception {
+        Data data = resetData(pigServer);
+        Set<Tuple> expected = ImmutableSet.of(tuple("a"), tuple("b"), tuple("c"));
+
+        data.set("foo", Utils.getSchemaFromString("x:chararray"), expected);
+        pig.registerQuery("=> load 'foo' using mock.Storage();");
+    }
+
+//Dump
+//Describe
+//Explain
+//Illustrate
 }
