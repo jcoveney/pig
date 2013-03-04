@@ -765,6 +765,9 @@ public class PigServer {
      */
     public Schema dumpSchema(String alias) throws IOException {
         try {
+        	if ("@".equals(alias)) {
+                alias = getLastRel();
+            }
             LogicalRelationalOperator op = getOperatorForAlias( alias );
             LogicalSchema schema = op.getSchema();
 
@@ -796,6 +799,9 @@ public class PigServer {
      * @throws IOException
      */
     public Schema dumpSchemaNested(String alias, String nestedAlias) throws IOException {
+    	if ("@".equals(alias)) {
+            alias = getLastRel();
+        }
         Operator op = getOperatorForAlias( alias );
         if( op instanceof LOForEach ) {
             LogicalSchema nestedSc = ((LOForEach)op).dumpNestedSchema(alias, nestedAlias);
