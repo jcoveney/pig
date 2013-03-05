@@ -129,6 +129,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3081: Pig progress stays at 0% for the first job in hadoop 23 (rohini)
+
 PIG-3150: e2e Scripting_5 fails in trunk (dreambird via cheolsoo)
 
 PIG-3153: TestScriptUDF.testJavascriptExampleScript fails in trunk (cheolsoo)
@@ -213,6 +215,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2988: start deploying pigunit maven artifact part of Pig release process (njw45 via rohini)
+
 PIG-3148: OutOfMemory exception while spilling stale DefaultDataBag. Extra option to gc() before spilling large bag. (knoguchi via rohini)
 
 PIG-3216: Groovy UDFs documentation has minor typos (herberts via rohini)
@@ -222,6 +226,8 @@ PIG-3202: CUBE operator not documented in user docs (prasanth_j via billgraham)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-3144: Erroneous map entry alias resolution leading to "Duplicate schema alias" errors (jcoveney via cheolsoo)
 
 PIGG-3212: Race Conditions in POSort and (Internal)SortedBag during Proactive Spill (kadeng via dvryaboy)
 
