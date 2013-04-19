@@ -119,7 +119,7 @@ public class InvokerGenerator extends EvalFunc<Object> {
         methodName_ = methodName;
         argumentTypes_ = argumentTypes.split(",");
         if ("".equals(argumentTypes)) {
-        	argumentTypes_ = new String[0]; 
+            argumentTypes_ = new String[0]; 
         }
     }
 
@@ -166,9 +166,9 @@ public class InvokerGenerator extends EvalFunc<Object> {
         Class<?> returnClazz = method.getReturnType();
         Byte type;
         if (returnClazz.isPrimitive()) {
-        	type = returnTypeMap.get(inverseTypeMap.get(returnClazz));
+            type = returnTypeMap.get(inverseTypeMap.get(returnClazz));
         } else {
-        	type = returnTypeMap.get(returnClazz);	
+            type = returnTypeMap.get(returnClazz);  
         }
 
         //TODO add functionality so that if the user pairs this witha  cast that it will let you return object
@@ -187,14 +187,14 @@ public class InvokerGenerator extends EvalFunc<Object> {
     private Class<?>[] getArgumentClassArray(String[] argumentTypes) {
         Class<?>[] arguments = new Class<?>[argumentTypes.length];
         for (int i = 0; i < argumentTypes.length; i++) {
-        	try {
-        		arguments[i]= nameToClassObjectMap.get(argumentTypes[i]);
-        		if (arguments[i] == null) { 
-        			arguments[i] = PigContext.resolveClassName(argumentTypes[i]);        			
-        		}
-			} catch (IOException e) {
-				throw new RuntimeException("Unable to find class in PigContext: " + argumentTypes[i], e);
-			}
+            try {
+                arguments[i]= nameToClassObjectMap.get(argumentTypes[i]);
+                if (arguments[i] == null) { 
+                    arguments[i] = PigContext.resolveClassName(argumentTypes[i]);                   
+                }
+            } catch (IOException e) {
+                throw new RuntimeException("Unable to find class in PigContext: " + argumentTypes[i], e);
+            }
         }
         return arguments;
     }
@@ -206,8 +206,8 @@ public class InvokerGenerator extends EvalFunc<Object> {
     }
 
     private byte[] generateInvokerFunctionBytecode(String className, Method method, boolean isStatic, Class<?>[] arguments) {
-    	boolean isInterface = method.getDeclaringClass().isInterface();
-    	
+        boolean isInterface = method.getDeclaringClass().isInterface();
+        
         ClassWriter cw = new ClassWriter(0);
         cw.visit(V1_6, ACC_PUBLIC + ACC_SUPER, className, null, "java/lang/Object", new String[] { "org/apache/pig/builtin/InvokerFunction" });
 
@@ -284,11 +284,11 @@ public class InvokerGenerator extends EvalFunc<Object> {
 
     
     private void boxIfPrimitive(MethodVisitor mv, Class<?> clazz) {
-    	if (!clazz.isPrimitive()) {
-    		return;
-    	}
-    	String boxedClass = getMethodStyleName(inverseTypeMap.get(clazz));
-    	mv.visitMethodInsn(INVOKESTATIC, boxedClass, "valueOf", "("+getMethodStyleName(clazz)+")L"+boxedClass+";");
+        if (!clazz.isPrimitive()) {
+            return;
+        }
+        String boxedClass = getMethodStyleName(inverseTypeMap.get(clazz));
+        mv.visitMethodInsn(INVOKESTATIC, boxedClass, "valueOf", "("+getMethodStyleName(clazz)+")L"+boxedClass+";");
     }
     
     private void unboxIfPrimitive(MethodVisitor mv, Class<?> clazz) {

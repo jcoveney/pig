@@ -326,8 +326,8 @@ public class DataType {
     }
     
     public static Class<?> findTypeClass(byte dt) {
-    	switch (dt) {
-    	case NULL:      return Void.TYPE;
+        switch (dt) {
+        case NULL:      return Void.TYPE;
         case BOOLEAN:   return Boolean.TYPE;
         case BYTE:      return Byte.TYPE;
         case INTEGER:   return Integer.TYPE;
@@ -346,7 +346,7 @@ public class DataType {
         case BAG:       return DataBag.class;
         case GENERIC_WRITABLECOMPARABLE: return WritableComparable.class;
         default: throw new RuntimeException("Invalid type has no corresponding class: " + dt);
-    	}
+        }
     }
 
     /**

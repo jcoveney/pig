@@ -1417,37 +1417,34 @@ public class LogicalPlanBuilder {
 
     }
 
-    //private static Pattern splitClassAndMethod = Pattern.compile("^(.*)\\.([^.]*)$");
-    
     LogicalExpression buildInvokerUDF(SourceLocation loc, LogicalExpressionPlan plan, String packageName, String funcName, boolean isStatic, List<LogicalExpression> args) throws RecognitionException {
-		LogicalExpression le = new UserFuncExpression(plan, new FuncSpec(InvokerGenerator.class.getName()), args, false, true, isStatic, packageName, funcName);
-		le.setLocation(loc);
-    			
-    	return le;
+        LogicalExpression le = new UserFuncExpression(plan, new FuncSpec(InvokerGenerator.class.getName()), args, false, true, isStatic, packageName, funcName);
+        le.setLocation(loc);
+        return le;
     }
-    
+
     public static Class<?> typeToClass(Class<?> clazz) {
-    	if (clazz == Integer.TYPE) {
-    		return Integer.class;
-    	} else if (clazz == Long.TYPE) {
-    		return Long.class;
-    	} else if (clazz == Float.TYPE) {
-    		return Long.class;
-    	} else if (clazz == Double.TYPE) {
-    		return Long.class;
+        if (clazz == Integer.TYPE) {
+            return Integer.class;
+        } else if (clazz == Long.TYPE) {
+            return Long.class;
+        } else if (clazz == Float.TYPE) {
+            return Long.class;
+        } else if (clazz == Double.TYPE) {
+            return Long.class;
     	} else if (clazz == Boolean.TYPE) {
-    		return Long.class;
+            return Long.class;
     	} else if (clazz == Short.TYPE) {
-    		return Short.class;
-    	} else if (clazz == Byte.TYPE) {
-    		return Byte.class;
-    	} else if (clazz == Character.TYPE) {
-    		return Character.class;
-    	} else {
-    		throw new RuntimeException("Was not given a primitive TYPE class: " + clazz);
-    	}
+            return Short.class;
+        } else if (clazz == Byte.TYPE) {
+            return Byte.class;
+        } else if (clazz == Character.TYPE) {
+            return Character.class;
+        } else {
+            throw new RuntimeException("Was not given a primitive TYPE class: " + clazz);
+        }
     }
-    
+
     LogicalExpression buildUDF(SourceLocation loc, LogicalExpressionPlan plan,
             String funcName, List<LogicalExpression> args)
     throws RecognitionException {
