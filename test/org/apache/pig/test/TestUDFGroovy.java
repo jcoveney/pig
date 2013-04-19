@@ -23,6 +23,7 @@ import static org.apache.pig.builtin.mock.Storage.resetData;
 import static org.apache.pig.builtin.mock.Storage.tuple;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -87,7 +88,13 @@ public class TestUDFGroovy {
     pigObject = new DataByteArray("Surtout le jambon".getBytes("UTF-8"));
     groovyObject = GroovyUtils.pigToGroovy(pigObject);
     assertTrue(groovyObject instanceof byte[]);
+    assertNotSame(groovyObject, pigObject);
     assertArrayEquals("Surtout le jambon".getBytes("UTF-8"), (byte[]) groovyObject);
+
+    pigObject = new org.joda.time.DateTime();
+    groovyObject = GroovyUtils.pigToGroovy(pigObject);
+    assertTrue(groovyObject instanceof org.joda.time.DateTime);
+    assertSame(groovyObject, pigObject);
 
     pigObject = tuple("a","b","c");
     groovyObject = GroovyUtils.pigToGroovy(pigObject);
@@ -119,6 +126,14 @@ public class TestUDFGroovy {
     assertEquals(2, ((Map) groovyObject).size());
     assertEquals("Henaff", ((Map) groovyObject).get("Pate"));
     assertEquals("Bordeau Chesnel", ((Map) groovyObject).get("Rillettes"));
+
+    pigObject = BigInteger.ONE;
+    groovyObject = GroovyUtils.pigToGroovy(pigObject);
+    assertSame(pigObject, groovyObject);
+
+    pigObject = new BigDecimal("42.42");
+    groovyObject = GroovyUtils.pigToGroovy(pigObject);
+    assertSame(pigObject, groovyObject);
 
     pigObject = null;
     groovyObject = GroovyUtils.pigToGroovy(pigObject);
@@ -154,8 +169,7 @@ public class TestUDFGroovy {
 
     groovyObject = BigInteger.TEN;
     pigObject = GroovyUtils.groovyToPig(groovyObject);
-    assertTrue(pigObject instanceof Long);
-    assertEquals(10L, pigObject);
+    assertSame(groovyObject, pigObject);
 
     groovyObject = Float.MIN_NORMAL;
     pigObject = GroovyUtils.groovyToPig(groovyObject);
@@ -169,8 +183,7 @@ public class TestUDFGroovy {
 
     groovyObject = new BigDecimal("42.42");
     pigObject = GroovyUtils.groovyToPig(groovyObject);
-    assertTrue(pigObject instanceof Double);
-    assertEquals(42.42D, pigObject);
+    assertSame(groovyObject, pigObject);
 
     groovyObject = "Dans le cochon tout est bon !";
     pigObject = GroovyUtils.groovyToPig(groovyObject);
@@ -235,6 +248,11 @@ public class TestUDFGroovy {
 
     groovyObject = new DefaultDataBag();
     pigObject = GroovyUtils.groovyToPig(groovyObject);
+    assertSame(groovyObject, pigObject);
+
+    groovyObject = new org.joda.time.DateTime();
+    pigObject = GroovyUtils.groovyToPig(groovyObject);
+    assertTrue(pigObject instanceof org.joda.time.DateTime);
     assertSame(groovyObject, pigObject);
 
     groovyObject = null;

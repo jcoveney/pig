@@ -52,12 +52,15 @@ public class GroovyUtils {
    * java.util.Map Map
    * java.util.List DataBag
    * Byte/Short/Integer int
-   * Long/BigInteger long
+   * Long long
    * Float float
-   * Double/BigDecimal double
+   * Double double
+   * BigInteger BigInteger
+   * BigDecimal BigDecimal
    * String chararray
    * byte[] DataByteArray (copy)
    * Boolean boolean
+   * org.joda.time.DateTime org.joda.time.DateTime
    * null null
    *
    * anything else raises an exception
@@ -161,9 +164,9 @@ public class GroovyUtils {
     } else if (groovyObject instanceof Byte || groovyObject instanceof Short) {
       pigObject = ((Number) groovyObject).intValue();
     } else if (groovyObject instanceof BigInteger) {
-      pigObject = ((Number) groovyObject).longValue();
+      pigObject = groovyObject;
     } else if (groovyObject instanceof BigDecimal) {
-      pigObject = ((Number) groovyObject).doubleValue();
+      pigObject = groovyObject;
     } else if (groovyObject instanceof byte[]) {
       //
       // Clone the byte array
@@ -180,6 +183,11 @@ public class GroovyUtils {
 
       pigObject = groovyObject;
     } else if (groovyObject instanceof Boolean) {
+      pigObject = groovyObject;
+    } else if (groovyObject instanceof org.joda.time.DateTime) {
+      //
+      // jodatime's DateTime is immutable, so reuse the same instance
+      //
       pigObject = groovyObject;
     } else if (null == groovyObject) {
       pigObject = null;
@@ -204,6 +212,9 @@ public class GroovyUtils {
    * chararray String
    * bytearray byte[] (copy)
    * boolean boolean
+   * BigInteger BigInteger
+   * BigDecimal BigDecimal
+   * org.joda.time.DateTime org.joda.time.DateTime
    * null null
    *
    * anything else raises an exception
@@ -255,6 +266,15 @@ public class GroovyUtils {
       System.arraycopy(((DataByteArray) pigObject).get(), 0, b, 0, b.length);
 
       groovyObject = b;
+    } else if (pigObject instanceof BigInteger) {
+      groovyObject = pigObject;
+    } else if (pigObject instanceof BigDecimal) {
+      groovyObject = pigObject;
+    }else if (pigObject instanceof org.joda.time.DateTime) {
+      //
+      // jodatime's DateTime is immutable, so reuse the same instance
+      //
+      groovyObject = pigObject;
     } else if (null == pigObject) {
       groovyObject = null;
     } else {

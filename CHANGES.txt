@@ -28,6 +28,33 @@ PIG-3174:  Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-3268: Case statement support (cheolsoo)
+
+PIG-3269: In operator support (cheolsoo)
+
+PIG-200: Pig Performance Benchmarks (daijy)
+
+PIG-3261: User set PIG_CLASSPATH entries must be prepended to the CLASSPATH, not 
+appended (qwertymaniac via daijy)
+
+PIG-3141: Giving CSVExcelStorage an option to handle header rows (jpacker via cheolsoo)
+
+PIG-3217: Add support for DateTime type in Groovy UDFs (herberts via daijy)
+
+PIG-3218: Add support for biginteger/bigdecimal type in Groovy UDFs (herberts via daijy)
+
+PIG-3248: Upgrade hadoop-2.0.0-alpha to hadoop-2.0.3-alpha (daijy)
+
+PIG-3235: Add log4j.properties for unit tests (cheolsoo)
+
+PIG-3236: parametrize snapshot and staging repo id (gkesavan via daijy)
+
+PIG-3244: Make PIG_HOME configurable (robert.schooley@gmail.com via daijy)
+
+PIG-3233: Deploy a Piggybank Jar (njw45 via cheolsoo)
+
+PIG-3245: Documentation about HBaseStorage (Daisuke Kobayashi via cheolsoo)
+
 PIG-3211: Allow default Load/Store funcs to be configurable (prkommireddi via cheolsoo)
 
 PIG-3136: Introduce a syntax making declared aliases optional (jcoveney via cheolsoo)
@@ -133,6 +160,48 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3276: change the default value for hcat.bin to hcat instead of /usr/local/hcat/bin/hcat (arpitgupta via daijy)
+
+PIG-3277: fix the path to the benchmarks file in the print statement (arpitgupta via daijy)
+
+PIG-3122: Operators should not implicitly become reserved keywords (jcoveney via cheolsoo)
+
+PIG-3193: Fix "ant docs" warnings (cheolsoo)
+
+PIG-3186: tar/deb/pkg ant targets should depend on piggybank (lbendig via gates)
+
+PIG-3270: Union onschema failing at runtime when merging incompatible types (knoguchi via daijy)
+
+PIG-3271: POSplit ignoring error from input processing giving empty results (knoguchi via daijy)
+
+PIG-2265: Test case TestSecondarySort failure (daijy)
+
+PIG-3060: FLATTEN in nested foreach fails when the input contains an empty bag (daijy)
+
+PIG-2247: Pig parser does not detect multiple arguments with the same name passed to macro (dreambird via daijy)
+
+PIG-3264: mvn signanddeploy target broken for pigunit, pigsmoke and piggybank (billgraham)
+
+PIG-3262: Pig contrib 0.11 doesn't compile on certain rpm systems (mgrover via cheolsoo)
+
+PIG-3249: Pig startup script prints out a wrong version of hadoop when using fat jar (prkommireddi via daijy)
+
+PIG-3110: pig corrupts chararrays with trailing whitespace when converting them to long (prkommireddi via daijy)
+
+PIG-3253: Misleading comment w.r.t getSplitIndex() method in PigSplit.java (cheolsoo)
+
+PIG-3208: [zebra] TFile should not set io.compression.codec.lzo.buffersize (ekoontz via daijy)
+
+PIG-3172: Partition filter push down does not happen when there is a non partition key map column filter (rohini)
+
+PIG-3205: Passing arguments to python script does not work with -f option (rohini)
+
+PIG-2507: Semicolon in paramenters for UDF results in parsing error (tnachen via daijy)
+
+PIG-3239: Unable to return multiple values from a macro using SPLIT (dreambird via cheolsoo)
+
+PIG-3077: TestMultiQueryLocal should not write in /tmp (dreambird via cheolsoo)
+
 PIG-3081: Pig progress stays at 0% for the first job in hadoop 23 (rohini)
 
 PIG-3150: e2e Scripting_5 fails in trunk (dreambird via cheolsoo)
@@ -219,6 +288,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3256: Upgrade jython to 2.5.3 (legal concern) (daijy)
+
 PIG-2988: start deploying pigunit maven artifact part of Pig release process (njw45 via rohini)
 
 PIG-3148: OutOfMemory exception while spilling stale DefaultDataBag. Extra option to gc() before spilling large bag. (knoguchi via rohini)
@@ -230,6 +301,14 @@ PIG-3202: CUBE operator not documented in user docs (prasanth_j via billgraham)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-3267: HCatStorer fail in limit query (daijy)
+
+PIG-3252: AvroStorage gives wrong schema for schemas with named records (mwagner via cheolsoo)
+
+PIG-3132: NPE when illustrating a relation with HCatLoader (daijy)
+
+PIG-3194: Changes to ObjectSerializer.java break compatibility with Hadoop 0.20.2 (prkommireddi via dvryaboy)
 
 PIG-3241: ConcurrentModificationException in POPartialAgg (dvryaboy)
 
