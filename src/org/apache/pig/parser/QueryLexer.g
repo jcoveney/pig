@@ -267,6 +267,21 @@ RIGHT : 'RIGHT'
 FULL : 'FULL'
 ;
 
+CASE : 'CASE'
+;
+
+WHEN : 'WHEN'
+;
+
+THEN : 'THEN'
+;
+
+ELSE : 'ELSE'
+;
+
+END : 'END'
+;
+
 STR_OP_EQ : 'EQ'
 ;
 
@@ -286,6 +301,9 @@ STR_OP_NE : 'NEQ'
 ;
 
 STR_OP_MATCHES : 'MATCHES'
+;
+
+IN : 'IN'
 ;
 
 TRUE : 'TRUE'
@@ -455,4 +473,7 @@ ARROBA : '@'
 ;
 
 AMPERSAND : '&'
+;
+
+FAT_ARROW : '=>'
 ;

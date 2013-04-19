@@ -25,6 +25,11 @@
 #
 #     PIG_CLASSPATH Extra Java CLASSPATH entries.
 #
+#     PIG_USER_CLASSPATH_FIRST If set, add user provided classpath entries to
+#                              the top of classpath instead of appending them.
+#                              Default is unset, i.e. the classpath entries are
+#                              placed normally at the end of a pre-defined classpath.
+#
 #     HADOOP_HOME/HADOOP_PREFIX     Environment HADOOP_HOME/HADOOP_PREFIX(0.20.205)
 #
 #     HADOOP_CONF_DIR     Hadoop conf dir
@@ -76,7 +81,9 @@ script="$(basename -- "$this")"
 this="$bin/$script"
 
 # the root of the Pig installation
-export PIG_HOME=`dirname "$this"`/..
+if [ -z "$PIG_HOME" ]; then
+    export PIG_HOME=`dirname "$this"`/..
+fi
 
 if [ -z "$PIG_CONF_DIR" ]; then
     if [ -f ${PIG_HOME}/conf/pig.properties ]; then
@@ -182,11 +189,16 @@ if [ "$includeHCatalog" == "true" ]; then
   CLASSPATH=${CLASSPATH}:$ADDITIONAL_CLASSPATHS:$HIVE_HOME/conf
 fi
 
-# add user-specified CLASSPATH
+# Add user-specified CLASSPATH entries via PIG_CLASSPATH
+# If PIG_USER_CLASSPATH_FIRST is set, prepend the entries
 if [ "$PIG_CLASSPATH" != "" ]; then
+  if [ "$PIG_USER_CLASSPATH_FIRST" == "" ]; then
     CLASSPATH=${CLASSPATH}:${PIG_CLASSPATH}
+  else
+    CLASSPATH=${PIG_CLASSPATH}:${CLASSPATH}
+  fi
 fi
- 
+
 # add HADOOP_CONF_DIR
 if [ "$HADOOP_CONF_DIR" != "" ]; then
     CLASSPATH=${CLASSPATH}:${HADOOP_CONF_DIR}
@@ -360,10 +372,6 @@ if [ -n "$HADOOP_BIN" ]; then
     fi
 else
     # fall back to use fat pig.jar
-    if [ "$debug" == "true" ]; then
-        echo "Cannot find local hadoop installation, using bundled hadoop 20.2"
-    fi
-
     if [ -f $PIG_HOME/pig.jar ]; then
         PIG_JAR=$PIG_HOME/pig.jar
     else
@@ -375,6 +383,10 @@ else
     else
         echo "Cannot locate pig.jar. do 'ant jar', and try again"
         exit 1
+    fi
+
+    if [ "$debug" == "true" ]; then
+        echo "Cannot find local hadoop installation, using bundled `java -cp $PIG_JAR org.apache.hadoop.util.VersionInfo | head -1`"
     fi
 
     CLASS=org.apache.pig.Main
