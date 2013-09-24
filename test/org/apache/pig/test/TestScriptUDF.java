@@ -23,6 +23,7 @@ import java.util.Random;
 
 import junit.framework.Assert;
 
+import org.apache.hadoop.util.Shell;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.BagFactory;
@@ -143,7 +144,7 @@ public class TestScriptUDF{
      * the first module.
      *
      * to use a jython install, the Lib dir must be in the jython search path
-     * via env variable JYTHON_HOME=jy_home or JYTHON_PATH=jy_home/Lib:... or
+     * via env variable JYTHON_HOME=jy_home or JYTHONPATH=jy_home/Lib:... or
      * jython-standalone.jar should be in the classpath
      * 
      * Left in for now as we don't have paths to include other scripts in a
@@ -217,8 +218,9 @@ public class TestScriptUDF{
                 "def getEnv(envkey):" ,
                 " return os.getenv(envkey);"
         };
+        String userenv = Shell.WINDOWS?"USERNAME":"USER";
         String[] input = {
-                "USER",
+                userenv,
                 "PATH"
         };
 

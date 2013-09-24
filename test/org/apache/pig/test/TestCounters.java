@@ -36,9 +36,10 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.tools.pigstats.InputStats;
-import org.apache.pig.tools.pigstats.JobStats;
+import org.apache.pig.tools.pigstats.JobStatsBase;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
+import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
 import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -95,9 +96,9 @@ public class TestCounters {
         System.out.println("============================================");
 
         JobGraph jg = pigStats.getJobGraph();
-        Iterator<JobStats> iter = jg.iterator();
+        Iterator<JobStatsBase> iter = jg.iterator();
         while (iter.hasNext()) {
-            JobStats js = iter.next();                    
+            MRJobStats js = (MRJobStats) iter.next();                    
 
             System.out.println("Map input records : " + js.getMapInputRecords());
             assertEquals(MAX, js.getMapInputRecords());
@@ -146,9 +147,9 @@ public class TestCounters {
         System.out.println("============================================");
 
         JobGraph jp = pigStats.getJobGraph();
-        Iterator<JobStats> iter = jp.iterator();
+        Iterator<JobStatsBase> iter = jp.iterator();
         while (iter.hasNext()) {
-            JobStats js = iter.next();
+            MRJobStats js = (MRJobStats) iter.next();
         
             System.out.println("Map input records : " + js.getMapInputRecords());
             assertEquals(MAX, js.getMapInputRecords());
@@ -205,9 +206,9 @@ public class TestCounters {
         System.out.println("============================================");
 
         JobGraph jp = pigStats.getJobGraph();
-        Iterator<JobStats> iter = jp.iterator();
+        Iterator<JobStatsBase> iter = jp.iterator();
         while (iter.hasNext()) {
-            JobStats js = iter.next();
+            MRJobStats js = (MRJobStats) iter.next();
             System.out.println("Map input records : " + js.getMapInputRecords());
             assertEquals(MAX, js.getMapInputRecords());
             System.out.println("Map output records : " + js.getMapOutputRecords());
@@ -263,9 +264,9 @@ public class TestCounters {
         System.out.println("============================================");
 
         JobGraph jp = pigStats.getJobGraph();
-        Iterator<JobStats> iter = jp.iterator();
+        Iterator<JobStatsBase> iter = jp.iterator();
         while (iter.hasNext()) {
-            JobStats js = iter.next();
+            MRJobStats js = (MRJobStats) iter.next();
             System.out.println("Map input records : " + js.getMapInputRecords());
             assertEquals(MAX, js.getMapInputRecords());
             System.out.println("Map output records : " + js.getMapOutputRecords());
@@ -321,9 +322,9 @@ public class TestCounters {
         System.out.println("============================================");
         
         JobGraph jp = pigStats.getJobGraph();
-        Iterator<JobStats> iter = jp.iterator();
+        Iterator<JobStatsBase> iter = jp.iterator();
         while (iter.hasNext()) {
-            JobStats js = iter.next();
+            MRJobStats js = (MRJobStats) iter.next();
             System.out.println("Map input records : " + js.getMapInputRecords());
             assertEquals(MAX, js.getMapInputRecords());
             System.out.println("Map output records : " + js.getMapOutputRecords());
@@ -380,9 +381,9 @@ public class TestCounters {
         System.out.println("============================================");
  
         JobGraph jp = pigStats.getJobGraph();
-        Iterator<JobStats> iter = jp.iterator();
+        Iterator<JobStatsBase> iter = jp.iterator();
         while (iter.hasNext()) {
-            JobStats js = iter.next();
+            MRJobStats js = (MRJobStats) iter.next();
             System.out.println("Map input records : " + js.getMapInputRecords());
             assertEquals(MAX, js.getMapInputRecords());
             System.out.println("Map output records : " + js.getMapOutputRecords());
@@ -439,7 +440,7 @@ public class TestCounters {
         System.out.println("============================================");
         
         JobGraph jp = pigStats.getJobGraph();
-        JobStats js = (JobStats)jp.getSinks().get(0);
+        MRJobStats js = (MRJobStats)jp.getSinks().get(0);
         
         System.out.println("Job id: " + js.getName());
         System.out.println(jp.toString());
@@ -483,7 +484,7 @@ public class TestCounters {
         cluster.getFileSystem().delete(new Path("/tmp/outout1"), true);
         cluster.getFileSystem().delete(new Path("/tmp/outout2"), true);
 
-        JobStats js = (JobStats)stats.getJobGraph().getSinks().get(0);
+        MRJobStats js = (MRJobStats)stats.getJobGraph().getSinks().get(0);
         
         Map<String, Long> entry = js.getMultiStoreCounters();
         long counter = 0;
@@ -531,7 +532,7 @@ public class TestCounters {
         cluster.getFileSystem().delete(new Path("/tmp/outout1"), true);
         cluster.getFileSystem().delete(new Path("/tmp/outout2"), true);
 
-        JobStats js = (JobStats)stats.getJobGraph().getSinks().get(0);
+        MRJobStats js = (MRJobStats)stats.getJobGraph().getSinks().get(0);
         
         Map<String, Long> entry = js.getMultiStoreCounters();
         long counter = 0;

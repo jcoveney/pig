@@ -66,6 +66,9 @@ NULL    : 'NULL'
 IMPORT  : 'IMPORT'
 ;
 
+REGISTER : 'REGISTER'
+;
+
 RETURNS : 'RETURNS'
 ;
 
@@ -94,6 +97,9 @@ CUBE    : 'CUBE'
 ;
 
 ROLLUP	: 'ROLLUP'
+;
+
+INVOKE  : 'INVOKE'
 ;
 
 DISTINCT : 'DISTINCT'
@@ -223,6 +229,9 @@ THROUGH : 'THROUGH'
 ;
 
 STORE : 'STORE'
+;
+
+ASSERT : 'ASSERT'
 ;
 
 MAPREDUCE : 'MAPREDUCE'
@@ -467,6 +476,9 @@ QMARK : '?'
 ;
 
 ARROBA : '@'
+;
+
+AMPERSAND : '&'
 ;
 
 FAT_ARROW : '=>'

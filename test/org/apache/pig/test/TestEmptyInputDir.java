@@ -29,8 +29,9 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.PigRunner;
-import org.apache.pig.tools.pigstats.JobStats;
+import org.apache.pig.tools.pigstats.JobStatsBase;
 import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -79,7 +80,7 @@ public class TestEmptyInputDir {
      
             assertTrue(stats.isSuccessful());
             // the sampler job has zero maps
-            JobStats js = (JobStats)stats.getJobGraph().getSources().get(0);
+            MRJobStats js = (MRJobStats)stats.getJobGraph().getSources().get(0);
             
             // This assert fails on 205 due to MAPREDUCE-3606
             if (!Util.isHadoop205()&&!Util.isHadoop1_x())
@@ -112,7 +113,7 @@ public class TestEmptyInputDir {
      
             assertTrue(stats.isSuccessful());    
             // the indexer job has zero maps
-            JobStats js = (JobStats)stats.getJobGraph().getSources().get(0);
+            MRJobStats js = (MRJobStats)stats.getJobGraph().getSources().get(0);
             
             // This assert fails on 205 due to MAPREDUCE-3606
             if (!Util.isHadoop205()&&!Util.isHadoop1_x())
@@ -146,7 +147,7 @@ public class TestEmptyInputDir {
      
             assertTrue(stats.isSuccessful());    
             // the indexer job has zero maps
-            JobStats js = (JobStats)stats.getJobGraph().getSources().get(0);
+            MRJobStats js = (MRJobStats)stats.getJobGraph().getSources().get(0);
             
             // This assert fails on 205 due to MAPREDUCE-3606
             if (!Util.isHadoop205()&&!Util.isHadoop1_x())

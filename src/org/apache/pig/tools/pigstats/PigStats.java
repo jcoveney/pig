@@ -38,8 +38,9 @@ import org.apache.pig.impl.util.SpillableMemoryManager;
 import org.apache.pig.newplan.BaseOperatorPlan;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
-import org.apache.pig.tools.pigstats.JobStats.JobState;
-import org.apache.pig.tools.pigstats.SimplePigStats.JobGraphPrinter;
+import org.apache.pig.newplan.PlanVisitor;
+import org.apache.pig.tools.pigstats.JobStatsBase.JobState;
+import org.apache.pig.tools.pigstats.mapreduce.SimplePigStats;
 
 /**
  * PigStats encapsulates the statistics collected from a running script. 
@@ -59,9 +60,13 @@ public abstract class PigStats {
     
     private String errorMessage;
     private int errorCode = -1;
+    private Throwable errorThrowable = null;
     
     public static PigStats get() {
-        if (tps.get() == null) tps.set(new SimplePigStats());
+        if (tps.get() == null) {
+            LOG.info("PigStats has not been set. Defaulting to SimplePigStats");
+            tps.set(new SimplePigStats());
+        }
         return tps.get();
     }
     
@@ -69,8 +74,8 @@ public abstract class PigStats {
         tps.set(stats);
     }
         
-    static PigStats start() {
-        tps.set(new SimplePigStats());
+    public static PigStats start(PigStats stats) {
+        tps.set(stats);
         return tps.get();
     }
     
@@ -93,6 +98,13 @@ public abstract class PigStats {
      */
     public int getErrorCode() {
         return errorCode;
+    }
+    
+    /**
+     * Returns the error code of {@link PigException}
+     */
+    public Throwable getErrorThrowable() {
+        return errorThrowable;
     }
 
     public abstract JobClient getJobClient();
@@ -201,10 +213,48 @@ public abstract class PigStats {
     void setErrorCode(int errorCode) {
         this.errorCode = errorCode;
     } 
+    
+    void setErrorThrowable(Throwable t) {
+        this.errorThrowable = t;
+    }
+    
     /**
-     * JobGraph is an {@link OperatorPlan} whose members are {@link JobStats}
+     * This class prints a JobGraph
      */
-    public static class JobGraph extends BaseOperatorPlan implements Iterable<JobStats>{
+    public static class JobGraphPrinter extends PlanVisitor {
+        
+        StringBuffer buf;
+
+        protected JobGraphPrinter(OperatorPlan plan) {
+            super(plan,
+                    new org.apache.pig.newplan.DependencyOrderWalker(
+                            plan));
+            buf = new StringBuffer();
+        }
+        
+        public void visit(JobStatsBase op) throws FrontendException {
+            buf.append(op.getJobId());
+            List<Operator> succs = plan.getSuccessors(op);
+            if (succs != null) {
+                buf.append("\t->\t");
+                for (Operator p : succs) {                  
+                    buf.append(((JobStatsBase)p).getJobId()).append(",");
+                }               
+            }
+            buf.append("\n");
+        }
+        
+        @Override
+        public String toString() {
+            buf.append("\n");
+            return buf.toString();
+        }        
+    }
+    
+    /**
+     * JobGraph is an {@link OperatorPlan} whose members are {@link JobStatsBase}
+     */
+    public static class JobGraph extends BaseOperatorPlan implements Iterable<JobStatsBase>{
                 
         @Override
         public String toString() {
@@ -224,20 +274,20 @@ public abstract class PigStats {
          * @return List<JobStats>
          */
         @SuppressWarnings("unchecked")
-        public List<JobStats> getJobList() {
+        public List<JobStatsBase> getJobList() {
             return IteratorUtils.toList(iterator());
         }
 
-        public Iterator<JobStats> iterator() {
-            return new Iterator<JobStats>() {
+        public Iterator<JobStatsBase> iterator() {
+            return new Iterator<JobStatsBase>() {
                 private Iterator<Operator> iter = getOperators();                
                 @Override
                 public boolean hasNext() {                
                     return iter.hasNext();
                 }
                 @Override
-                public JobStats next() {              
-                    return (JobStats)iter.next();
+                public JobStatsBase next() {              
+                    return (JobStatsBase)iter.next();
                 }
                 @Override
                 public void remove() {}
@@ -258,11 +308,11 @@ public abstract class PigStats {
             return false;
         }
         
-        public List<JobStats> getSuccessfulJobs() {
-            ArrayList<JobStats> lst = new ArrayList<JobStats>();
-            Iterator<JobStats> iter = iterator();
+        public List<JobStatsBase> getSuccessfulJobs() {
+            ArrayList<JobStatsBase> lst = new ArrayList<JobStatsBase>();
+            Iterator<JobStatsBase> iter = iterator();
             while (iter.hasNext()) {
-                JobStats js = iter.next();
+                JobStatsBase js = iter.next();
                 if (js.getState() == JobState.SUCCESS) {
                     lst.add(js);
                 }
@@ -271,11 +321,11 @@ public abstract class PigStats {
             return lst;
         }
         
-        public List<JobStats> getFailedJobs() {
-            ArrayList<JobStats> lst = new ArrayList<JobStats>();
-            Iterator<JobStats> iter = iterator();
+        public List<JobStatsBase> getFailedJobs() {
+            ArrayList<JobStatsBase> lst = new ArrayList<JobStatsBase>();
+            Iterator<JobStatsBase> iter = iterator();
             while (iter.hasNext()) {
-                JobStats js = iter.next();
+                JobStatsBase js = iter.next();
                 if (js.getState() == JobState.FAILED) {
                     lst.add(js);
                 }
@@ -284,9 +334,9 @@ public abstract class PigStats {
         }
     }    
     
-    private static class JobComparator implements Comparator<JobStats> {
+    private static class JobComparator implements Comparator<JobStatsBase> {
         @Override
-        public int compare(JobStats o1, JobStats o2) {           
+        public int compare(JobStatsBase o1, JobStatsBase o2) {           
             return o1.getJobId().compareTo(o2.getJobId());
         }       
     }    

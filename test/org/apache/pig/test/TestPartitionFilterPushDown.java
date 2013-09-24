@@ -340,6 +340,98 @@ public class TestPartitionFilterPushDown {
     }
 
     @Test
+    public void testAndORConditionPartitionKeyCol() throws Exception {
+        // Case of AND and OR
+        String q = query + "b = filter a by (srcid == 10 and dstid == 5) " +
+                "or (srcid == 11 and dstid == 6) or (srcid == 12 and dstid == 7);" +
+                "store b into 'out';";
+        test(q, Arrays.asList("srcid", "dstid"),
+                "((((srcid == 10) and (dstid == 5)) " +
+                "or ((srcid == 11) and (dstid == 6))) or ((srcid == 12) and (dstid == 7)))",
+                null);
+
+        // Additional filter on non-partition key column
+        q = query +
+                "b = filter a by ((srcid == 10 and dstid == 5) " +
+                "or (srcid == 11 and dstid == 6) or (srcid == 12 and dstid == 7)) and mrkt == 'US';" +
+                "store b into 'out';";
+        test(q, Arrays.asList("srcid", "dstid"),
+                "((((srcid == 10) and (dstid == 5)) " +
+                "or ((srcid == 11) and (dstid == 6))) or ((srcid == 12) and (dstid == 7)))",
+                "(mrkt == 'US')");
+
+        // partition key col but null condition which should not become part of
+        // the pushed down filter
+        q = query + "b = filter a by (srcid is null and dstid == 5) " +
+                "or (srcid == 11 and dstid == 6) or (srcid == 12 and dstid == 7);" +
+                "store b into 'out';";
+        test(q, Arrays.asList("srcid", "dstid"), null);
+
+        // Case of OR and AND
+        q = query +
+                "b = filter a by (mrkt == 'US' or mrkt == 'UK') and (srcid == 11 or srcid == 10);" +
+                "store b into 'out';";
+        test(q, Arrays.asList("srcid", "mrkt"),
+                "(((mrkt == 'US') or (mrkt == 'UK')) and ((srcid == 11) or (srcid == 10)))", null);
+        q = query +
+                "b = filter a by (mrkt == 'US' or mrkt == 'UK') and (srcid == 11 or srcid == 10) and dstid == 10;" +
+                "store b into 'out';";
+        test(q, Arrays.asList("srcid", "mrkt"),
+                "(((mrkt == 'US') or (mrkt == 'UK')) and ((srcid == 11) or (srcid == 10)))",
+                "(dstid == 10)");
+    }
+
+    @Test
+    public void testAndORConditionMixedCol() throws Exception {
+        // Case of AND and OR with partition key and non-partition key columns
+        String q = query + "b = filter a by (srcid == 10 and dstid == 5) " +
+                "or (srcid == 11 and dstid == 6) or (srcid == 12 and dstid == 7) " +
+                "or (srcid == 13 and dstid == 8);" +
+                "store b into 'out';";
+        test(q, Arrays.asList("srcid"), null,
+                "(((((srcid == 10) and (dstid == 5)) " +
+                "or ((srcid == 11) and (dstid == 6))) or ((srcid == 12) and (dstid == 7))) " +
+                "or ((srcid == 13) and (dstid == 8)))");
+
+        // Additional filter on a partition key column
+        q = query +
+                "b = filter a by ((srcid == 10 and dstid == 5) or (srcid == 11 and dstid == 6) " +
+                "or (srcid == 12 and dstid == 7)) and mrkt == 'US';" +
+                "store b into 'out';";
+        test(q, Arrays.asList("srcid", "mrkt"), "(mrkt == 'US')",
+                "((((srcid == 10) and (dstid == 5)) or ((srcid == 11) and (dstid == 6))) " +
+                "or ((srcid == 12) and (dstid == 7)))");
+
+        q = query + "b = filter a by (mrkt == 'US' or mrkt == 'UK') and " +
+                "((srcid == 10 and dstid == 5) or (srcid == 11 and dstid == 6) " +
+                "or (srcid == 12 and dstid == 7));" +
+                "store b into 'out';";
+        test(q, Arrays.asList("srcid", "mrkt"), "((mrkt == 'US') or (mrkt == 'UK'))",
+                "((((srcid == 10) and (dstid == 5)) or ((srcid == 11) and (dstid == 6))) " +
+                "or ((srcid == 12) and (dstid == 7)))");
+
+        // Additional filter on a non-partition key column
+        q = query +
+                "b = filter a by ((srcid == 10 and dstid == 5) or (srcid == 11 and dstid == 6) " +
+                "or (srcid == 12 and dstid == 7)) and mrkt == 'US';" +
+                "store b into 'out';";
+        test(q, Arrays.asList("srcid"), null,
+                "(((((srcid == 10) and (dstid == 5)) or ((srcid == 11) and (dstid == 6))) " +
+                "or ((srcid == 12) and (dstid == 7))) and (mrkt == 'US'))");
+
+        // Case of OR and AND
+        q = query +
+                "b = filter a by (mrkt == 'US' or mrkt == 'UK') and " +
+                "(srcid == 11 or srcid == 10) and (dstid == 5 or dstid == 6);" +
+                "store b into 'out';";
+        test(q, Arrays.asList("srcid"),
+                "((srcid == 11) or (srcid == 10))",
+                "(((mrkt == 'US') or (mrkt == 'UK')) and ((dstid == 5) or (dstid == 6)))");
+        test(q, Arrays.asList("mrkt"),
+                "((mrkt == 'US') or (mrkt == 'UK'))",
+                "(((srcid == 11) or (srcid == 10)) and ((dstid == 5) or (dstid == 6)))");
+    }
+
     public void testNegPColConditionWithNonPCol() throws Exception {
         // use of partition column condition and non partition column in
         // same condition should fail
@@ -628,6 +720,99 @@ public class TestPartitionFilterPushDown {
         test(q, Arrays.asList("srcid"), null, "(name matches 'foo*')");
     }
 
+    /**
+     * Test PIG-3395 Large filter expression makes Pig hang
+     * @throws Exception
+     */
+    @Test
+    public void testLargeAndOrCondition() throws Exception {
+        String q = query + "b = filter a by " +
+                "(srcid == 1 and mrkt == '2' and dstid == 3) " +
+                "or (srcid == 4 and mrkt == '5' and dstid == 6) " +
+                "or (srcid == 7 and mrkt == '8' and dstid == 9) " +
+                "or (srcid == 10 and mrkt == '11' and dstid == 12) " +
+                "or (srcid == 13 and mrkt == '14' and dstid == 15) " +
+                "or (srcid == 16 and mrkt == '17' and dstid == 18) " +
+                "or (srcid == 19 and mrkt == '20' and dstid == 21) " +
+                "or (srcid == 22 and mrkt == '23' and dstid == 24) " +
+                "or (srcid == 25 and mrkt == '26' and dstid == 27) " +
+                "or (srcid == 28 and mrkt == '29' and dstid == 30) " +
+                "or (srcid == 31 and mrkt == '32' and dstid == 33) " +
+                "or (srcid == 34 and mrkt == '35' and dstid == 36) " +
+                "or (srcid == 37 and mrkt == '38' and dstid == 39) " +
+                "or (srcid == 40 and mrkt == '41' and dstid == 42) " +
+                "or (srcid == 43 and mrkt == '44' and dstid == 45) " +
+                "or (srcid == 46 and mrkt == '47' and dstid == 48) " +
+                "or (srcid == 49 and mrkt == '50' and dstid == 51) " +
+                "or (srcid == 52 and mrkt == '53' and dstid == 54) " +
+                "or (srcid == 55 and mrkt == '56' and dstid == 57) " +
+                "or (srcid == 58 and mrkt == '59' and dstid == 60) " +
+                "or (srcid == 61 and mrkt == '62' and dstid == 63) " +
+                "or (srcid == 64 and mrkt == '65' and dstid == 66) " +
+                "or (srcid == 67 and mrkt == '68' and dstid == 69);" +
+                "store b into 'out';";
+        test(q, Arrays.asList("srcid", "mrkt", "dstid"),
+                "(((((((((((((((((((((((((srcid == 1) and (mrkt == '2')) and (dstid == 3)) " +
+                "or (((srcid == 4) and (mrkt == '5')) and (dstid == 6))) " +
+                "or (((srcid == 7) and (mrkt == '8')) and (dstid == 9))) " +
+                "or (((srcid == 10) and (mrkt == '11')) and (dstid == 12))) " +
+                "or (((srcid == 13) and (mrkt == '14')) and (dstid == 15))) " +
+                "or (((srcid == 16) and (mrkt == '17')) and (dstid == 18))) " +
+                "or (((srcid == 19) and (mrkt == '20')) and (dstid == 21))) " +
+                "or (((srcid == 22) and (mrkt == '23')) and (dstid == 24))) " +
+                "or (((srcid == 25) and (mrkt == '26')) and (dstid == 27))) " +
+                "or (((srcid == 28) and (mrkt == '29')) and (dstid == 30))) " +
+                "or (((srcid == 31) and (mrkt == '32')) and (dstid == 33))) " +
+                "or (((srcid == 34) and (mrkt == '35')) and (dstid == 36))) " +
+                "or (((srcid == 37) and (mrkt == '38')) and (dstid == 39))) " +
+                "or (((srcid == 40) and (mrkt == '41')) and (dstid == 42))) " +
+                "or (((srcid == 43) and (mrkt == '44')) and (dstid == 45))) " +
+                "or (((srcid == 46) and (mrkt == '47')) and (dstid == 48))) " +
+                "or (((srcid == 49) and (mrkt == '50')) and (dstid == 51))) " +
+                "or (((srcid == 52) and (mrkt == '53')) and (dstid == 54))) " +
+                "or (((srcid == 55) and (mrkt == '56')) and (dstid == 57))) " +
+                "or (((srcid == 58) and (mrkt == '59')) and (dstid == 60))) " +
+                "or (((srcid == 61) and (mrkt == '62')) and (dstid == 63))) " +
+                "or (((srcid == 64) and (mrkt == '65')) and (dstid == 66))) " +
+                "or (((srcid == 67) and (mrkt == '68')) and (dstid == 69)))",
+                null);
+    }
+
+    // UDF expression should make the entire filter be rejected
+    @Test
+    public void testAndOrConditionMixedWithUdfExpr() throws Exception {
+        String q = query + "b = filter a by " +
+                "(UPPER(name) == 'FOO')" +
+                "or (srcid == 1 and mrkt == '2' and dstid == 3) " +
+                "or (srcid == 4 and mrkt == '5' and dstid == 6) " +
+                "or (srcid == 7 and mrkt == '8' and dstid == 9);" +
+                "store b into 'out';";
+        negativeTest(q, Arrays.asList("srcid", "mrkt", "dstid"));
+    }
+
+    // Cast expression should make the entire filter be rejected
+    @Test
+    public void testAndOrConditionMixedWithCastExpr() throws Exception {
+        String q = query + "b = filter a by " +
+                "(srcid == 1 and mrkt == '2' and dstid == 3) " +
+                "or (srcid == 4 and (int)mrkt == 5 and dstid == 6) " +
+                "or (srcid == 7 and mrkt == '8' and dstid == 9);" +
+                "store b into 'out';";
+        negativeTest(q, Arrays.asList("srcid", "mrkt", "dstid"));
+    }
+
+    // Null expression should make the entire filter be rejected
+    @Test
+    public void testAndOrConditionMixedWithNullExpr() throws Exception {
+        String q = query + "b = filter a by " +
+                "(srcid == 1 and mrkt == '2' and dstid == 3) " +
+                "or (srcid == 4 and mrkt == '5' and dstid == 6) " +
+                "or (srcid == 7 and mrkt == '8' and dstid == 9) " +
+                "or (name is null);" +
+                "store b into 'out';";
+        negativeTest(q, Arrays.asList("srcid", "mrkt", "dstid"));
+    }
+
     //// helper methods ///////
 
     private PColFilterExtractor test(String query, List<String> partitionCols,
@@ -656,8 +841,8 @@ public class TestPartitionFilterPushDown {
                     pColExtractor.getPColCondition());
         } else  {
             Assert.assertEquals("Checking partition column filter:",
-                    expPartFilterString.toLowerCase(),
-                    pColExtractor.getPColCondition().toString().toLowerCase());
+                    expPartFilterString,
+                    pColExtractor.getPColCondition().toString());
         }
 
         // The getExpression() in PColFilterExtractor was written to get the
@@ -674,11 +859,25 @@ public class TestPartitionFilterPushDown {
                 String actual = pColExtractor
                         .getExpression(
                                 (LogicalExpression) filter.getFilterPlan().getSources().get(0))
-                        .toString().toLowerCase();
+                        .toString();
                 Assert.assertEquals("checking trimmed filter expression:", expFilterString, actual);
             }
         }
         return pColExtractor;
+    }
+
+    // The filter cannot be pushed down unless it meets certain conditions. In
+    // that case, PColExtractor.getPColCondition() should return null.
+    private void negativeTest(String query, List<String> partitionCols) throws Exception {
+        PigServer pigServer = new PigServer( pc );
+        LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);
+        Operator op = newLogicalPlan.getSinks().get(0);
+        LOFilter filter = (LOFilter)newLogicalPlan.getPredecessors(op).get(0);
+        PColFilterExtractor pColExtractor = new PColFilterExtractor(
+                filter.getFilterPlan(), partitionCols);
+        pColExtractor.visit();
+        Assert.assertFalse(pColExtractor.canPushDown());
+        Assert.assertNull(pColExtractor.getPColCondition());
     }
 
     private void negativeTest(String query, List<String> partitionCols,

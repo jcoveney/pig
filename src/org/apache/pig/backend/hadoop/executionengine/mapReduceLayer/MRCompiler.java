@@ -474,6 +474,7 @@ public class MRCompiler extends PhyPlanVisitor {
     private POLoad getLoad(){
         POLoad ld = new POLoad(new OperatorKey(scope,nig.getNextNodeId(scope)));
         ld.setPc(pigContext);
+        ld.setIsTmpLoad(true);
         return ld;
     }
     
@@ -1762,6 +1763,7 @@ public class MRCompiler extends PhyPlanVisitor {
             addToMap(lr);
             
             blocking(op);
+            curMROp.customPartitioner = op.getCustomPartitioner();
             
             POPackage pkg = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)));
             pkg.setKeyType(DataType.TUPLE);
@@ -2002,24 +2004,15 @@ public class MRCompiler extends PhyPlanVisitor {
                 PhysicalOperator leaf = mpLeaves.get(0);
                 if ( !curMROp.isMapDone() && !curMROp.isRankOperation() )
                 {
-                    curMROp.setIsCounterOperation(true);
-                    curMROp.setIsRowNumber(true);
-                    curMROp.setOperationID(op.getOperationID());
                     curMROp.mapPlan.addAsLeaf(op);
                 } else {
                     FileSpec fSpec = getTempFileSpec();
                     MapReduceOper prevMROper = endSingleInputPlanWithStr(fSpec);
                     MapReduceOper mrCounter = startNew(fSpec, prevMROper);
                     mrCounter.mapPlan.addAsLeaf(op);
-                    mrCounter.setIsCounterOperation(true);
-                    mrCounter.setIsRowNumber(true);
-                    mrCounter.setOperationID(op.getOperationID());
                     curMROp = mrCounter;
                 }
             } else {
-                curMROp.setIsCounterOperation(true);
-                curMROp.setIsRowNumber(false);
-                curMROp.setOperationID(op.getOperationID());
                 curMROp.reducePlan.addAsLeaf(op);
             }
 
@@ -2042,7 +2035,6 @@ public class MRCompiler extends PhyPlanVisitor {
             MapReduceOper prevMROper = endSingleInputPlanWithStr(fSpec);
 
             curMROp = startNew(fSpec, prevMROper);
-            curMROp.setOperationID(op.getOperationID());
             curMROp.mapPlan.addAsLeaf(op);
 
             phyToMROpMap.put(op, curMROp);

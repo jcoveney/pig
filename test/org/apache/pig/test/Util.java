@@ -66,6 +66,7 @@ import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -277,6 +278,19 @@ public class Util {
     }
 
     /**
+     * Helper to convert \r\n to \n for cross-platform string
+     * matching with checked-in baselines.
+     *
+     * @param origPath original string
+     * @return String  newline-standardized string
+     * @throws IOException
+     */
+    static public String standardizeNewline(String origPath)
+    {
+       return origPath.replaceAll("\r\n", "\n");
+    }
+
+    /**
      * Helper to create a temporary file with given input data for use in test cases.
      *
      * @param tmpFilenamePrefix file-name prefix
@@ -309,7 +323,8 @@ public class Util {
 	    PrintWriter pw = new PrintWriter(new OutputStreamWriter(new
 	            FileOutputStream(f), "UTF-8"));
         for (int i=0; i<inputData.length; i++){
-            pw.println(inputData[i]);
+            pw.print(inputData[i]);
+            pw.print("\n");
         }
         pw.close();
 	}
@@ -339,7 +354,8 @@ public class Util {
         FSDataOutputStream stream = fs.create(new Path(fileName));
         PrintWriter pw = new PrintWriter(new OutputStreamWriter(stream, "UTF-8"));
         for (int i=0; i<inputData.length; i++){
-            pw.println(inputData[i]);
+            pw.print(inputData[i]);
+            pw.print("\n");
         }
         pw.close();
 
@@ -847,8 +863,8 @@ public class Util {
         }
         Process cmdProc = Runtime.getRuntime().exec(cmd);
         ProcessReturnInfo pri = new ProcessReturnInfo();
-        pri.stdoutContents = getContents(cmdProc.getInputStream());
         pri.stderrContents = getContents(cmdProc.getErrorStream());
+        pri.stdoutContents = getContents(cmdProc.getInputStream());
         cmdProc.waitFor();
         pri.exitCode = cmdProc.exitValue();
         return pri;
@@ -1011,12 +1027,9 @@ public class Util {
 
     public static PhysicalPlan buildPp(PigServer pigServer, String query)
     throws Exception {
-    	buildLp( pigServer, query );
-        java.lang.reflect.Method compilePp = pigServer.getClass().getDeclaredMethod("compilePp" );
-        compilePp.setAccessible(true);
-
-        return (PhysicalPlan)compilePp.invoke( pigServer );
-
+        LogicalPlan lp = buildLp( pigServer, query );
+        return ((MRExecutionEngine)pigServer.getPigContext().getExecutionEngine()).compile(lp, 
+                pigServer.getPigContext().getProperties());
     }
 
     public static LogicalPlan parse(String query, PigContext pc) throws FrontendException {
@@ -1210,7 +1223,7 @@ public class Util {
 
     public static boolean isHadoop2_0() {
         String version = org.apache.hadoop.util.VersionInfo.getVersion();
-        if (version.matches("\\b2\\.0\\..+"))
+        if (version.matches("\\b2\\.\\d\\..+"))
             return true;
         return false;
     }

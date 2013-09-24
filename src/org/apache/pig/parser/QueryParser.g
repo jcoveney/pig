@@ -39,6 +39,14 @@ tokens {
     FUNC;
     FUNC_REF;
     FUNC_EVAL;
+    INVOKE;
+    INVOKER_FUNC_EVAL;
+    IN_LHS;
+    IN_RHS;
+    CASE_COND;
+    CASE_EXPR;
+    CASE_EXPR_LHS;
+    CASE_EXPR_RHS;
     CAST_EXPR;
     COL_RANGE;
     BIN_EXPR;
@@ -90,6 +98,8 @@ import org.apache.pig.parser.PigMacro;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.google.common.base.Joiner;
 }
 
 @members {
@@ -202,6 +212,9 @@ catch(RecognitionException re) {
 query : statement* EOF -> ^( QUERY statement* )
 ;
 
+schema: field_def_list EOF
+;
+
 // STATEMENTS
 
 statement : SEMI_COLON!
@@ -210,6 +223,7 @@ statement : SEMI_COLON!
           | inline_clause SEMI_COLON!
           | import_clause SEMI_COLON!
           | realias_clause SEMI_COLON!
+          | register_clause SEMI_COLON!
           // semicolons after foreach_complex_statement are optional for backwards compatibility, but to keep
           // the grammar unambiguous if there is one then we'll parse it as a single, standalone semicolon
           // (which matches the first statement rule)
@@ -340,6 +354,9 @@ explicit_type_cast : simple_type | explicit_map_type | explicit_tuple_type_cast 
 import_clause : IMPORT^ QUOTEDSTRING
 ;
 
+register_clause : REGISTER^ QUOTEDSTRING (USING identifier_plus AS identifier_plus)?
+;
+
 define_clause : DEFINE^ IDENTIFIER ( cmd | func_clause | macro_clause)
 ;
 
@@ -365,6 +382,7 @@ op_clause : define_clause
           | union_clause
           | stream_clause
           | mr_clause
+          | assert_clause
 ;
 
 ship_clause : SHIP^ LEFT_PAREN! path_list? RIGHT_PAREN!
@@ -458,6 +476,9 @@ previous_rel : ARROBA
 ;
 
 store_clause : STORE^ rel INTO! QUOTEDSTRING ( USING! func_clause )?
+;
+
+assert_clause : ASSERT^ rel BY! cond ( COMMA! QUOTEDSTRING )?
 ;
 
 filter_clause : FILTER^ rel BY! cond
@@ -621,19 +642,41 @@ unary_cond
         // brackets, and otherwise we'll assume its an "expr" (and so
         // we'll have to strip off the BOOL_COND token the "cast_expr"
         // rule added)
-        Tree tree = (Tree)retval.getTree();
+        BaseTree tree = (BaseTree) retval.getTree();
         if(tree.getType() == BOOL_COND
         && tree.getChild(0).getType() == EXPR_IN_PAREN
         && BOOLEAN_TOKENS.contains(tree.getChild(0).getChild(0).getType())) {
             retval.tree = tree.getChild(0).getChild(0);
             adaptor.setTokenBoundaries(retval.tree, retval.start, retval.stop);
         }
+
+        // For IN expression, we clone the lhs expression (1st child of the
+        // returned tree) and insert it before every rhs expression. For example,
+        //
+        //   lhs IN (rhs1, rhs2, rhs3)
+        // =>
+        //   ^( IN lhs, rhs1, lhs, rhs2, lhs, rhs3 )
+        //
+        // Note that lhs appears three times at index 0, 2 and 4.
+        //
+        // This is needed because in LogicalPlanGenerator.g, we translate this
+        // tree to nested or expressions, and we need to construct a new
+        // LogicalExpression object per rhs expression.
+        if(tree.getType() == IN) {
+            Tree lhs = tree.getChild(0);
+            for(int i = 2; i < tree.getChildCount(); i = i + 2) {
+                tree.insertChild(i, deepCopy(lhs));
+            }
+        }
     }
     : exp1 = expr
         ( ( IS NOT? NULL -> ^( NULL $exp1 NOT? ) )
-        | ( IN LEFT_PAREN ( expr ( COMMA expr )* ) RIGHT_PAREN -> ^( IN $exp1 expr+ ) )
+        | ( IN LEFT_PAREN ( rhs_operand ( COMMA rhs_operand )* ) RIGHT_PAREN -> ^( IN ^( IN_LHS expr ) ^( IN_RHS rhs_operand )+ ) )
         | ( rel_op exp2 = expr -> ^( rel_op $exp1 $exp2 ) )
         | ( -> ^(BOOL_COND expr) ) )
+;
+
+rhs_operand : expr
 ;
 
 expr : multi_expr ( ( PLUS | MINUS )^ multi_expr )*
@@ -701,7 +744,7 @@ cast_expr
         // This is needed because in LogicalPlanGenerator.g, we translate this
         // tree to nested bincond expressions, and we need to construct a new
         // LogicalExpression object per when branch.
-        if(tree.getType() == CASE) {
+        if(tree.getType() == CASE_EXPR) {
             Tree caseExpr = tree.getChild(0);
             int childCount = tree.getChildCount();
             boolean hasElse = childCount \% 2 == 0;
@@ -717,13 +760,27 @@ cast_expr
           // careful with periods straight after the identifier, as we want those to be projections, not function
           // calls
           | col_ref_without_identifier projection*
+          | invoker_func projection*
           | identifier_plus projection*
           | identifier_plus func_name_suffix? LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN projection* -> ^( FUNC_EVAL identifier_plus func_name_suffix? real_arg* ) projection*
           | func_name_without_columns LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN projection* -> ^( FUNC_EVAL func_name_without_columns real_arg* ) projection*
-          | CASE expr WHEN expr THEN expr ( WHEN expr THEN expr )* ( ELSE expr )? END projection* -> ^( CASE expr+ ) projection*
+          | CASE ( (WHEN)=> WHEN cond THEN expr ( WHEN cond THEN expr )* ( ELSE expr )? END projection* -> ^( CASE_COND ^(WHEN cond+) ^(THEN expr+) ) projection*
+                 | expr WHEN rhs_operand THEN rhs_operand ( WHEN rhs_operand THEN rhs_operand )* ( ELSE rhs_operand )? END projection*
+                 -> ^( CASE_EXPR ^(CASE_EXPR_LHS expr) ^(CASE_EXPR_RHS rhs_operand)+ ) projection*
+                 )
           | paren_expr
           | curly_expr
           | bracket_expr
+;
+
+invoker_func
+@init {
+    String staticStr = "true";
+    List<String> packageStr = Lists.newArrayList();
+    String methodStr = null;
+}
+: INVOKE ( AMPERSAND | LEFT_PAREN real_arg { staticStr = "false"; } RIGHT_PAREN ) ( packageName=identifier_plus PERIOD { packageStr.add($packageName.text); } )* methodName=identifier_plus { methodStr=$methodName.text; } LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN
+              -> ^( INVOKER_FUNC_EVAL IDENTIFIER[Joiner.on(".").join(packageStr)] IDENTIFIER[methodStr] IDENTIFIER[staticStr] real_arg* )
 ;
 
 // now we have to deal with parentheses: in an expr, '(' can be the
@@ -820,7 +877,7 @@ projection : PERIOD ( col_ref | LEFT_PAREN col_ref ( COMMA col_ref )* RIGHT_PARE
 // for disambiguation with func_names
 col_ref_without_identifier : GROUP | DOLLARVAR
 ;
- 
+
 col_ref : col_ref_without_identifier | identifier_plus
 ;
 
@@ -918,6 +975,7 @@ nested_op_input_list : nested_op_input ( COMMA nested_op_input )*
 // extended identifier, handling the keyword and identifier conflicts. Ugly but there is no other choice.
 eid_without_columns : rel_str_op
     | IMPORT
+    | REGISTER
     | RETURNS
     | DEFINE
     | LOAD
@@ -1017,5 +1075,6 @@ reserved_identifier_whitelist : RANK
                               | THEN
                               | ELSE
                               | END
+                              | ASSERT
 ;
 

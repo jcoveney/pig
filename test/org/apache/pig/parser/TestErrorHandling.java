@@ -136,6 +136,7 @@ public class TestErrorHandling {
         } catch(FrontendException ex) {
             System.out.println( ex.getCause().getMessage() );
             Assert.assertTrue( ex.getCause().getMessage().contains( "line 2, column 0" ) );
+            Assert.assertTrue( ex.getCause().getMessage().contains( "No FileSystem for scheme: fs2you" ) );
             return;
         }
         Assert.fail( "Testcase should fail" );
@@ -240,6 +241,39 @@ public class TestErrorHandling {
         }
         Assert.fail( "Testcase should fail" );
     }
+    
+    
+    @Test //pig-2606
+    public void testNegative14() throws IOException {
+        String query = "A = load 'x'; \n" +
+                       "B = union A, A;";
+        try {
+            pig.registerQuery( query );
+        } catch(FrontendException ex) {
+            String msg = ex.getMessage();
+            System.out.println( msg );
+            Assert.assertTrue( msg.contains( "Pig does not accept same alias as input for") );
+            Assert.assertTrue( msg.contains( "UNION") );
+            return;
+        }
+        Assert.fail( "Testcase should fail" );
+    }
+    
+    @Test //pig-2606
+    public void testNegative15() throws IOException {
+        String query = "A = load 'x' as (a0, a1); \n" +
+                       "B = join A by a0, A by a1;";
+        try {
+            pig.registerQuery( query );
+        } catch(FrontendException ex) {
+            String msg = ex.getMessage();
+            System.out.println( msg );
+            Assert.assertTrue( msg.contains( "Pig does not accept same alias as input for") );
+            Assert.assertTrue( msg.contains( "JOIN") );
+            return;
+        }
+        Assert.fail( "Testcase should fail" );
+    }    
 
     @Test //pig-2267
     public void testAutomaticallyGivenSchemaName1() throws IOException{

@@ -30,9 +30,12 @@ import org.apache.pig.builtin.INDEXOF;
 import org.apache.pig.builtin.LAST_INDEX_OF;
 import org.apache.pig.builtin.REPLACE;
 import org.apache.pig.builtin.STARTSWITH;
+import org.apache.pig.builtin.ENDSWITH;
 import org.apache.pig.builtin.STRSPLIT;
 import org.apache.pig.builtin.SUBSTRING;
 import org.apache.pig.builtin.TRIM;
+import org.apache.pig.builtin.LTRIM;
+import org.apache.pig.builtin.RTRIM;
 import org.apache.pig.builtin.EqualsIgnoreCase;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
@@ -134,13 +137,57 @@ public class TestStringUDFs {
         Tuple testTuple = Util.buildTuple("nospaces");
         assertEquals("nospaces".trim(), trim.exec(testTuple));
         
-        testTuple = Util.buildTuple("spaces    ");
-        assertEquals("spaces     ".trim(), trim.exec(testTuple));
+        testTuple = Util.buildTuple("spaces right    ");
+        assertEquals("spaces right", trim.exec(testTuple));
+        
+        testTuple = Util.buildTuple("    spaces left");
+        assertEquals("spaces left", trim.exec(testTuple));
+        
+        testTuple = Util.buildTuple("    spaces both    ");
+        assertEquals("spaces both", trim.exec(testTuple));
+        
+        testTuple = TupleFactory.getInstance().newTuple();
+        assertNull(trim.exec(testTuple));
+    }
+
+    @Test
+    public void testLtrim() throws IOException {
+        LTRIM trim = new LTRIM();
+        Tuple testTuple = Util.buildTuple("nospaces");
+        assertEquals("nospaces", trim.exec(testTuple));
+        
+        testTuple = Util.buildTuple("spaces right    ");
+        assertEquals("spaces right    ", trim.exec(testTuple));
+        
+        testTuple = Util.buildTuple("    spaces left");
+        assertEquals("spaces left", trim.exec(testTuple));
+        
+        testTuple = Util.buildTuple("    spaces both    ");
+        assertEquals("spaces both    ", trim.exec(testTuple));
         
         testTuple = TupleFactory.getInstance().newTuple();
         assertNull(trim.exec(testTuple));
     }
     
+    @Test
+    public void testRtrim() throws IOException {
+        RTRIM trim = new RTRIM();
+        Tuple testTuple = Util.buildTuple("nospaces");
+        assertEquals("nospaces", trim.exec(testTuple));
+        
+        testTuple = Util.buildTuple("spaces right    ");
+        assertEquals("spaces right", trim.exec(testTuple));
+        
+        testTuple = Util.buildTuple("    spaces left");
+        assertEquals("    spaces left", trim.exec(testTuple));
+        
+        testTuple = Util.buildTuple("    spaces both    ");
+        assertEquals("    spaces both", trim.exec(testTuple));
+        
+        testTuple = TupleFactory.getInstance().newTuple();
+        assertNull(trim.exec(testTuple));
+    }
+
     @Test 
     public void testSplit() throws IOException {
         STRSPLIT splitter = new STRSPLIT();
@@ -189,8 +236,21 @@ public class TestStringUDFs {
     }
     
     @Test
+    public void testEndsWith() throws IOException {
+        ENDSWITH endsWith = new ENDSWITH();
+        Tuple testTuple1 = Util.buildTuple("foo", "bar");
+        assertFalse("String suffix should not match", endsWith.exec(testTuple1));
+        Tuple testTuple2 = Util.buildTuple("foobaz", "foo");
+        assertFalse("String suffix should not match", endsWith.exec(testTuple2));
+        Tuple testTuple3 = Util.buildTuple("foobaz", "baz");
+        assertTrue("String suffix should match", endsWith.exec(testTuple3));
+        Tuple testTuple4 = Util.buildTuple(null, "bar");
+        assertNull("Should return null", endsWith.exec(testTuple4));
+    }
+
+    @Test
     public void testEqualsIgnoreCase() throws IOException {
-    	EqualsIgnoreCase equalsIgnoreCase = new EqualsIgnoreCase ();
+        EqualsIgnoreCase equalsIgnoreCase = new EqualsIgnoreCase ();
         Tuple testTuple = Util.buildTuple("ABC","abc");
         assertEquals("Strings are NOT equalsIgnoreCase", "ABC".equalsIgnoreCase("abc"), equalsIgnoreCase.exec(testTuple));
         testTuple = Util.buildTuple("ABC", "aBC");

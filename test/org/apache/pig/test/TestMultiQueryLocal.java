@@ -38,6 +38,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTextOutputFormat;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -52,7 +53,7 @@ import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.tools.pigscript.parser.ParseException;
-import org.apache.pig.tools.pigstats.JobStats;
+import org.apache.pig.tools.pigstats.JobStatsBase;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.After;
 import org.junit.Before;
@@ -628,7 +629,7 @@ public class TestMultiQueryLocal {
 
         System.out.println("===== check physical plan =====");        
 
-        PhysicalPlan pp = myPig.getPigContext().getExecutionEngine().compile(
+        PhysicalPlan pp = ((MRExecutionEngine)myPig.getPigContext().getExecutionEngine()).compile(
                 lp, null);
 
         Assert.assertEquals(expectedRoots, pp.getRoots().size());
@@ -650,9 +651,9 @@ public class TestMultiQueryLocal {
             e.printStackTrace(System.out);
             throw new IOException(e);
         }
-        Iterator<JobStats> iter = stats.getJobGraph().iterator();
+        Iterator<JobStatsBase> iter = stats.getJobGraph().iterator();
         while (iter.hasNext()) {
-            JobStats js = iter.next();
+            JobStatsBase js = iter.next();
             failed = !js.isSuccessful();
             if (failed) {
                 break;

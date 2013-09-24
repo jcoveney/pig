@@ -28,7 +28,7 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator.OriginalLocation;
 import org.apache.pig.test.Util;
-import org.apache.pig.tools.pigstats.JobStats;
+import org.apache.pig.tools.pigstats.JobStatsBase;
 import org.junit.Test;
 
 public class TestLocationInPhysicalPlan {
@@ -49,10 +49,10 @@ public class TestLocationInPhysicalPlan {
         PigServer pigServer = new PigServer(ExecType.LOCAL);
         pigServer.setBatchOn();
         pigServer.registerQuery(
-                "A = LOAD '" + input.getAbsolutePath() + "' using PigStorage();\n"
+                "A = LOAD '" + Util.encodeEscape(input.getAbsolutePath()) + "' using PigStorage();\n"
             +  	"B = GROUP A BY $0;\n"
             + 	"A = FOREACH B GENERATE COUNT(A);\n"
-            +	"STORE A INTO '" + output.getAbsolutePath() + "';");
+            +	"STORE A INTO '" + Util.encodeEscape(output.getAbsolutePath()) + "';");
         ExecJob job = pigServer.executeBatch().get(0);
         List<OriginalLocation> originalLocations = job.getPOStore().getOriginalLocations();
         Assert.assertEquals(1, originalLocations.size());
@@ -60,7 +60,7 @@ public class TestLocationInPhysicalPlan {
         Assert.assertEquals(4, originalLocation.getLine());
         Assert.assertEquals(0, originalLocation.getOffset());
         Assert.assertEquals("A", originalLocation.getAlias());
-        JobStats jStats = (JobStats)job.getStatistics().getJobGraph().getSinks().get(0);
+        JobStatsBase jStats = (JobStatsBase)job.getStatistics().getJobGraph().getSinks().get(0);
         Assert.assertEquals("M: A[1,4],A[3,4],B[2,4] C: A[3,4],B[2,4] R: A[3,4]", jStats.getAliasLocation());
     }
 }

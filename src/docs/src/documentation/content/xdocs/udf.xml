@@ -112,7 +112,7 @@ transformation functions and include aggregate and filter functions. </p>
 6  public class UPPER extends EvalFunc&lt;String&gt;
 7  {
 8    public String exec(Tuple input) throws IOException {
-9        if (input == null || input.size() == 0)
+9        if (input == null || input.size() == 0 || input.get(0) == null)
 10            return null;
 11        try{
 12            String str = (String)input.get(0);
@@ -488,7 +488,7 @@ public class TOKENIZE extends EvalFunc&lt;DataBag&gt; {
         try {
             DataBag output = mBagFactory.newDefaultBag();
             Object o = input.get(0);
-            if ((o instanceof String)) {
+            if (!(o instanceof String)) {
                 throw new IOException("Expected input to be chararray, but  got " + o.getClass().getName());
             }
             StringTokenizer tok = new StringTokenizer((String)o, " \",()*", false);
@@ -1528,7 +1528,7 @@ b = foreach a generate myfuncs.helloworld(), myfuncs.square(3);
   
 <!-- ++++++++++++++++++++ -->
 <title>Importing Modules</title>
-<p>You can import Python modules in your Python script. Pig resolves Python dependencies recursively, which means Pig will automatically ship all dependent Python modules to the backend. Python modules should be found in the jython search path: JYTHON_HOME, JYTHON_PATH, or current directory.</p>
+<p>You can import Python modules in your Python script. Pig resolves Python dependencies recursively, which means Pig will automatically ship all dependent Python modules to the backend. Python modules should be found in the jython search path: JYTHON_HOME, JYTHONPATH, or current directory.</p>
 </section>
 
 <!-- ++++++++++++++++++++ -->

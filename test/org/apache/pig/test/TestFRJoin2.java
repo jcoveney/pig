@@ -31,9 +31,10 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.utils.TestHelper;
-import org.apache.pig.tools.pigstats.JobStats;
+import org.apache.pig.tools.pigstats.JobStatsBase;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
+import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -118,7 +119,7 @@ public class TestFRJoin2 {
             JobGraph jGraph = PigStats.get().getJobGraph();
             assertEquals(3, jGraph.size());
             // find added map-only concatenate job 
-            JobStats js = (JobStats)jGraph.getSuccessors(jGraph.getSources().get(0)).get(0);
+            MRJobStats js = (MRJobStats)jGraph.getSuccessors(jGraph.getSources().get(0)).get(0);
             assertEquals(1, js.getNumberMaps());   
             assertEquals(0, js.getNumberReduces()); 
         }
@@ -167,7 +168,7 @@ public class TestFRJoin2 {
             JobGraph jGraph = PigStats.get().getJobGraph();
             assertEquals(3, jGraph.size());
             // find added map-only concatenate job 
-            JobStats js = (JobStats)jGraph.getSuccessors(jGraph.getSources().get(0)).get(0);
+            MRJobStats js = (MRJobStats)jGraph.getSuccessors(jGraph.getSources().get(0)).get(0);
             assertEquals(1, js.getNumberMaps());   
             assertEquals(0, js.getNumberReduces()); 
             Util.checkLogFileMessage(logFile, 
@@ -308,7 +309,7 @@ public class TestFRJoin2 {
             JobGraph jGraph = PigStats.get().getJobGraph();
             assertEquals(3, jGraph.size());
             // find added map-only concatenate job 
-            JobStats js = (JobStats)jGraph.getSuccessors(jGraph.getSources().get(0)).get(0);
+            MRJobStats js = (MRJobStats)jGraph.getSuccessors(jGraph.getSources().get(0)).get(0);
             assertEquals(1, js.getNumberMaps());   
             assertEquals(0, js.getNumberReduces());   
         }

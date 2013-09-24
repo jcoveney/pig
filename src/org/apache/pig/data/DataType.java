@@ -39,8 +39,6 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-
 
 
 /**
@@ -324,6 +322,58 @@ public class DataType {
         default: return "Unknown";
         }
     }
+    
+    public static Class<?> findTypeClass(byte dt) {
+        switch (dt) {
+        case NULL:      return Void.TYPE;
+        case BOOLEAN:   return Boolean.TYPE;
+        case BYTE:      return Byte.TYPE;
+        case INTEGER:   return Integer.TYPE;
+        case BIGINTEGER:                    return BigInteger.class;
+        case BIGDECIMAL:                    return BigDecimal.class;
+        case LONG:      return Long.TYPE;
+        case FLOAT:     return Float.TYPE;
+        case DOUBLE:    return Double.TYPE;
+        case DATETIME:  return DateTime.class;
+        case BYTEARRAY: return DataByteArray.class;
+        case BIGCHARARRAY: return String.class;
+        case CHARARRAY: return String.class;
+        case MAP:       return Map.class;
+        case INTERNALMAP: return InternalMap.class;
+        case TUPLE:     return Tuple.class;
+        case BAG:       return DataBag.class;
+        case GENERIC_WRITABLECOMPARABLE: return WritableComparable.class;
+        default: throw new RuntimeException("Invalid type has no corresponding class: " + dt);
+        }
+    }
+
+    /**
+     * Get the type code from the type name 
+     * @param name Type name
+     * @return type code
+     */
+    public static byte findTypeByName(String name) {
+        if (name == null) return NULL;
+        else if ("boolean".equalsIgnoreCase(name)) return BOOLEAN;
+        else if ("byte".equalsIgnoreCase(name)) return BYTE;
+        else if ("int".equalsIgnoreCase(name)) return INTEGER;
+        else if ("biginteger".equalsIgnoreCase(name)) return BIGINTEGER;
+        else if ("bigdecimal".equalsIgnoreCase(name)) return BIGDECIMAL;
+        else if ("long".equalsIgnoreCase(name)) return LONG;
+        else if ("float".equalsIgnoreCase(name)) return FLOAT;
+        else if ("double".equalsIgnoreCase(name)) return DOUBLE;
+        else if ("datetime".equalsIgnoreCase(name)) return DATETIME;
+        else if ("bytearray".equalsIgnoreCase(name)) return BYTEARRAY;
+        else if ("bigchararray".equalsIgnoreCase(name)) return BIGCHARARRAY;
+        else if ("chararray".equalsIgnoreCase(name)) return CHARARRAY;
+        else if ("map".equalsIgnoreCase(name)) return MAP;
+        else if ("internalmap".equalsIgnoreCase(name)) return INTERNALMAP;
+        else if ("tuple".equalsIgnoreCase(name)) return TUPLE;
+        else if ("bag".equalsIgnoreCase(name)) return BAG;
+        else if ("generic_writablecomparable".equalsIgnoreCase(name)) return GENERIC_WRITABLECOMPARABLE;
+        else return UNKNOWN;
+    }
+
 
     /**
      * Determine whether the this data type is complex.
@@ -429,6 +479,17 @@ public class DataType {
     @SuppressWarnings("unchecked")
     public static int compare(Object o1, Object o2, byte dt1, byte dt2) {
         if (dt1 == dt2) {
+            if(o1 == null) {
+                if(o2 == null) {
+                    return 0;
+                } else {
+                    return -1;
+                }
+            } else {
+                if(o2 == null) {
+                    return 1;
+                }
+            }
             switch (dt1) {
             case NULL:
                 return 0;
@@ -1040,12 +1101,7 @@ public class DataType {
                 return new DateTime(((DataByteArray) o).toString());
             case CHARARRAY:
                 // the string can contain just date part or date part plus time part
-                DateTimeZone dtz = ToDate.extractDateTimeZone((String) o);
-                if (dtz == null) {
-                    return new DateTime((String) o);
-                } else {
-                    return new DateTime((String) o, dtz);
-                }
+                return ToDate.extractDateTime((String) o);
             case INTEGER:
                 return new DateTime(((Integer) o).longValue());
             case LONG:

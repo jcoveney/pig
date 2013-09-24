@@ -72,6 +72,7 @@ import org.apache.pig.builtin.KEYSET;
 import org.apache.pig.builtin.LAST_INDEX_OF;
 import org.apache.pig.builtin.LCFIRST;
 import org.apache.pig.builtin.LOWER;
+import org.apache.pig.builtin.LTRIM;
 import org.apache.pig.builtin.MapSize;
 import org.apache.pig.builtin.MilliSecondsBetween;
 import org.apache.pig.builtin.MinutesBetween;
@@ -80,6 +81,7 @@ import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.REGEX_EXTRACT;
 import org.apache.pig.builtin.REGEX_EXTRACT_ALL;
 import org.apache.pig.builtin.REPLACE;
+import org.apache.pig.builtin.RTRIM;
 import org.apache.pig.builtin.SIZE;
 import org.apache.pig.builtin.STRSPLIT;
 import org.apache.pig.builtin.SUBSTRING;
@@ -443,6 +445,16 @@ public class TestBuiltin {
         t13.set(0, new DateTime(1231290421000L));
         Long ut2 = func7.exec(t11);
         assertEquals(ut2.longValue(), 1231290421000L);
+        
+        // Null handling
+        t1.set(0, null);
+        assertEquals(func1.exec(t1), null);
+        assertEquals(func2.exec(t1), null);
+        assertEquals(func3.exec(t1), null);
+        assertEquals(func4.exec(t1), null);
+        assertEquals(func5.exec(t1), null);
+        assertEquals(func6.exec(t1), null);
+        assertEquals(func7.exec(t1), null);
     }
 
     /**
@@ -1536,7 +1548,9 @@ public class TestBuiltin {
         String inputStrUpper = "HELLO WORLD!";
         String inputStrCamel = "hello World!";
         String inputStroWitha = "Hella Warld!";
-        String inpuStrExtra = "Hello World!   ";
+        String inputStrSpaceRight = "Hello World!   ";
+        String inputStrSpaceLeft = "   Hello World!";
+        String inputStrSpaceBoth = "   Hello World!   ";
 
         List<Object> l = new LinkedList<Object>();
         l.add(inputStr);
@@ -1604,7 +1618,19 @@ public class TestBuiltin {
         assertTrue(output.equals(expected));
 
         strFunc = new TRIM();
-        input = TupleFactory.getInstance().newTuple(inpuStrExtra);
+        input = TupleFactory.getInstance().newTuple(inputStrSpaceBoth);
+        expected = inputStr;
+        output = strFunc.exec(input);
+        assertTrue(output.equals(expected));
+
+        strFunc = new LTRIM();
+        input = TupleFactory.getInstance().newTuple(inputStrSpaceLeft);
+        expected = inputStr;
+        output = strFunc.exec(input);
+        assertTrue(output.equals(expected));
+
+        strFunc = new RTRIM();
+        input = TupleFactory.getInstance().newTuple(inputStrSpaceRight);
         expected = inputStr;
         output = strFunc.exec(input);
         assertTrue(output.equals(expected));
@@ -2751,6 +2777,19 @@ public class TestBuiltin {
         assertEquals(week.intValue(), 15);
         week = func9.exec(t2);
         assertEquals(week.intValue(), 15);
+        
+        // Null handling
+        t1.set(0, null);
+        assertEquals(func1.exec(t1), null);
+        assertEquals(func2.exec(t1), null);
+        assertEquals(func3.exec(t1), null);
+        assertEquals(func4.exec(t1), null);
+        assertEquals(func5.exec(t1), null);
+        assertEquals(func6.exec(t1), null);
+        assertEquals(func7.exec(t1), null);
+        assertEquals(func8.exec(t1), null);
+        assertEquals(func9.exec(t1), null);
+        
     }
 
 }

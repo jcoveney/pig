@@ -31,8 +31,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 
-import junit.framework.Assert;
-
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
@@ -45,6 +43,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -52,6 +51,7 @@ import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.test.utils.Identity;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -555,7 +555,7 @@ public class TestEvalPipeline2 {
     // See PIG-282
     @Test
     public void testCustomPartitionerGroups() throws Exception{
-    	String[] input = {
+        String[] input = {
                 "1\t1",
                 "2\t1",
                 "3\t1",
@@ -567,37 +567,76 @@ public class TestEvalPipeline2 {
         
         // It should be noted that for a map reduce job, the total number of partitions 
         // is the same as the number of reduce tasks for the job. Hence we need to find a case wherein 
-        // we will get more than one reduce job so that we can use the partitioner. 	
+        // we will get more than one reduce job so that we can use the partitioner.
         // The following logic assumes that we get 2 reduce jobs, so that we can hard-code the logic.
+        // SimpleCustomPartitioner3 simply returns '1' (second reducer) for all inputs when
+        // partition number is bigger than 1.
         //
-        pigServer.registerQuery("B = group A by $0 PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 2;");
+        pigServer.registerQuery("B = group A by $0 PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner3 parallel 2;");
         
         pigServer.store("B", "tmp_testCustomPartitionerGroups");
         
         new File("tmp_testCustomPartitionerGroups").mkdir();
         
-        // SimpleCustomPartitioner partitions as per the parity of the key
-        // Need to change this in SimpleCustomPartitioner is changed
         Util.copyFromClusterToLocal(cluster, "tmp_testCustomPartitionerGroups/part-r-00000", "tmp_testCustomPartitionerGroups/part-r-00000");
         BufferedReader reader = new BufferedReader(new FileReader("tmp_testCustomPartitionerGroups/part-r-00000"));
- 	    String line = null;      	     
- 	    while((line = reader.readLine()) != null) {
- 	        String[] cols = line.split("\t");
- 	        int value = Integer.parseInt(cols[0]) % 2;
- 	        Assert.assertEquals(0, value);
- 	    }
- 	    Util.copyFromClusterToLocal(cluster, "tmp_testCustomPartitionerGroups/part-r-00001", "tmp_testCustomPartitionerGroups/part-r-00001");
+        String line = null;
+        while((line = reader.readLine()) != null) {
+            Assert.fail("Partition 0 should be empty.  Most likely Custom Partitioner was not used.");
+        }
+        Util.copyFromClusterToLocal(cluster, "tmp_testCustomPartitionerGroups/part-r-00001", "tmp_testCustomPartitionerGroups/part-r-00001");
         reader = new BufferedReader(new FileReader("tmp_testCustomPartitionerGroups/part-r-00001"));
- 	    line = null;      	     
- 	    while((line = reader.readLine()) != null) {
- 	        String[] cols = line.split("\t");
- 	        int value = Integer.parseInt(cols[0]) % 2;
- 	        Assert.assertEquals(1, value);
- 	    } 
+        line = null;
+        int count=0;
+        while((line = reader.readLine()) != null) {
+            //all outputs should come to partion 1 (with SimpleCustomPartitioner3)
+            count++;
+        }
+        Assert.assertEquals(4, count);
         Util.deleteDirectory(new File("tmp_testCustomPartitionerGroups"));
+        Util.deleteFile(cluster, "tmp_testCustomPartitionerGroups");
         Util.deleteFile(cluster, "table_testCustomPartitionerGroups");
     }
-    
+
+    // See PIG-3385
+    @Test
+    public void testCustomPartitionerDistinct() throws Exception{
+        String[] input = {
+                "1\t1",
+                "2\t1",
+                "1\t1",
+                "3\t1",
+                "4\t1",
+        };
+        Util.createInputFile(cluster, "table_testCustomPartitionerDistinct", input);
+
+        pigServer.registerQuery("A = LOAD 'table_testCustomPartitionerDistinct' as (a0:int, a1:int);");
+        pigServer.registerQuery("B = distinct A PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner3 parallel 2;");
+        pigServer.store("B", "tmp_testCustomPartitionerDistinct");
+
+        new File("tmp_testCustomPartitionerDistinct").mkdir();
+
+        // SimpleCustomPartitioner3 simply partition all inputs to *second* reducer
+        Util.copyFromClusterToLocal(cluster, "tmp_testCustomPartitionerDistinct/part-r-00000", "tmp_testCustomPartitionerDistinct/part-r-00000");
+        BufferedReader reader = new BufferedReader(new FileReader("tmp_testCustomPartitionerDistinct/part-r-00000"));
+        String line = null;
+        while((line = reader.readLine()) != null) {
+            Assert.fail("Partition 0 should be empty.  Most likely Custom Partitioner was not used.");
+        }
+        Util.copyFromClusterToLocal(cluster, "tmp_testCustomPartitionerDistinct/part-r-00001", "tmp_testCustomPartitionerDistinct/part-r-00001");
+        reader = new BufferedReader(new FileReader("tmp_testCustomPartitionerDistinct/part-r-00001"));
+        line = null;
+        int count=0;
+        while((line = reader.readLine()) != null) {
+            //all outputs should come to partion 1 (with SimpleCustomPartitioner3)
+            count++;
+        }
+        Assert.assertEquals(4, count);
+        Util.deleteDirectory(new File("tmp_testCustomPartitionerDistinct"));
+        Util.deleteFile(cluster, "tmp_testCustomPartitionerDistinct");
+        Util.deleteFile(cluster, "table_testCustomPartitionerDistinct");
+    }
+
     // See PIG-282
     @Test
     public void testCustomPartitionerCross() throws Exception{
@@ -839,6 +878,55 @@ public class TestEvalPipeline2 {
         Assert.assertFalse(iter.hasNext());
     }
     
+    // See PIG-3379
+    @Test
+    public void testNestedOperatorReuse() throws Exception{
+        String[] input1 = {
+        		"60000\tdv1\txuaHeartBeat",
+        		"70000\tdv2\txuaHeartBeat",
+        		"80000\tdv1\txuaPowerOff",
+        		"90000\tdv1\txuaPowerOn",
+        		"110000\tdv2\txuaHeartBeat",
+        		"120000\tdv2\txuaPowerOff",
+        		"140000\tdv2\txuaPowerOn",
+        		"150000\tdv1\txuaHeartBeat",
+        		"160000\tdv2\txuaHeartBeat",
+        		"250000\tdv1\txuaHeartBeat",
+        		"310000\tdv2\txuaPowerOff",
+        		"360000\tdv1\txuaPowerOn",
+        		"420000\tdv3\txuaHeartBeat",
+        		"450000\tdv3\txuaHeartBeat",
+        		"540000\tdv4\txuaPowerOn",
+        		"550000\tdv3\txuaHeartBeat",
+        		"560000\tdv5\txuaHeartBeat" };
+        Util.createInputFile( cluster, "table_testNestedOperatorReuse", input1 );
+        String query = "Events = LOAD 'table_testNestedOperatorReuse' AS (eventTime:long, deviceId:chararray, eventName:chararray);" +
+        		"Events = FOREACH Events GENERATE eventTime, deviceId, eventName;" +
+        		"EventsPerMinute = GROUP Events BY (eventTime / 60000);" +
+        		"EventsPerMinute = FOREACH EventsPerMinute {" +
+        		"  DistinctDevices = DISTINCT Events.deviceId;" +
+        		"  nbDevices = SIZE(DistinctDevices);" +
+        		"  DistinctDevices = FILTER Events BY eventName == 'xuaHeartBeat';" +
+        		"  nbDevicesWatching = SIZE(DistinctDevices);" +
+        		"  GENERATE $0*60000 as timeStamp, nbDevices as nbDevices, nbDevicesWatching as nbDevicesWatching;" +
+        		"}" +
+        		"EventsPerMinute = FILTER EventsPerMinute BY timeStamp >= 0  AND timeStamp < 300000;";
+
+        pigServer.registerQuery(query);
+        Iterator<Tuple> iter = pigServer.openIterator("EventsPerMinute");
+        
+        Tuple t = iter.next();
+        Assert.assertTrue( (Long)t.get(0) == 60000 && (Long)t.get(1) == 2 && (Long)t.get(2) == 3 );
+        
+        t = iter.next();
+        Assert.assertTrue( (Long)t.get(0) == 120000 && (Long)t.get(1) == 2 && (Long)t.get(2) == 2 );
+        
+        t = iter.next();
+        Assert.assertTrue( (Long)t.get(0) == 240000 && (Long)t.get(1) == 1 && (Long)t.get(2) == 1 );
+
+        Assert.assertFalse(iter.hasNext());
+    }
+
     // See PIG-1729
     @Test
     public void testDereferenceInnerPlan() throws Exception{
@@ -1524,7 +1612,9 @@ public class TestEvalPipeline2 {
         
         HashSet<String> optimizerRules = new HashSet<String>();
         optimizerRules.add("MergeForEach");
-        pigServer.getPigContext().getProperties().setProperty("pig.optimizer.rules", ObjectSerializer.serialize(optimizerRules));
+        pigServer.getPigContext().getProperties().setProperty(
+                PigImplConstants.PIG_OPTIMIZER_RULES_KEY,
+                ObjectSerializer.serialize(optimizerRules));
         
         Util.createInputFile(cluster, "table_testProjectNullBag", input1);
         pigServer.registerQuery("a = load 'table_testProjectNullBag' as (a0:bag{}, a1:int);");
@@ -1540,7 +1630,7 @@ public class TestEvalPipeline2 {
         
         Assert.assertFalse(iter.hasNext());
         
-        pigServer.getPigContext().getProperties().remove("pig.optimizer.rules");
+        pigServer.getPigContext().getProperties().remove(PigImplConstants.PIG_OPTIMIZER_RULES_KEY);
     }
     
     // See PIG-2159

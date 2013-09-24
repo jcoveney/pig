@@ -21,6 +21,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Properties;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+
+import org.joda.time.DateTime;
 
 import org.codehaus.jackson.JsonEncoding;
 import org.codehaus.jackson.JsonFactory;
@@ -45,6 +49,13 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * A JSON Pig store function.  Each Pig tuple is stored on one line (as one
@@ -145,7 +156,13 @@ public class JsonStorage extends StoreFunc implements StoreMetadata {
         
         ResourceFieldSchema[] fields = schema.getFields();
         for (int i = 0; i < fields.length; i++) {
-            writeField(json, fields[i], t.get(i));
+            int tupleLength = t.size();
+            //write col if exists in tuple, null otherwise
+            if (i < tupleLength) {
+                writeField(json, fields[i], t.get(i));
+            } else {
+                writeField(json, fields[i], null);
+            }
         }
         json.writeEndObject();
         json.close();
@@ -171,6 +188,10 @@ public class JsonStorage extends StoreFunc implements StoreMetadata {
 
         // Based on the field's type, write it out
         switch (field.getType()) {
+        case DataType.BOOLEAN:
+            json.writeBooleanField(field.getName(), (Boolean)d);
+            return;
+
         case DataType.INTEGER:
             json.writeNumberField(field.getName(), (Integer)d);
             return;
@@ -187,6 +208,10 @@ public class JsonStorage extends StoreFunc implements StoreMetadata {
             json.writeNumberField(field.getName(), (Double)d);
             return;
 
+        case DataType.DATETIME:
+            json.writeStringField(field.getName(), d.toString());
+            return;
+
         case DataType.BYTEARRAY:
             json.writeStringField(field.getName(), d.toString());
             return;
@@ -195,11 +220,22 @@ public class JsonStorage extends StoreFunc implements StoreMetadata {
             json.writeStringField(field.getName(), (String)d);
             return;
 
+        case DataType.BIGINTEGER:
+            //Since Jackson doesnt have a writeNumberField for BigInteger we
+            //have to do it manually here.
+            json.writeFieldName(field.getName());
+            json.writeNumber((BigInteger)d);
+            return;
+
+        case DataType.BIGDECIMAL:
+            json.writeNumberField(field.getName(), (BigDecimal)d);
+            return;
+
         case DataType.MAP:
             json.writeFieldName(field.getName());
             json.writeStartObject();
             for (Map.Entry<String, Object> e : ((Map<String, Object>)d).entrySet()) {
-                json.writeStringField(e.getKey(), e.getValue().toString());
+                json.writeStringField(e.getKey(), e.getValue() == null ? null : e.getValue().toString());
             }
             json.writeEndObject();
             return;

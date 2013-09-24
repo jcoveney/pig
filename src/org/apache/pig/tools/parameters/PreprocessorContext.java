@@ -23,18 +23,31 @@
 package org.apache.pig.tools.parameters;
 
 import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.util.Shell;
 
 public class PreprocessorContext {
 
-    private Hashtable<String , String> param_val ;
+    private Map<String, String> param_val;
+
+    // used internally to detect when a param is set multiple times,
+    // but it set with the same value so it's ok not to log a warning
+    private Map<String, String> param_source;
+
+    public Map<String, String> getParamVal() {
+        return param_val;
+    }
 
     private final Log log = LogFactory.getLog(getClass());
 
@@ -42,8 +55,14 @@ public class PreprocessorContext {
      * @param limit - max number of parameters. Passing
      *                smaller number only impacts performance
      */
-    public PreprocessorContext(int limit){
+    public PreprocessorContext(int limit) {
         param_val = new Hashtable<String, String> (limit);
+        param_source = new Hashtable<String, String> (limit);
+    }
+
+    public PreprocessorContext(Map<String, String> paramVal) {
+        param_val = paramVal;
+        param_source = new Hashtable<String, String>(paramVal);
     }
 
     /*
@@ -57,7 +76,7 @@ public class PreprocessorContext {
      * @param key - parameter name
      * @param val - string containing command to be executed
      */
-    public  void processShellCmd(String key, String val) {
+    public  void processShellCmd(String key, String val)  throws ParameterSubstitutionException {
         processShellCmd(key, val, true);
     }
 
@@ -68,7 +87,7 @@ public class PreprocessorContext {
      * @param key - parameter name
      * @param val - value supplied for the key
      */
-    public  void processOrdLine(String key, String val) {
+    public  void processOrdLine(String key, String val)  throws ParameterSubstitutionException {
         processOrdLine(key, val, true);
     }
 
@@ -93,17 +112,19 @@ public class PreprocessorContext {
      * @param key - parameter name
      * @param val - string containing command to be executed
      */
-    public  void processShellCmd(String key, String val, Boolean overwrite) {
+    public  void processShellCmd(String key, String val, Boolean overwrite)  throws ParameterSubstitutionException {
 
         if (param_val.containsKey(key)) {
-            if (overwrite) {
-                log.warn("Warning : Multiple values found for " + key + ". Using value " + val);
-            } else {
+            if (param_source.get(key).equals(val) || !overwrite) {
                 return;
+            } else {
+                log.warn("Warning : Multiple values found for " + key + ". Using value " + val);
             }
         }
 
-        val=val.substring(1, val.length()-1); //to remove the backticks
+        param_source.put(key, val);
+
+        val = val.substring(1, val.length()-1); //to remove the backticks
         String sub_val = substitute(val);
         sub_val = executeShellCommand(sub_val);
         param_val.put(key, sub_val);
@@ -117,17 +138,19 @@ public class PreprocessorContext {
      * @param val - value supplied for the key
      * @param overwrite - specifies whether the value should be replaced if it already exists
      */
-    public  void processOrdLine(String key, String val, Boolean overwrite) {
+    public  void processOrdLine(String key, String val, Boolean overwrite)  throws ParameterSubstitutionException {
 
         if (param_val.containsKey(key)) {
-            if (overwrite) {
-                log.warn("Warning : Multiple values found for " + key + ". Using value " + val);
-            } else {
+            if (param_source.get(key).equals(val) || !overwrite) {
                 return;
+            } else {
+                log.warn("Warning : Multiple values found for " + key + ". Using value " + val);
             }
         }
 
-        String sub_val = substitute(val);
+        param_source.put(key, val);
+
+        String sub_val = substitute(val, key);
         param_val.put(key, sub_val);
     }
 
@@ -144,12 +167,17 @@ public class PreprocessorContext {
             log.info("Executing command : " + cmd);
             // we can't use exec directly since it does not handle
             // case like foo -c "bar bar" correctly. It splits on white spaces even in presents of quotes
-            String[] cmdArgs = new String[3];
-            cmdArgs[0] = "bash";
-            cmdArgs[1] = "-c";
-            StringBuffer sb  = new StringBuffer("exec ");
-            sb.append(cmd);
-            cmdArgs[2] = sb.toString();
+            StringBuffer sb  = new StringBuffer("");
+            String[] cmdArgs;
+            if (Shell.WINDOWS) {
+                cmd = cmd.replaceAll("/", "\\\\");
+                sb.append(cmd);
+                cmdArgs = new String[]{"cmd", "/c", sb.toString() };
+            } else {
+                sb.append("exec ");
+                sb.append(cmd);
+                cmdArgs = new String[]{"bash", "-c", sb.toString() };
+            }
 
             p = Runtime.getRuntime().exec(cmdArgs);
 
@@ -210,13 +238,40 @@ public class PreprocessorContext {
         return streamData.trim();
     }
 
+    public void loadParamVal(List<String> params, List<String> paramFiles)
+                throws IOException, ParseException {
+        StringReader dummyReader = null; // ParamLoader does not have an empty contructor
+        ParamLoader paramLoader = new ParamLoader(dummyReader);
+        paramLoader.setContext(this);
+
+        if (paramFiles != null) {
+            for (String path : paramFiles) {
+                BufferedReader in = new BufferedReader(new FileReader(path));
+                paramLoader.ReInit(in);
+                while (paramLoader.Parse()) {}
+                in.close();
+            }
+        }
+        
+        if (params != null) {
+            for (String param : params) {
+                paramLoader.ReInit(new StringReader(param));
+                paramLoader.Parse();
+            }
+        }
+    }
+
     private Pattern bracketIdPattern = Pattern.compile("\\$\\{([_]*[a-zA-Z][a-zA-Z_0-9]*)\\}");
     private Pattern id_pattern = Pattern.compile("\\$([_]*[a-zA-Z][a-zA-Z_0-9]*)");
 
-    public  String substitute(String line) {
+    public String substitute(String line) throws ParameterSubstitutionException {
+        return substitute(line, null);
+    }
 
+    public  String substitute(String line, String parentKey) throws ParameterSubstitutionException {
         int index = line.indexOf('$');
-        if (index == -1)	return line;
+        if (index == -1)
+            return line;
 
         String replaced_line = line;
 
@@ -229,7 +284,13 @@ public class PreprocessorContext {
             if ( (bracketKeyMatcher.start() == 0) || (line.charAt( bracketKeyMatcher.start() - 1)) != '\\' ) {
                 key = bracketKeyMatcher.group(1);
                 if (!(param_val.containsKey(key))) {
-                    throw new RuntimeException("Undefined parameter : "+key);
+                    String message;
+                    if (parentKey == null) {
+                        message = "Undefined parameter : " + key;
+                    } else {
+                        message = "Undefined parameter : " + key + " found when trying to find the value of " + parentKey + "."; 
+                    }
+                    throw new ParameterSubstitutionException(message);
                 }
                 val = param_val.get(key);
                 if (val.contains("$")) {
@@ -250,7 +311,13 @@ public class PreprocessorContext {
             if ( (keyMatcher.start() == 0) || (line.charAt( keyMatcher.start() - 1)) != '\\' ) {
                 key = keyMatcher.group(1);
                 if (!(param_val.containsKey(key))) {
-                    throw new RuntimeException("Undefined parameter : "+key);
+                    String message;
+                    if (parentKey == null) {
+                        message = "Undefined parameter : " + key;
+                    } else {
+                        message = "Undefined parameter : " + key + " found when trying to find the value of " + parentKey + "."; 
+                    }
+                    throw new ParameterSubstitutionException(message);
                 }
                 val = param_val.get(key);
                 if (val.contains("$")) {

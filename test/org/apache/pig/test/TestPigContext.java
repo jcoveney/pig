@@ -18,7 +18,6 @@ package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,7 +28,6 @@ import java.util.Properties;
 import java.util.Random;
 
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
-import org.apache.log4j.Logger;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
@@ -43,7 +41,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestPigContext {
-    private static final Logger LOG = Logger.getLogger(TestPigContext.class);
     private static final String TMP_DIR_PROP = "/tmp/hadoop-hadoop";
     private static final String FS_NAME = "file:///";
     private static final String JOB_TRACKER = "local";
@@ -154,12 +151,13 @@ public class TestPigContext {
 
         PigContext.initializeImportList("com.xxx.udf1:com.xxx.udf2.");
         ArrayList<String> importList = PigContext.getPackageImportList();
-        assertEquals(5, importList.size());
-        assertEquals("com.xxx.udf1.", importList.get(0));
-        assertEquals("com.xxx.udf2.", importList.get(1));
-        assertEquals("", importList.get(2));
-        assertEquals("org.apache.pig.builtin.", importList.get(3));
-        assertEquals("org.apache.pig.impl.builtin.", importList.get(4));
+        assertEquals(6, importList.size());
+        assertEquals("", importList.get(0));
+        assertEquals("com.xxx.udf1.", importList.get(1));
+        assertEquals("com.xxx.udf2.", importList.get(2));
+        assertEquals("java.lang.", importList.get(3));
+        assertEquals("org.apache.pig.builtin.", importList.get(4));
+        assertEquals("org.apache.pig.impl.builtin.", importList.get(5));
 
         Object udf = PigContext.instantiateFuncFromSpec("TestUDF1");
         assertTrue(udf.getClass().toString().endsWith("com.xxx.udf1.TestUDF1"));
@@ -168,7 +166,7 @@ public class TestPigContext {
         File tmpFile = File.createTempFile("test", "txt");
         tmpFile.delete(); // don't actually want the file, just the filename
         String clusterTmpPath = Util.removeColon(tmpFile.getCanonicalPath());
-	
+
         String localInput[] = new String[LOOP_COUNT];
         Random r = new Random(1);
         int rand;
@@ -179,7 +177,7 @@ public class TestPigContext {
         Util.createInputFile(cluster, clusterTmpPath, localInput);
 
         FileLocalizer.deleteTempFiles();
-        pigServer.registerQuery("A = LOAD '" + Util.encodeEscape(tmpFile.getCanonicalPath())
+        pigServer.registerQuery("A = LOAD '" + Util.encodeEscape(clusterTmpPath)
                 + "' using TestUDF2() AS (num:chararray);");
         pigServer.registerQuery("B = foreach A generate TestUDF1(num);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
@@ -200,16 +198,17 @@ public class TestPigContext {
         PigContext pc = new PigContext(ExecType.LOCAL, getProperties());
         final int n = pc.scriptFiles.size();
         pc.addScriptFile("test/path-1824");
-        assertEquals("test/path-1824", pc.getScriptFiles().get("test/path-1824").toString());
+        assertEquals("test" + File.separator + "path-1824", pc.getScriptFiles().get("test/path-1824").toString());
         assertEquals("script files should not be populated", n, pc.scriptFiles.size());
 
         pc.addScriptFile("path-1824", "test/path-1824");
-        assertEquals("test/path-1824", pc.getScriptFiles().get("path-1824").toString());
+        assertEquals("test" + File.separator + "path-1824", pc.getScriptFiles().get("path-1824").toString());
         assertEquals("script files should not be populated", n, pc.scriptFiles.size());
 
         // last add wins when using an alias
         pc.addScriptFile("path-1824", "test/some/other/path-1824");
-        assertEquals("test/some/other/path-1824", pc.getScriptFiles().get("path-1824").toString());
+        assertEquals("test" + File.separator + "some" + File.separator + "other"
+                + File.separator + "path-1824", pc.getScriptFiles().get("path-1824").toString());
         assertEquals("script files should not be populated", n, pc.scriptFiles.size());
 
         // clean up
