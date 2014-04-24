@@ -87,6 +87,8 @@ import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.visitor.CastLineageSetter;
 import org.apache.pig.newplan.logical.visitor.ColumnAliasConversionVisitor;
+import org.apache.pig.newplan.logical.visitor.DuplicateForEachColumnRewriteVisitor;
+import org.apache.pig.newplan.logical.visitor.ImplicitSplitInsertVisitor;
 import org.apache.pig.newplan.logical.visitor.ScalarVariableValidator;
 import org.apache.pig.newplan.logical.visitor.ScalarVisitor;
 import org.apache.pig.newplan.logical.visitor.SchemaAliasVisitor;
@@ -97,11 +99,15 @@ import org.apache.pig.parser.QueryParserUtils;
 import org.apache.pig.pen.ExampleGenerator;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tools.grunt.GruntParser;
-import org.apache.pig.tools.pigstats.JobStatsBase;
+import org.apache.pig.tools.pigstats.EmptyPigStats;
+import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.ScriptState;
+import org.apache.pig.validator.BlackAndWhitelistFilter;
+import org.apache.pig.validator.BlackAndWhitelistValidator;
+import org.apache.pig.validator.PigCommandFilter;
 
 /**
  *
@@ -146,12 +152,12 @@ public class PigServer {
 
     protected final String scope = constructScope();
 
-
-    private boolean isMultiQuery = true;
     private boolean aggregateWarning = true;
 
     private boolean validateEachStatement = false;
     private boolean skipParseInRegisterForBatch = false;
+
+    private final BlackAndWhitelistFilter filter;
 
     private String constructScope() {
         // scope servers for now as a session id
@@ -216,7 +222,6 @@ public class PigServer {
         currDAG = new Graph(false);
 
         aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
-        isMultiQuery = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("opt.multiquery","true"));
 
         jobName = pigContext.getProperties().getProperty(
                 PigContext.JOB_NAME,
@@ -226,7 +231,18 @@ public class PigServer {
             pigContext.connect();
         }
 
+        this.filter = new BlackAndWhitelistFilter(this);
+
         addJarsFromProperties();
+        markPredeployedJarsFromProperties();
+
+        PigStats.start(pigContext.getExecutionEngine().instantiatePigStats());
+
+        if (ScriptState.get() == null) {
+            // If Pig was started via command line, ScriptState should have been
+            // already initialized in Main. If so, we should not overwrite it.
+            ScriptState.start(pigContext.getExecutionEngine().instantiateScriptState());
+        }
     }
 
     private void addJarsFromProperties() throws ExecException {
@@ -250,6 +266,22 @@ public class PigServer {
                             PigException.USER_ENVIRONMENT,
                             e
                     );
+                }
+            }
+        }
+    }
+
+    private void markPredeployedJarsFromProperties() throws ExecException {
+        // mark jars as predeployed from properties
+        String jar_str = pigContext.getProperties().getProperty("pig.predeployed.jars");
+
+        if(jar_str != null){
+            // Use File.pathSeparator (":" on Linux, ";" on Windows)
+            // to correctly handle path aggregates as they are represented
+            // on the Operating System.
+            for(String jar : jar_str.split(File.pathSeparator)){
+                if (jar.length() > 0) {
+                    pigContext.markJarAsPredeployed(jar);
                 }
             }
         }
@@ -300,7 +332,7 @@ public class PigServer {
         if (currDAG != null) {
             graphs.push(currDAG);
         }
-        currDAG = new Graph(isMultiQuery);
+        currDAG = new Graph(true);
     }
 
     /**
@@ -373,13 +405,7 @@ public class PigServer {
             parseAndBuild();
         }
 
-        PigStats stats = null;
-        if( !isMultiQuery ) {
-            // ignore if multiquery is off
-            stats = PigStats.get();
-        } else {
-            stats = execute();
-        }
+        PigStats stats = execute();
 
         return getJobs(stats);
     }
@@ -391,10 +417,16 @@ public class PigServer {
      */
     protected List<ExecJob> getJobs(PigStats stats) {
         LinkedList<ExecJob> jobs = new LinkedList<ExecJob>();
+        if (stats instanceof EmptyPigStats) {
+            HJob job = new HJob(HJob.JOB_STATUS.COMPLETED, pigContext, stats.result(null)
+                    .getPOStore(), null);
+            jobs.add(job);
+            return jobs;
+        }
         JobGraph jGraph = stats.getJobGraph();
-        Iterator<JobStatsBase> iter = jGraph.iterator();
+        Iterator<JobStats> iter = jGraph.iterator();
         while (iter.hasNext()) {
-            JobStatsBase js = iter.next();
+            JobStats js = iter.next();
             for (OutputStats output : js.getOutputs()) {
                 if (js.isSuccessful()) {
                     jobs.add(new HJob(HJob.JOB_STATUS.COMPLETED, pigContext, output
@@ -495,6 +527,9 @@ public class PigServer {
      * @throws IOException
      */
     public void registerJar(String name) throws IOException {
+        // Check if this operation is permitted
+        filter.validate(PigCommandFilter.Command.REGISTER);
+
         if (pigContext.hasJar(name)) {
             log.debug("Ignoring duplicate registration for jar " + name);
             return;
@@ -649,13 +684,12 @@ public class PigServer {
     public void registerScript(InputStream in, Map<String,String> params,List<String> paramsFiles) throws IOException {
         try {
             String substituted = pigContext.doParamSubstitution(in, paramMapToList(params), paramsFiles);
-            GruntParser grunt = new GruntParser(new StringReader(substituted));
+            GruntParser grunt = new GruntParser(new StringReader(substituted), this);
             grunt.setInteractive(false);
-            grunt.setParams(this);
             grunt.parseStopOnError(true);
         } catch (org.apache.pig.tools.pigscript.parser.ParseException e) {
             log.error(e.getLocalizedMessage());
-            throw new IOException(e.getCause());
+            throw new IOException(e);
         }
     }
 
@@ -960,7 +994,7 @@ public class PigServer {
 
             //check for exception
             Exception ex = null;
-            for(JobStatsBase js : stats.getJobGraph()){
+            for(JobStats js : stats.getJobGraph()){
                 if(js.getException() != null) {
                     ex = js.getException();
                 }
@@ -1018,7 +1052,6 @@ public class PigServer {
      * @param suffix Suffix of file names 
      * @throws IOException if the requested alias cannot be found.
      */
-    @SuppressWarnings("unchecked")
     public void explain(String alias,
                         String format,
                         boolean verbose,
@@ -1130,10 +1163,14 @@ public class PigServer {
      * @throws IOException
      */
     public boolean deleteFile(String filename) throws IOException {
+        // Check if this operation is permitted
+        filter.validate(PigCommandFilter.Command.RM);
+        filter.validate(PigCommandFilter.Command.RMF);
+
         ElementDescriptor elem = pigContext.getDfs().asElement(filename);
         elem.delete();
         return true;
-    }
+   }
 
     /**
      * Rename a file.
@@ -1143,6 +1180,9 @@ public class PigServer {
      * @throws IOException
      */
     public boolean renameFile(String source, String target) throws IOException {
+        // Check if this operation is permitted
+        filter.validate(PigCommandFilter.Command.MV);
+
         pigContext.rename(source, target);
         return true;
     }
@@ -1154,6 +1194,9 @@ public class PigServer {
      * @throws IOException
      */
     public boolean mkdirs(String dirs) throws IOException {
+        // Check if this operation is permitted
+        filter.validate(PigCommandFilter.Command.MKDIR);
+
         ContainerDescriptor container = pigContext.getDfs().asContainer(dirs);
         container.create();
         return true;
@@ -1166,6 +1209,9 @@ public class PigServer {
      * @throws IOException
      */
     public String[] listPaths(String dir) throws IOException {
+        // Check if this operation is permitted
+        filter.validate(PigCommandFilter.Command.LS);
+
         Collection<String> allPaths = new ArrayList<String>();
         ContainerDescriptor container = pigContext.getDfs().asContainer(dir);
         Iterator<ElementDescriptor> iter = container.iterator();
@@ -1302,16 +1348,20 @@ public class PigServer {
         return stats;
     }
 
-    private PigStats executeCompiledLogicalPlan() throws ExecException, FrontendException {
+    private PigStats executeCompiledLogicalPlan() throws ExecException,
+            FrontendException {
         // discover pig features used in this script
-        ScriptState.get().setScriptFeatures( currDAG.lp );
+        ScriptState.get().setScriptFeatures(currDAG.lp);
+
+        BlackAndWhitelistValidator validator = new BlackAndWhitelistValidator(getPigContext(), currDAG.lp);
+        validator.validate();
 
         return launchPlan(currDAG.lp, "job_pigexec_");
     }
 
     /**
-     * A common method for launching the jobs according to the physical plan
-     * @param pp The physical plan
+     * A common method for launching the jobs according to the logical plan
+     * @param lp The logical plan
      * @param jobName A String containing the job name to be used
      * @return The PigStats object
      * @throws ExecException
@@ -1368,7 +1418,7 @@ public class PigServer {
      * @return LogicalPlanData
      */
     public LogicalPlanData getLogicalPlanData() {
-	return new LogicalPlanData(currDAG.lp);
+        return new LogicalPlanData(currDAG.lp);
     }
 
     /*
@@ -1685,12 +1735,21 @@ public class PigServer {
             new SchemaAliasVisitor(lp).visit();
             new ScalarVisitor(lp, pigContext, scope).visit();
 
-            // TODO: move optimizer here from HExecuteEngine.
-            // TODO: input/output validation visitor
+            // ImplicitSplitInsertVisitor has to be called before
+            // DuplicateForEachColumnRewriteVisitor.  Detail at pig-1766
+            new ImplicitSplitInsertVisitor(lp).visit();
+
+            // DuplicateForEachColumnRewriteVisitor should be before
+            // TypeCheckingRelVisitor which does resetSchema/getSchema
+            // heavily
+            new DuplicateForEachColumnRewriteVisitor(lp).visit();
 
             CompilationMessageCollector collector = new CompilationMessageCollector() ;
 
             new TypeCheckingRelVisitor( lp, collector).visit();
+            new UnionOnSchemaSetter( lp ).visit();
+            new CastLineageSetter(lp, collector).visit();
+            new ScalarVariableValidator(lp).visit();
             if(aggregateWarning) {
                 CompilationMessageCollector.logMessages(collector, MessageType.Warning, aggregateWarning, log);
             } else {
@@ -1699,9 +1758,6 @@ public class PigServer {
                 }
             }
 
-            new UnionOnSchemaSetter( lp ).visit();
-            new CastLineageSetter(lp, collector).visit();
-            new ScalarVariableValidator(lp).visit();
         }
 
         private void postProcess() throws IOException {

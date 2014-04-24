@@ -24,6 +24,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.TIPStatus;
+import org.apache.hadoop.mapred.TaskReport;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.hadoop.mapreduce.ContextFactory;
@@ -109,4 +111,22 @@ public class HadoopShims {
     public static Counters getCounters(Job job) throws IOException, InterruptedException {
         return new Counters(job.getJob().getCounters());
     }
+    
+    public static boolean isJobFailed(TaskReport report) {
+        return report.getCurrentStatus()==TIPStatus.FAILED;
+    }
+    
+    public static void unsetConf(Configuration conf, String key) {
+        conf.unset(key);
+    }
+    
+    /**
+     * Fetch mode needs to explicitly set the task id which is otherwise done by Hadoop 
+     * @param conf
+     * @param taskAttemptID
+     */
+    public static void setTaskAttemptId(Configuration conf, TaskAttemptID taskAttemptID) {
+        conf.setInt("mapreduce.job.application.attempt.id", taskAttemptID.getId());
+    }
+    
 }

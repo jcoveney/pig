@@ -19,6 +19,7 @@ package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
@@ -45,6 +46,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
@@ -84,6 +86,7 @@ import org.apache.pig.test.utils.TestHelper;
 import org.joda.time.DateTimeZone;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -251,6 +254,7 @@ public class TestStore {
             String[] flds = line.split("\t",-1);
             Tuple t = new DefaultTuple();
 
+            ResourceFieldSchema mapfs = GenRandomData.getRandMapFieldSchema();
             ResourceFieldSchema bagfs = GenRandomData.getSmallTupDataBagFieldSchema();
             ResourceFieldSchema tuplefs = GenRandomData.getSmallTupleFieldSchema();
 
@@ -261,7 +265,7 @@ public class TestStore {
             t.append(flds[4].compareTo("")!=0 ? ps.getLoadCaster().bytesToFloat(flds[4].getBytes()) : null);
             t.append(flds[5].compareTo("")!=0 ? ps.getLoadCaster().bytesToInteger(flds[5].getBytes()) : null);
             t.append(flds[6].compareTo("")!=0 ? ps.getLoadCaster().bytesToLong(flds[6].getBytes()) : null);
-            t.append(flds[7].compareTo("")!=0 ? ps.getLoadCaster().bytesToMap(flds[7].getBytes()) : null);
+            t.append(flds[7].compareTo("")!=0 ? ps.getLoadCaster().bytesToMap(flds[7].getBytes(), mapfs) : null);
             t.append(flds[8].compareTo("")!=0 ? ps.getLoadCaster().bytesToTuple(flds[8].getBytes(), tuplefs) : null);
             t.append(flds[9].compareTo("")!=0 ? ps.getLoadCaster().bytesToBoolean(flds[9].getBytes()) : null);
             t.append(flds[10].compareTo("")!=0 ? ps.getLoadCaster().bytesToDateTime(flds[10].getBytes()) : null);
@@ -289,6 +293,8 @@ public class TestStore {
             stringfs.setType(DataType.CHARARRAY);
             ResourceFieldSchema intfs = new ResourceFieldSchema();
             intfs.setType(DataType.INTEGER);
+            ResourceFieldSchema bytefs = new ResourceFieldSchema();
+            bytefs.setType(DataType.BYTEARRAY);
 
             ResourceSchema tupleSchema = new ResourceSchema();
             tupleSchema.setFields(new ResourceFieldSchema[]{stringfs, intfs});
@@ -302,6 +308,12 @@ public class TestStore {
             bagfs.setSchema(bagSchema);
             bagfs.setType(DataType.BAG);
 
+            ResourceSchema mapSchema = new ResourceSchema();
+            mapSchema.setFields(new ResourceFieldSchema[]{bytefs});
+            ResourceFieldSchema mapfs = new ResourceFieldSchema();
+            mapfs.setSchema(mapSchema);
+            mapfs.setType(DataType.MAP);
+
             t.append(flds[0].compareTo("")!=0 ? ps.getLoadCaster().bytesToBag(flds[0].getBytes(), bagfs) : null);
             t.append(flds[1].compareTo("")!=0 ? new DataByteArray(flds[1].getBytes()) : null);
             t.append(flds[2].compareTo("")!=0 ? ps.getLoadCaster().bytesToCharArray(flds[2].getBytes()) : null);
@@ -309,7 +321,7 @@ public class TestStore {
             t.append(flds[4].compareTo("")!=0 ? ps.getLoadCaster().bytesToFloat(flds[4].getBytes()) : null);
             t.append(flds[5].compareTo("")!=0 ? ps.getLoadCaster().bytesToInteger(flds[5].getBytes()) : null);
             t.append(flds[6].compareTo("")!=0 ? ps.getLoadCaster().bytesToLong(flds[6].getBytes()) : null);
-            t.append(flds[7].compareTo("")!=0 ? ps.getLoadCaster().bytesToMap(flds[7].getBytes()) : null);
+            t.append(flds[7].compareTo("")!=0 ? ps.getLoadCaster().bytesToMap(flds[7].getBytes(), mapfs) : null);
             t.append(flds[8].compareTo("")!=0 ? ps.getLoadCaster().bytesToTuple(flds[8].getBytes(), tuplefs) : null);
             t.append(flds[9].compareTo("")!=0 ? ps.getLoadCaster().bytesToBoolean(flds[9].getBytes()) : null);
             t.append(flds[10].compareTo("")!=0 ? ps.getLoadCaster().bytesToDateTime(flds[10].getBytes()) : null);
@@ -675,6 +687,86 @@ public class TestStore {
                                     execType + " mode", false,
                                     Util.exists(ps.getPigContext(), sucFile));
                         }
+                    }
+                }
+            }
+        } finally {
+            Util.deleteFile(ps.getPigContext(), TESTDIR);
+        }
+    }
+    
+    /**
+     * Test whether "part-m-00000" file is created on empty output when 
+     * {@link PigConfiguration#PIG_OUTPUT_LAZY} is set and if LazyOutputFormat is
+     * supported by Hadoop.
+     * The test covers multi store and single store case in local and mapreduce mode
+     *
+     * @throws IOException
+     */
+    @Test
+    public void testEmptyPartFileCreation() throws IOException {
+        
+        boolean isLazyOutputPresent = true;
+        try {
+            Class<?> clazz = PigContext
+                    .resolveClassName("org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat");
+            clazz.getMethod("setOutputFormatClass", Job.class, Class.class);
+        }
+        catch (Exception e) {
+            isLazyOutputPresent = false;
+        }
+        
+        //skip test if LazyOutputFormat is not supported (<= Hadoop 1.0.0)
+        Assume.assumeTrue("LazyOutputFormat couldn't be loaded, test is skipped", isLazyOutputPresent);
+        
+        PigServer ps = null;
+
+        try {
+            ExecType[] modes = new ExecType[] { ExecType.LOCAL, ExecType.MAPREDUCE};
+            String[] inputData = new String[]{"hello\tworld", "hi\tworld", "bye\tworld"};
+
+            String multiStoreScript = "a = load '"+ inputFileName + "';" +
+                    "b = filter a by $0 == 'hey';" +
+                    "c = filter a by $1 == 'globe';" +
+                    "d = limit a 2;" +
+                    "e = foreach d generate *, 'x';" +
+                    "f = filter e by $3 == 'y';" +
+                    "store b into '" + outputFileName + "_1';" +
+                    "store c into '" + outputFileName + "_2';" +
+                    "store f into '" + outputFileName + "_3';";
+
+            String singleStoreScript =  "a = load '"+ inputFileName + "';" +
+                    "b = filter a by $0 == 'hey';" +
+                    "store b into '" + outputFileName + "_1';" ;
+
+            for (ExecType execType : modes) {
+                for(boolean isMultiStore: new boolean[] { true, false}) {
+                    String script = (isMultiStore ? multiStoreScript :
+                        singleStoreScript);
+                    // since we will be switching between map red and local modes
+                    // we will need to make sure filelocalizer is reset before each
+                    // run.
+                    FileLocalizer.setInitialized(false);
+                    if(execType == ExecType.MAPREDUCE) {
+                        ps = new PigServer(ExecType.MAPREDUCE,
+                                cluster.getProperties());
+                    } else {
+                        Properties props = new Properties();
+                        props.setProperty(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
+                        ps = new PigServer(ExecType.LOCAL, props);
+                    }
+                    ps.getPigContext().getProperties().setProperty(
+                            PigConfiguration.PIG_OUTPUT_LAZY, "true");
+                    Util.deleteFile(ps.getPigContext(), TESTDIR);
+                    ps.setBatchOn();
+                    Util.createInputFile(ps.getPigContext(),
+                            inputFileName, inputData);
+                    Util.registerMultiLineQuery(ps, script);
+                    ps.executeBatch();
+                    for(int i = 1; i <= (isMultiStore ? 3 : 1); i++) {
+                        String output = "part-m-00000";
+                        assertFalse("For an empty output part-m-00000 should not exist in " +
+                                execType + " mode", Util.exists(ps.getPigContext(), output));
                     }
                 }
             }

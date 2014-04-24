@@ -26,7 +26,6 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -64,7 +63,6 @@ public class TestSecondarySort {
 
     @Before
     public void setUp() throws Exception {
-        FileLocalizer.setR(new Random());
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
 
@@ -456,6 +454,37 @@ public class TestSecondarySort {
         Util.checkQueryOutputsAfterSortRecursive(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(s));
 
         Util.deleteFile(cluster, clusterFilePath);
+    }
+    
+    @Test
+    // Once custom partitioner is used, we cannot use secondary key optimizer, see PIG-3827
+    public void testCustomPartitionerWithSort() throws Exception {
+        File tmpFile1 = Util.createTempFileDelOnExit("test", "txt");
+        PrintStream ps1 = new PrintStream(new FileOutputStream(tmpFile1));
+        ps1.println("1\t2\t3");
+        ps1.println("1\t3\t4");
+        ps1.println("1\t4\t4");
+        ps1.println("1\t2\t4");
+        ps1.println("1\t8\t4");
+        ps1.println("2\t3\t4");
+        ps1.close();
+
+        String clusterPath = Util.removeColon(tmpFile1.getCanonicalPath());
+
+        Util.copyFromLocalToCluster(cluster, tmpFile1.getCanonicalPath(), clusterPath);
+        pigServer.registerQuery("A = LOAD '" + Util.encodeEscape(clusterPath) + "' AS (a0, a1, a2);");
+        pigServer.registerQuery("B = group A by $0 PARTITION BY org.apache.pig.test.utils.WrongCustomPartitioner parallel 2;");
+        pigServer.registerQuery("C = foreach B { D = order A by a1 desc; generate group, D;};");
+        boolean captureException = false;
+        try {
+            pigServer.openIterator("C");
+        } catch (Exception e) {
+            captureException = true;
+        }
+        
+        assertTrue(captureException);
+        
+        Util.deleteFile(cluster, clusterPath);
     }
 }
 

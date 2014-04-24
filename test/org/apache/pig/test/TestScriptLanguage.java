@@ -35,17 +35,15 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.PigStatsUtilBase;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestScriptLanguage {
 
     static MiniCluster cluster = MiniCluster.buildCluster();
-    private PigServer pigServer;
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
@@ -55,11 +53,6 @@ public class TestScriptLanguage {
     @AfterClass
     public static void tearDownAfterClass() throws Exception {
         cluster.shutDown();
-    }
-
-    @Before
-    public void setUp() throws Exception {
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
 
     @After
@@ -78,6 +71,7 @@ public class TestScriptLanguage {
         String scriptName = name + "_testScript.py";
         Util.createLocalInputFile(scriptName, script);
         ScriptEngine scriptEngine = ScriptEngine.getInstance("jython");
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         Map<String, List<PigStats>> statsMap = scriptEngine.run(pigServer.getPigContext(), scriptName);
         return statsMap;
     }
@@ -665,7 +659,7 @@ public class TestScriptLanguage {
         
         createEmptyFiles(file1, file2);
         // Clear stats from previous execution
-        PigStatsUtilBase.getEmptyPigStats();
+        PigStatsUtil.getEmptyPigStats();
         
         // ExecMode.FILE
         stats = PigRunner.run(new String[] { "-f", scriptFile.getAbsolutePath(), "arg0", 

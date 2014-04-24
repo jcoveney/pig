@@ -22,8 +22,8 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
-import org.apache.pig.tools.pigstats.JobStatsBase;
+import org.apache.pig.impl.plan.OperatorPlan;
+import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
 
@@ -39,21 +39,21 @@ class SyncProgressNotificationAdaptor implements PigProgressNotificationListener
     }
 
     @Override
-    public void jobFailedNotification(String scriptId, JobStatsBase jobStats) {
+    public void jobFailedNotification(String scriptId, JobStats jobStats) {
         synchronized (listeners) {
             for (PigProgressNotificationListener listener : listeners) {
                 listener.jobFailedNotification(scriptId, jobStats);
             }
-        }        
+        }
     }
 
     @Override
-    public void jobFinishedNotification(String scriptId, JobStatsBase jobStats) {
+    public void jobFinishedNotification(String scriptId, JobStats jobStats) {
         synchronized (listeners) {
             for (PigProgressNotificationListener listener : listeners) {
                 listener.jobFinishedNotification(scriptId, jobStats);
             }
-        }        
+        }
     }
 
     @Override
@@ -62,7 +62,7 @@ class SyncProgressNotificationAdaptor implements PigProgressNotificationListener
             for (PigProgressNotificationListener listener : listeners) {
                 listener.jobStartedNotification(scriptId, assignedJobId);
             }
-        }        
+        }
     }
 
     @Override
@@ -71,7 +71,7 @@ class SyncProgressNotificationAdaptor implements PigProgressNotificationListener
             for (PigProgressNotificationListener listener : listeners) {
                 listener.jobsSubmittedNotification(scriptId, numJobsSubmitted);
             }
-        }        
+        }
     }
 
     @Override
@@ -81,11 +81,11 @@ class SyncProgressNotificationAdaptor implements PigProgressNotificationListener
             for (PigProgressNotificationListener listener : listeners) {
                 listener.launchCompletedNotification(scriptId, numJobsSucceeded);
             }
-        }        
+        }
     }
 
     @Override
-    public void initialPlanNotification(String scriptId, MROperPlan plan) {
+    public void initialPlanNotification(String scriptId, OperatorPlan<?> plan) {
         synchronized (listeners) {
             for (PigProgressNotificationListener listener : listeners) {
                 try {
@@ -105,7 +105,7 @@ class SyncProgressNotificationAdaptor implements PigProgressNotificationListener
             for (PigProgressNotificationListener listener : listeners) {
                 listener.launchStartedNotification(scriptId, numJobsToLaunch);
             }
-        }        
+        }
     }
 
     @Override
@@ -115,7 +115,7 @@ class SyncProgressNotificationAdaptor implements PigProgressNotificationListener
             for (PigProgressNotificationListener listener : listeners) {
                 listener.outputCompletedNotification(scriptId, outputStats);
             }
-        }        
+        }
     }
 
     @Override

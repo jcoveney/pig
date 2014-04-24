@@ -232,10 +232,10 @@
 
     <!-- jdiff properties -->
     <property name="jdiff.jar" value="${ivy.lib.dir}/jdiff-${jdiff.version}.jar"/>
-    <property name="xerces.jar" value="${ivy.lib.dir}/xerces-${xerces.version}.jar"/>
+    <property name="xerces.jar" value="${ivy.lib.dir}/xercesImpl-${xerces.version}.jar"/>
     <property name="jdiff.build.dir" value="${build.docs}/jdiff"/>
     <property name="jdiff.xml.dir" value="${lib.dir}/jdiff"/>
-    <property name="jdiff.stable" value="0.11.1"/>
+    <property name="jdiff.stable" value="0.12.0"/>
     <property name="jdiff.stable.javadoc" value="http://hadoop.apache.org/${name}/docs/r${jdiff.stable}/api/"/>
 
     <!-- Packaging properties -->
@@ -293,7 +293,6 @@
                 <source path="${src.dir}"/>
                 <source path="${src.gen.dir}"/>
                 <source path="${src.lib.dir}/bzip2"/>
-                <source path="${src.lib.dir}/shock"/>
                 <source path="${test.e2e.dir}/udfs/java"/>
                 <source path="${src.shims.dir}"/>
                 <source path="${src.shims.test.dir}"/>
@@ -359,7 +358,6 @@
             <include name="hadoop-*-${hadoop-common.version}.jar" if="isHadoop23"/>
             <exclude name="hadoop-hdfs-${hadoop-hdfs.version}.jar"/>
             <include name="junit-${junit.version}.jar"/>
-            <include name="jsch-${jsch.version}.jar"/>
             <include name="protobuf-java-${protobuf-java.version}.jar"/>
             <include name="commons*.jar"/>
             <include name="log4j*.jar"/>
@@ -537,7 +535,7 @@
         <echo>*** Building Main Sources ***</echo>
         <echo>*** To compile with all warnings enabled, supply -Dall.warnings=1 on command line ***</echo>
         <echo>*** Else, you will only be warned about deprecations ***</echo>
-        <compileSources sources="${src.dir};${src.gen.dir};${src.lib.dir}/shock;${src.lib.dir}/bzip2;${src.shims.dir}"
+        <compileSources sources="${src.dir};${src.gen.dir};${src.lib.dir}/bzip2;${src.shims.dir}"
             excludes="" dist="${build.classes}" cp="classpath" warnings="${javac.args.warnings}" />
         <copy todir="${build.classes}/META-INF">
             <fileset dir="${src.dir}/META-INF" includes="**"/>
@@ -653,7 +651,6 @@
                     <attribute name="Implementation-Version" value="${version}" />
                 </section>
             </manifest>
-            <fileset dir="${src.lib.dir}/shock"/>
             <fileset dir="${src.lib.dir}/bzip2"/>
             <fileset dir="${python.src.dir}"/>
         </jar>
@@ -804,7 +801,7 @@
                 <include name="org/apache/pig/test/utils/datagen/*"/>
                 <include name="org/apache/pig/test/udf/storefunc/*"/>
             </fileset>
-            <zipfileset src="${lib.dir}/sdsuLibJKD12.jar" />
+            <zipfileset src="test/perf/pigmix/lib/sdsuLibJKD12.jar" />
         </jar>
     </target>
 
@@ -970,6 +967,7 @@
 
         <copy todir="${tar.dist.dir}/lib">
             <fileset dir="${ivy.lib.dir}" includes="jython*.jar"/>
+            <fileset dir="${ivy.lib.dir}" includes="jruby*.jar"/>
         </copy>
 
         <copy file="${output.jarfile.backcompat.withouthadoop}" tofile="${tar.dist.dir}/${final.name}-withouthadoop.jar" />
@@ -993,6 +991,8 @@
         <copy todir="${tar.dist.dir}/conf" file="conf/pig.properties"/>
 
         <copy todir="${tar.dist.dir}/conf" file="conf/log4j.properties.template"/>
+
+        <copy todir="${tar.dist.dir}/conf" file="conf/test-log4j.properties"/>
 
         <copy todir="${tar.dist.dir}/src" includeEmptyDirs="true">
             <fileset dir="${src.dir}" />
@@ -1130,6 +1130,7 @@
                <pom refid="pig"/>
            <attach file="${output.jarfile.sources}" classifier="sources" />
            <attach file="${output.jarfile.javadoc}" classifier="javadoc" />
+           <attach file="${output.jarfile.core-h2}" classifier="h2" />
           </artifact:install>
          <artifact:pom file="${pigunit.pom}" id="pigunit"/>
           <artifact:install file="${pigunit.jarfile}">

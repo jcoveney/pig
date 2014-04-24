@@ -32,8 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import junit.framework.Assert;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.Counters;
@@ -41,16 +39,17 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigRunner.ReturnCode;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.tools.pigstats.InputStats;
-import org.apache.pig.tools.pigstats.JobStatsBase;
+import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.PigStatsUtilBase;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
+import org.apache.pig.tools.pigstats.EmptyPigStats;
 import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
 import org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil;
 import org.junit.AfterClass;
@@ -153,7 +152,7 @@ public class TestPigRunner {
         w.close();
         
         try {
-            String[] args = { "-Dstop.on.failure=true", "-Dopt.multiquery=false", "-Daggregate.warning=false", PIG_FILE };
+            String[] args = { "-Dstop.on.failure=true", "-Dopt.multiquery=false", "-Dopt.fetch=false", "-Daggregate.warning=false", PIG_FILE };
             PigStats stats = PigRunner.run(args, new TestNotificationListener());
      
             assertTrue(stats.isSuccessful());
@@ -165,12 +164,42 @@ public class TestPigRunner {
             assertEquals(3, stats.getRecordWritten());       
             
             assertEquals("A,B,C",
-                    ((JobStatsBase)stats.getJobGraph().getSinks().get(0)).getAlias());
+                    ((JobStats)stats.getJobGraph().getSinks().get(0)).getAlias());
             
             Configuration conf = ConfigurationUtil.toConfiguration(stats.getPigProperties());
             assertTrue(conf.getBoolean("stop.on.failure", false));           
             assertTrue(!conf.getBoolean("aggregate.warning", true));
             assertTrue(!conf.getBoolean("opt.multiquery", true));
+            assertTrue(!conf.getBoolean("opt.fetch", true));
+        } finally {
+            new File(PIG_FILE).delete();
+            Util.deleteFile(cluster, OUTPUT_FILE);
+        }
+    }
+
+    @Test
+    public void simpleTest2() throws Exception {
+        PrintWriter w = new PrintWriter(new FileWriter(PIG_FILE));
+        w.println("A = load '" + INPUT_FILE + "' as (a0:int, a1:int, a2:int);");
+        w.println("B = filter A by a0 == 3;");
+        w.println("C = limit B 1;");
+        w.println("dump C;");
+        w.close();
+
+        try {
+            String[] args = { "-Dstop.on.failure=true", "-Dopt.multiquery=false", "-Daggregate.warning=false", PIG_FILE };
+            PigStats stats = PigRunner.run(args, new TestNotificationListener());
+
+            assertTrue(stats instanceof EmptyPigStats);
+            assertTrue(stats.isSuccessful());
+            assertEquals(0, stats.getNumberJobs());
+            assertEquals(stats.getJobGraph().size(), 0);
+
+            Configuration conf = ConfigurationUtil.toConfiguration(stats.getPigProperties());
+            assertTrue(conf.getBoolean("stop.on.failure", false));
+            assertTrue(!conf.getBoolean("aggregate.warning", true));
+            assertTrue(!conf.getBoolean("opt.multiquery", true));
+            assertTrue(conf.getBoolean("opt.fetch", true));
         } finally {
             new File(PIG_FILE).delete();
             Util.deleteFile(cluster, OUTPUT_FILE);
@@ -201,7 +230,7 @@ public class TestPigRunner {
             assertEquals(3, stats.getRecordWritten());       
             
             assertEquals("A,B,C",
-                    ((JobStatsBase)stats.getJobGraph().getSinks().get(0)).getAlias());
+                    ((JobStats)stats.getJobGraph().getSinks().get(0)).getAlias());
         } finally {
             new File(PIG_FILE).delete();
             Util.deleteFile(cluster, PIG_FILE);
@@ -224,7 +253,7 @@ public class TestPigRunner {
             assertTrue(stats.getJobGraph().size() == 4);
             assertTrue(stats.getJobGraph().getSinks().size() == 1);
             assertTrue(stats.getJobGraph().getSources().size() == 1);
-            JobStatsBase js = (JobStatsBase) stats.getJobGraph().getSinks().get(0);
+            JobStats js = (JobStats) stats.getJobGraph().getSinks().get(0);
             assertEquals(OUTPUT_FILE, js.getOutputs().get(0).getName());
             assertEquals(2, js.getOutputs().get(0).getNumberRecords());
             assertEquals(12, js.getOutputs().get(0).getBytes());
@@ -232,9 +261,9 @@ public class TestPigRunner {
             assertEquals(2, stats.getRecordWritten());
             assertEquals(12, stats.getBytesWritten());
             
-            assertEquals("A", ((JobStatsBase) stats.getJobGraph().getSources().get(
+            assertEquals("A", ((JobStats) stats.getJobGraph().getSources().get(
                     0)).getAlias());
-            assertEquals("B", ((JobStatsBase) stats.getJobGraph().getPredecessors(
+            assertEquals("B", ((JobStats) stats.getJobGraph().getPredecessors(
                     js).get(0)).getAlias());
             assertEquals("B", js.getAlias()); 
         } finally {
@@ -282,7 +311,7 @@ public class TestPigRunner {
                 }                
             }            
             assertEquals("A,B,C",
-                    ((JobStatsBase)stats.getJobGraph().getSinks().get(0)).getAlias());
+                    ((JobStats)stats.getJobGraph().getSinks().get(0)).getAlias());
         } finally {
             new File(PIG_FILE).delete();
             Util.deleteFile(cluster, OUTPUT_FILE);
@@ -333,7 +362,7 @@ public class TestPigRunner {
                 }                
             }           
             assertEquals("A,B,C,D,E",
-                    ((JobStatsBase)stats.getJobGraph().getSinks().get(0)).getAlias());
+                    ((JobStats)stats.getJobGraph().getSinks().get(0)).getAlias());
         } finally {
             new File(PIG_FILE).delete();
             Util.deleteFile(cluster, OUTPUT_FILE);
@@ -354,13 +383,13 @@ public class TestPigRunner {
         try {
             String[] args = { PIG_FILE };
             PigStats stats = PigRunner.run(args, null);
-            Iterator<JobStatsBase> iter = stats.getJobGraph().iterator();
+            Iterator<JobStats> iter = stats.getJobGraph().iterator();
             while (iter.hasNext()) {
-                 JobStatsBase js=iter.next();
+                 JobStats js=iter.next();
                  if(js.getState().name().equals("FAILED")) {
                      List<Operator> ops=stats.getJobGraph().getSuccessors(js);
                      for(Operator op : ops ) {
-                         assertEquals(((JobStatsBase)op).getState().toString(), "UNKNOWN");
+                         assertEquals(((JobStats)op).getState().toString(), "UNKNOWN");
                      }
                  }
             }
@@ -425,9 +454,9 @@ public class TestPigRunner {
             assertTrue(!stats.isSuccessful());            
             assertTrue(stats.getReturnCode() == ReturnCode.PARTIAL_FAILURE);
             assertTrue(stats.getJobGraph().size() == 2);
-            JobStatsBase job = (JobStatsBase)stats.getJobGraph().getSources().get(0);
+            JobStats job = (JobStats)stats.getJobGraph().getSources().get(0);
             assertTrue(job.isSuccessful());
-            job = (JobStatsBase)stats.getJobGraph().getSinks().get(0);
+            job = (JobStats)stats.getJobGraph().getSinks().get(0);
             assertTrue(!job.isSuccessful());
             assertTrue(stats.getOutputStats().size() == 3);
             for (OutputStats output : stats.getOutputStats()) {
@@ -450,7 +479,7 @@ public class TestPigRunner {
         context.connect();
         for (int i=0; i<100; i++) {
             String file = FileLocalizer.getTemporaryPath(context).toString();
-            assertTrue("not a temp file: " + file, PigStatsUtilBase.isTempFile(file));
+            assertTrue("not a temp file: " + file, PigStatsUtil.isTempFile(file));
         }
     }
     
@@ -582,18 +611,12 @@ public class TestPigRunner {
         String[] args = { "-Dpig.additional.jars=pig-withouthadoop.jar",
                 "-Dmapred.job.queue.name=default",
                 "-e", "A = load '" + INPUT_FILE + "';store A into '" + OUTPUT_FILE + "';\n" };
-        PigStats stats = PigRunner.run(args, new TestNotificationListener());        
+        PigStats stats = PigRunner.run(args, new TestNotificationListener());
 
         Util.deleteFile(cluster, OUTPUT_FILE);
-        
-        java.lang.reflect.Method getPigContext = stats.getClass()
-                .getDeclaredMethod("getPigContext");
+        PigContext ctx = stats.getPigContext();
 
-        getPigContext.setAccessible(true);
-
-        PigContext ctx = (PigContext) getPigContext.invoke(stats);
-
-        Assert.assertNotNull(ctx);
+        assertNotNull(ctx);
 
         assertTrue(ctx.extraJars.contains(ClassLoader.getSystemResource("pig-withouthadoop.jar")));
         assertTrue("default", ctx.getProperties().getProperty("mapred.job.queue.name")!=null && ctx.getProperties().getProperty("mapred.job.queue.name").equals("default")||
@@ -650,8 +673,8 @@ public class TestPigRunner {
            String[] args = { "-x", "local", "-c", PIG_FILE };
            PigStats stats = PigRunner.run(args, null);
        
-           Assert.assertTrue(stats.isSuccessful());
-           Assert.assertEquals( 0, stats.getReturnCode() );
+           assertTrue(stats.isSuccessful());
+           assertEquals( 0, stats.getReturnCode() );
         } finally {
             new File(PIG_FILE).delete();
             Util.deleteFile(cluster, OUTPUT_FILE);
@@ -916,7 +939,7 @@ public class TestPigRunner {
             int successfulJobs = 0;
             Iterator<Operator> it = stats.getJobGraph().getOperators();
             while (it.hasNext()){
-                JobStatsBase js = (JobStatsBase)it.next();
+                JobStats js = (JobStats)it.next();
                 if (js.isSuccessful())
                     successfulJobs++;
             }
@@ -940,7 +963,7 @@ public class TestPigRunner {
         private static final int JobFinished = 3;
 
         @Override
-        public void initialPlanNotification(String id, MROperPlan plan) {
+        public void initialPlanNotification(String id, OperatorPlan<?> plan) {
             System.out.println("id: " + id + " planNodes: " + plan.getKeys().size());
             assertNotNull(plan);
         }
@@ -954,12 +977,12 @@ public class TestPigRunner {
         }
 
         @Override
-        public void jobFailedNotification(String id, JobStatsBase jobStats) {
+        public void jobFailedNotification(String id, JobStats jobStats) {
             System.out.println("id: " + id + " job failed: " + jobStats.getJobId());           
         }
 
         @Override
-        public void jobFinishedNotification(String id, JobStatsBase jobStats) {
+        public void jobFinishedNotification(String id, JobStats jobStats) {
             System.out.println("id: " + id + " job finished: " + jobStats.getJobId()); 
             int[] nums = numMap.get(id);
             nums[JobFinished]++;            

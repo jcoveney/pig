@@ -103,7 +103,7 @@ public class AvroStorage extends LoadFunc
     this(sn, null);
   }
 
-  private String schemaName = "record";
+  private String schemaName = "pig_output";
   private String schemaNameSpace = null;
   protected boolean allowRecursive = false;
   protected boolean doubleColonsToDoubleUnderscores = false;
@@ -131,7 +131,7 @@ public class AvroStorage extends LoadFunc
   public AvroStorage(final String sn, final String opts) {
     super();
 
-    if (sn != null) {
+    if (sn != null && sn.length() > 0) {
       try {
         Schema s = (new Schema.Parser()).parse(sn);
         // must be a valid schema
@@ -210,6 +210,7 @@ public class AvroStorage extends LoadFunc
   public final void setUDFContextSignature(final String signature) {
     udfContextSignature = signature;
     super.setUDFContextSignature(signature);
+    updateSchemaFromInputAvroSchema();
   }
 
   /**
@@ -620,16 +621,24 @@ public class AvroStorage extends LoadFunc
    */
   public final Schema getInputAvroSchema() {
     if (schema == null) {
-      String schemaString = getProperties().getProperty(INPUT_AVRO_SCHEMA);
-      if (schemaString != null) {
-        Schema s = new Schema.Parser().parse(schemaString);
-        schema = s;
-      }
+      updateSchemaFromInputAvroSchema();
     }
     return schema;
   }
 
-  /*
+  /**
+   * Utility function that gets the input avro schema from the udf
+   * properties and updates schema for this instance.
+   */
+  private final void updateSchemaFromInputAvroSchema() {
+    String schemaString = getProperties().getProperty(INPUT_AVRO_SCHEMA);
+    if (schemaString != null) {
+      Schema s = new Schema.Parser().parse(schemaString);
+      schema = s;
+    }
+  }
+
+  /**
    * @see org.apache.pig.LoadFunc#getInputFormat()
    */
   @Override

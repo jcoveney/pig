@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.pig.test;
 
 import org.apache.pig.ExecType;
@@ -96,6 +113,9 @@ public class TestJsonLoaderStorage {
     "\"m\":null" +
     "}";
 
+  private static final String jsonOutput =
+    "{\"f1\":\"18\",\"count\":3}";
+
   private Iterator<Tuple> loadJson(String input) throws IOException {
     File tempFile = File.createTempFile("json", null);
     tempFile.deleteOnExit();
@@ -103,9 +123,12 @@ public class TestJsonLoaderStorage {
     FileWriter writer = new FileWriter(tempFile);
     writer.write(input);
     writer.close();
-
+    String path = tempFile.getAbsolutePath();
+    if (Util.WINDOWS){
+      path = path.replace('\\','/');
+    }
     PigServer pigServer = new PigServer(ExecType.LOCAL);
-    pigServer.registerQuery("data = load '" + tempFile.getAbsolutePath()
+    pigServer.registerQuery("data = load '" + path
         + "' using JsonLoader('" + schema + "');");
 
     return pigServer.openIterator("data");
@@ -121,11 +144,16 @@ public class TestJsonLoaderStorage {
     FileWriter w = new FileWriter(tempInputFile);
     w.write(input);
     w.close();
-
+    String pathInputFile = tempInputFile.getAbsolutePath();
+    String pathJsonFile = tempJsonFile.getAbsolutePath();
+    if (Util.WINDOWS){
+      pathInputFile = pathInputFile.replace('\\','/');
+      pathJsonFile = pathJsonFile.replace('\\','/');
+    }
     PigServer pigServer = new PigServer(ExecType.LOCAL);
-    pigServer.registerQuery("data = load '" + tempInputFile.getAbsolutePath()
+    pigServer.registerQuery("data = load '" + pathInputFile
         + "' as (" + schema + ");");
-    pigServer.registerQuery("store data into '" + tempJsonFile.getAbsolutePath()
+    pigServer.registerQuery("store data into '" + pathJsonFile
         + "' using JsonStorage();");
 
     tempJsonFile.deleteOnExit();
@@ -257,15 +285,23 @@ public class TestJsonLoaderStorage {
     FileWriter w = new FileWriter(tempInputFile);
     w.write(rawInput);
     w.close();
+    String pattInputFile = tempInputFile.getAbsolutePath();
+    String pattJsonFile = tempJsonFile.getAbsolutePath();
+    String pattJson2File = tempJson2File.getAbsolutePath();
+    if(Util.WINDOWS){
+       pattInputFile = pattInputFile.replace('\\','/');
+       pattJsonFile = pattJsonFile.replace('\\','/');
+       pattJson2File = pattJson2File.replace('\\','/');
+    }
 
     PigServer pigServer = new PigServer(ExecType.LOCAL);
-    pigServer.registerQuery("data = load '" + tempInputFile.getAbsolutePath()
+    pigServer.registerQuery("data = load '" + pattInputFile
         + "' as (" + schema + ");");
-    pigServer.registerQuery("store data into '" + tempJsonFile.getAbsolutePath()
+    pigServer.registerQuery("store data into '" + pattJsonFile
         + "' using JsonStorage();");
-    pigServer.registerQuery("json = load '" + tempJsonFile.getAbsolutePath()
+    pigServer.registerQuery("json = load '" + pattJsonFile
         + "' using JsonLoader('" + schema + "');");
-    pigServer.registerQuery("store json into '" + tempJson2File.getAbsolutePath()
+    pigServer.registerQuery("store json into '" + pattJson2File
         + "' using JsonStorage();");
 
     tempJsonFile.deleteOnExit();
@@ -287,5 +323,54 @@ public class TestJsonLoaderStorage {
     assertEquals(1, count);
 
     br.close();
+  }
+
+  @Test
+  public void testSimpleMapSideStreaming() throws Exception {
+    PigServer pigServer = new PigServer(ExecType.LOCAL);
+    File input = Util.createInputFile("tmp", "", new String [] {"1,2,3;4,5,6,7,8",
+        "1,2,3;4,5,6,7,9",
+        "1,2,3;4,5,6,7,18"});
+    File tempJsonFile = File.createTempFile("json", "");
+    tempJsonFile.delete();
+
+    // Pig query to run
+    pigServer.registerQuery("IP = load '"+  Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext())
+        +"' using PigStorage (';') as (ID:chararray,DETAILS:chararray);");
+    pigServer.registerQuery(
+        "id_details = FOREACH IP GENERATE " +
+            "FLATTEN" +
+            "(STRSPLIT" +
+            "(ID,',',3)) AS (drop, code, transaction) ," +
+            "FLATTEN" +
+            "(STRSPLIT" +
+            "(DETAILS,',',5)) AS (lname, fname, date, price, product);");
+    pigServer.registerQuery(
+        "transactions = FOREACH id_details GENERATE $0 .. ;");
+    pigServer.registerQuery(
+        "transactionsG = group transactions by code;");
+    pigServer.registerQuery(
+        "uniqcnt  = foreach transactionsG {"+
+            "sym = transactions.product ;"+
+            "dsym =  distinct sym ;"+
+            "generate flatten(dsym.product) as f1, COUNT(dsym) as count ;" +
+            "};");
+    pigServer.store("uniqcnt", tempJsonFile.getAbsolutePath(), "JsonStorage");
+
+    BufferedReader br = new BufferedReader(new FileReader(tempJsonFile.getAbsolutePath()+ "/part-r-00000"));
+    String data = br.readLine();
+
+    assertEquals(jsonOutput, data);
+
+    String line = data;
+    int count = 0;
+    while (line != null) {
+      line = br.readLine();
+      count++;
+    }
+    assertEquals(3, count);
+
+    br.close();
+    tempJsonFile.deleteOnExit();
   }
 }

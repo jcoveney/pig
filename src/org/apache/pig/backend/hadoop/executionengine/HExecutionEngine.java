@@ -40,7 +40,8 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
-import org.apache.pig.backend.hadoop.executionengine.Launcher;
+import org.apache.pig.backend.hadoop.executionengine.fetch.FetchLauncher;
+import org.apache.pig.backend.hadoop.executionengine.fetch.FetchOptimizer;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
@@ -63,10 +64,12 @@ import org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.rules.InputOutputFileValidator;
+import org.apache.pig.newplan.logical.rules.LogicalRelationalNodeValidator;
 import org.apache.pig.newplan.logical.visitor.SortInfoSetter;
 import org.apache.pig.newplan.logical.visitor.StoreAliasSetter;
 import org.apache.pig.pen.POOptimizeDisabler;
 import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.pig.validator.BlackAndWhitelistValidator;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
@@ -76,17 +79,21 @@ public abstract class HExecutionEngine implements ExecutionEngine {
 
     private static final Log LOG = LogFactory.getLog(HExecutionEngine.class);
 
-    public static final String LOCAL = "local";
-    public static final String JOB_TRACKER_LOCATION = "mapred.job.tracker";
-    public static final String FILE_SYSTEM_LOCATION = "fs.default.name";
-    public static final String ALTERNATIVE_FILE_SYSTEM_LOCATION = "fs.defaultFS";
     public static final String HADOOP_SITE = "hadoop-site.xml";
     public static final String CORE_SITE = "core-site.xml";
     public static final String YARN_SITE = "yarn-site.xml";
+    public static final String CORE_DEFAULT_SITE = "core-default.xml";
+    public static final String MAPRED_DEFAULT_SITE = "mapred-default.xml";
+    public static final String YARN_DEFAULT_SITE = "yarn-default.xml";
+
+    public static final String JOB_TRACKER_LOCATION = "mapred.job.tracker";
+    public static final String FILE_SYSTEM_LOCATION = "fs.default.name";
+    public static final String ALTERNATIVE_FILE_SYSTEM_LOCATION = "fs.defaultFS";
+    public static final String MAPREDUCE_FRAMEWORK_NAME = "mapreduce.framework.name";
+    public static final String LOCAL = "local";
 
     protected PigContext pigContext;
     protected DataStorage ds;
-    protected JobConf jobConf;
     protected Launcher launcher;
 
     // key: the operator key from the logical plan that originated the physical plan
@@ -98,12 +105,14 @@ public abstract class HExecutionEngine implements ExecutionEngine {
     public HExecutionEngine(PigContext pigContext) {
         this.pigContext = pigContext;
         this.ds = null;
-        this.jobConf = null;
         this.logicalToPhysicalKeys = Maps.newHashMap();
     }
 
+    @Deprecated
     public JobConf getJobConf() {
-        return this.jobConf;
+        JobConf jc = new JobConf(false);
+        Utils.recomputeProperties(jc, pigContext.getProperties());
+        return jc;
     }
 
     public DataStorage getDataStorage() {
@@ -114,11 +123,53 @@ public abstract class HExecutionEngine implements ExecutionEngine {
         init(this.pigContext.getProperties());
     }
 
-    @SuppressWarnings("resource")
-    private void init(Properties properties) throws ExecException {
-        // First set the ssh socket factory
-        Utils.setSSHFactory(pigContext);
+    public JobConf getLocalConf(Properties properties) {
+        JobConf jc = new JobConf(false);
 
+        // If we are running in local mode we dont read the hadoop conf file
+        if (properties.getProperty(MAPREDUCE_FRAMEWORK_NAME) == null) {
+            jc.set(MAPREDUCE_FRAMEWORK_NAME, LOCAL);
+        }
+        jc.set(JOB_TRACKER_LOCATION, LOCAL);
+        jc.set(FILE_SYSTEM_LOCATION, "file:///");
+        jc.set(ALTERNATIVE_FILE_SYSTEM_LOCATION, "file:///");
+
+        jc.addResource(MAPRED_DEFAULT_SITE);
+        jc.addResource(YARN_DEFAULT_SITE);
+        jc.addResource(CORE_DEFAULT_SITE);
+
+        return jc;
+    }
+
+    public JobConf getExecConf(Properties properties) throws ExecException {
+        JobConf jc = null;
+        // Check existence of user provided configs
+        String isHadoopConfigsOverriden = properties.getProperty("pig.use.overriden.hadoop.configs");
+        if (isHadoopConfigsOverriden != null && isHadoopConfigsOverriden.equals("true")) {
+            jc = new JobConf(ConfigurationUtil.toConfiguration(properties));
+        } else {
+            // Check existence of hadoop-site.xml or core-site.xml in
+            // classpath if user provided confs are not being used
+            Configuration testConf = new Configuration();
+            ClassLoader cl = testConf.getClassLoader();
+            URL hadoop_site = cl.getResource(HADOOP_SITE);
+            URL core_site = cl.getResource(CORE_SITE);
+
+            if (hadoop_site == null && core_site == null) {
+                throw new ExecException(
+                        "Cannot find hadoop configurations in classpath "
+                                + "(neither hadoop-site.xml nor core-site.xml was found in the classpath)."
+                                + " If you plan to use local mode, please put -x local option in command line",
+                                4010);
+            }
+            jc = new JobConf();
+        }
+        jc.addResource("pig-cluster-hadoop-site.xml");
+        jc.addResource(YARN_SITE);
+        return jc;
+    }
+
+    private void init(Properties properties) throws ExecException {
         String cluster = null;
         String nameNode = null;
 
@@ -141,53 +192,19 @@ public abstract class HExecutionEngine implements ExecutionEngine {
 
         JobConf jc = null;
         if (!this.pigContext.getExecType().isLocal()) {
-            // Check existence of user provided configs
-            String isHadoopConfigsOverriden = properties.getProperty("pig.use.overriden.hadoop.configs");
-            if (isHadoopConfigsOverriden != null && isHadoopConfigsOverriden.equals("true")) {
-                jc = new JobConf(ConfigurationUtil.toConfiguration(properties));
-            } else {
-                // Check existence of hadoop-site.xml or core-site.xml in
-                // classpath if user provided confs are not being used
-                Configuration testConf = new Configuration();
-                ClassLoader cl = testConf.getClassLoader();
-                URL hadoop_site = cl.getResource(HADOOP_SITE);
-                URL core_site = cl.getResource(CORE_SITE);
-
-                if (hadoop_site == null && core_site == null) {
-                    throw new ExecException(
-                            "Cannot find hadoop configurations in classpath "
-                                    + "(neither hadoop-site.xml nor core-site.xml was found in the classpath)."
-                                    + " If you plan to use local mode, please put -x local option in command line",
-                            4010);
-                }
-                jc = new JobConf();
-            }
-            jc.addResource("pig-cluster-hadoop-site.xml");
-            jc.addResource(YARN_SITE);
+            jc = getExecConf(properties);
 
             // Trick to invoke static initializer of DistributedFileSystem to
             // add hdfs-default.xml into configuration
             new DistributedFileSystem();
-
-            // the method below alters the properties object by overriding the
-            // hadoop properties with the values from properties and recomputing
-            // the properties
-            Utils.recomputeProperties(jc, properties);
         } else {
-            // If we are running in local mode we dont read the hadoop conf file
-            if (properties.getProperty("mapreduce.framework.name") == null) {
-                properties.setProperty("mapreduce.framework.name", "local");
-            }
-            properties.setProperty(JOB_TRACKER_LOCATION, LOCAL);
-            properties.setProperty(FILE_SYSTEM_LOCATION, "file:///");
-            properties.setProperty(ALTERNATIVE_FILE_SYSTEM_LOCATION, "file:///");
-
-            jc = new JobConf(false);
-            jc.addResource("core-default.xml");
-            jc.addResource("mapred-default.xml");
-            jc.addResource("yarn-default.xml");
-            Utils.recomputeProperties(jc, properties);
+            jc = getLocalConf(properties);
         }
+
+        // the method below alters the properties object by overriding the
+        // hadoop properties with the values from properties and recomputing
+        // the properties
+        Utils.recomputeProperties(jc, properties);
 
         cluster = jc.get(JOB_TRACKER_LOCATION);
         nameNode = jc.get(FILE_SYSTEM_LOCATION);
@@ -218,9 +235,6 @@ public abstract class HExecutionEngine implements ExecutionEngine {
             LOG.info("Connecting to map-reduce job tracker at: "
                     + jc.get(JOB_TRACKER_LOCATION));
         }
-
-        // Set job-specific configuration knobs
-        jobConf = jc;
     }
 
     @SuppressWarnings("unchecked")
@@ -296,8 +310,14 @@ public abstract class HExecutionEngine implements ExecutionEngine {
             // Validate input/output file. Currently no validation framework in
             // new logical plan, put this validator here first.
             // We might decide to move it out to a validator framework in future
-            InputOutputFileValidator validator = new InputOutputFileValidator(
+            LogicalRelationalNodeValidator validator = new InputOutputFileValidator(
                     plan, pigContext);
+            validator.validate();
+
+            // Check for blacklist and whitelist properties and disable
+            // commands/operators accordingly. Note if a user does not
+            // specify these, Pig will work without any filters or validations
+            validator = new BlackAndWhitelistValidator(pigContext, plan);
             validator.validate();
         }
 
@@ -344,6 +364,13 @@ public abstract class HExecutionEngine implements ExecutionEngine {
 
         try {
             PhysicalPlan pp = compile(lp, pc.getProperties());
+            //if the compiled physical plan fulfills the requirements of the
+            //fetch optimizer, then further transformations / MR jobs creations are
+            //skipped; a SimpleFetchPigStats will be returned through which the result
+            //can be directly fetched from the underlying storage
+            if (FetchOptimizer.isPlanFetchable(pc, pp)) {
+                return new FetchLauncher(pc).launchPig(pp);
+            }
             return launcher.launchPig(pp, grpName, pigContext);
         } catch (ExecException e) {
             throw (ExecException) e;
@@ -358,8 +385,8 @@ public abstract class HExecutionEngine implements ExecutionEngine {
 
     public void explain(LogicalPlan lp, PigContext pc, PrintStream ps,
             String format, boolean verbose, File file, String suffix)
-            throws PlanException, VisitorException, IOException,
-            FrontendException {
+                    throws PlanException, VisitorException, IOException,
+                    FrontendException {
 
         PrintStream pps = ps;
         PrintStream eps = ps;
@@ -374,6 +401,10 @@ public abstract class HExecutionEngine implements ExecutionEngine {
             pp.explain(pps, format, verbose);
 
             MapRedUtil.checkLeafIsStore(pp, pigContext);
+            if (FetchOptimizer.isPlanFetchable(pc, pp)) {
+                new FetchLauncher(pigContext).explain(pp, pc, eps, format);
+                return;
+            }
             launcher.explain(pp, pigContext, eps, format, verbose);
         } finally {
             launcher.reset();
@@ -386,10 +417,9 @@ public abstract class HExecutionEngine implements ExecutionEngine {
     }
 
     public Properties getConfiguration() {
-        if (jobConf == null) {
-            return null;
-        }
-        return ConfigurationUtil.toProperties(jobConf);
+        Properties properties = new Properties();
+        properties.putAll(pigContext.getProperties());
+        return properties;
     }
 
     public void setConfiguration(Properties newConfiguration) throws ExecException {
@@ -399,22 +429,15 @@ public abstract class HExecutionEngine implements ExecutionEngine {
     public void setProperty(String property, String value) {
         Properties properties = pigContext.getProperties();
         properties.put(property, value);
-        Utils.recomputeProperties(jobConf, properties);
     }
 
     public ExecutableManager getExecutableManager() {
         return new HadoopExecutableManager();
     }
 
-    public void kill() throws BackendException {
-        if (launcher != null) {
-            launcher.kill();
-        }
-    }
-
     public void killJob(String jobID) throws BackendException {
         if (launcher != null) {
-            launcher.killJob(jobID, jobConf);
+            launcher.killJob(jobID, getJobConf());
         }
     }
 

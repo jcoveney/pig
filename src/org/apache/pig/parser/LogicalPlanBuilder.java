@@ -99,6 +99,7 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchem
 import org.apache.pig.newplan.logical.rules.OptimizerUtils;
 import org.apache.pig.newplan.logical.visitor.ProjStarInUdfExpander;
 import org.apache.pig.newplan.logical.visitor.ProjectStarExpander;
+import org.apache.pig.newplan.logical.visitor.ResetProjectionAttachedRelationalOpVisitor;
 
 public class LogicalPlanBuilder {
 
@@ -296,6 +297,18 @@ public class LogicalPlanBuilder {
         }
         // using De Morgan's law (!A && !B) == !(A || B)
         currentExpr = new NotExpression(splitPlan, currentExpr);
+
+        try {
+            // Going through all the ProjectExpressions that were cloned
+            // and updating the attached operators from its original
+            // LOSplitOutput to to the "otherwise" LOSplitOutput
+            // (PIG-3641)
+            new ResetProjectionAttachedRelationalOpVisitor(splitPlan, op).visit();
+        } catch (FrontendException e) {
+            e.printStackTrace();
+            throw new PlanGenerationFailureException(intStream, loc, e);
+        }
+
         op.setFilterPlan(splitPlan);
         return buildOp(loc, op, alias, inputAlias, null);
     }
@@ -319,7 +332,13 @@ public class LogicalPlanBuilder {
         }
         sort.setAscendingCols( ascFlags );
         alias = buildOp( loc, sort, alias, inputAlias, null );
-        expandAndResetVisitor(loc, sort);
+        try {
+            (new ProjectStarExpander(sort.getPlan())).visit(sort);
+            (new ProjStarInUdfExpander(sort.getPlan())).visit(sort);
+            new SchemaResetter(sort.getPlan(), true).visit(sort);
+        } catch (FrontendException e ) {
+            throw new ParserValidationException( intStream, loc, e );
+        }
         return alias;
     }
 
@@ -339,7 +358,13 @@ public class LogicalPlanBuilder {
         rank.setAscendingCol(ascFlags);
 
         buildOp( loc, rank, alias, inputAlias, null );
-        expandAndResetVisitor(loc, rank);
+        try {
+            (new ProjectStarExpander(rank.getPlan())).visit(rank);
+            (new ProjStarInUdfExpander(rank.getPlan())).visit(rank);
+            new SchemaResetter(rank.getPlan(), true).visit(rank);
+        } catch (FrontendException e ) {
+            throw new ParserValidationException( intStream, loc, e );
+        }
 
         return alias;
     }
@@ -396,20 +421,16 @@ public class LogicalPlanBuilder {
         op.setInnerFlags( flags );
         op.setJoinPlans( joinPlans );
         alias = buildOp( loc, op, alias, inputAliases, partitioner );
-        expandAndResetVisitor(loc, op);
+        try {
+            (new ProjectStarExpander(op.getPlan())).visit(op);
+            (new ProjStarInUdfExpander(op.getPlan())).visit(op);
+            new SchemaResetter(op.getPlan(), true).visit(op);
+        } catch (FrontendException e ) {
+            throw new ParserValidationException( intStream, loc, e );
+        }
         return alias;
     }
 
-    private void expandAndResetVisitor(SourceLocation loc,
-	    LogicalRelationalOperator lrop) throws ParserValidationException {
-        try {
-	    (new ProjectStarExpander(lrop.getPlan())).visit();
-	    (new ProjStarInUdfExpander(lrop.getPlan())).visit();
-	    new SchemaResetter(lrop.getPlan(), true).visit();
-	} catch (FrontendException e) {
-	    throw new ParserValidationException(intStream, loc, e);
-	}
-    }
 
     LOCube createCubeOp() {
 	return new LOCube(plan);
@@ -426,7 +447,13 @@ public class LogicalPlanBuilder {
 	op.setExpressionPlans(expressionPlans);
 	op.setOperations(operations);
 	buildOp(loc, op, alias, inputAlias, null);
-	expandAndResetVisitor(loc, op);
+        try {
+            (new ProjectStarExpander(op.getPlan())).visit(op);
+            (new ProjStarInUdfExpander(op.getPlan())).visit(op);
+            new SchemaResetter(op.getPlan(), true).visit(op);
+        } catch (FrontendException e ) {
+            throw new ParserValidationException( intStream, loc, e );
+        }
 	try {
 	    alias = convertCubeToFGPlan(loc, op, inputAlias, operations, expressionPlans);
 	} catch (FrontendException e) {
@@ -822,7 +849,13 @@ public class LogicalPlanBuilder {
         op.setGroupType( gt );
         op.setInnerFlags( flags );
         alias = buildOp( loc, op, alias, inputAliases, partitioner );
-        expandAndResetVisitor(loc, op);
+        try {
+            (new ProjectStarExpander(op.getPlan())).visit(op);
+            (new ProjStarInUdfExpander(op.getPlan())).visit(op);
+            new SchemaResetter(op.getPlan(), true).visit(op);
+        } catch (FrontendException e ) {
+            throw new ParserValidationException( intStream, loc, e );
+        }
 
         return alias;
     }
@@ -948,7 +981,7 @@ public class LogicalPlanBuilder {
             ConstantExpression rhs = new ConstantExpression(exprPlan, new Boolean(false));
             BinCondExpression binCond = new BinCondExpression(exprPlan, expr, lhs, rhs);
             args.add(binCond);
-            ConstantExpression constExpr = new ConstantExpression(exprPlan, comment);
+            ConstantExpression constExpr = new ConstantExpression(exprPlan, (comment == null ? "" : comment));
             args.add(constExpr);
             UserFuncExpression udf = new UserFuncExpression(exprPlan, new FuncSpec( Assert.class.getName() ), args );
             exprPlan.add(udf);
@@ -976,7 +1009,13 @@ public class LogicalPlanBuilder {
     throws ParserValidationException {
         op.setInnerPlan( innerPlan );
         alias = buildOp( loc, op, alias, inputAlias, null );
-        expandAndResetVisitor(loc, op);
+        try {
+            (new ProjectStarExpander(op.getPlan())).visit(op);
+            (new ProjStarInUdfExpander(op.getPlan())).visit(op);
+            new SchemaResetter(op.getPlan(), true).visit(op);
+        } catch (FrontendException e ) {
+            throw new ParserValidationException( intStream, loc, e );
+        }
         return alias;
     }
 

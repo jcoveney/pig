@@ -50,13 +50,16 @@ import java.util.Properties;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.builtin.mock.Storage;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.DataType;
@@ -500,6 +503,34 @@ public class TestPigServer {
         assertEquals(expectedSchema, dumpedSchema);
     }
 
+    private void registerScalarScript(boolean useScalar, String expectedSchemaStr) throws IOException {
+        pig.registerQuery("A = load 'adata' AS (a: int, b: int);");
+        //scalar
+        pig.registerQuery("C = FOREACH A GENERATE *;");
+        String overrideScalar = useScalar ? "C = FILTER A BY b % 2 == 0; " : "";
+        pig.registerQuery("B = FOREACH (GROUP A BY a) { " +
+                overrideScalar +
+                "D = FILTER A BY b % 2 == 1;" +
+                "GENERATE group AS a, A.b AS every, C.b AS even, D.b AS odd;" +
+                "};");
+        Schema dumpedSchema = pig.dumpSchema("B");
+        Schema expectedSchema = Utils.getSchemaFromString(
+                expectedSchemaStr);
+        assertEquals(expectedSchema, dumpedSchema);
+    }
+
+    // PIG-3581
+    @Test
+    public void testScalarPrecedence() throws Throwable {
+        registerScalarScript(true, "a: int,every: {(b: int)},even: {(b: int)},odd: {(b: int)}");
+    }
+
+    // PIG-3581
+    @Test
+    public void testScalarResolution() throws Throwable {
+        registerScalarScript(false, "a: int,every: {(b: int)},even: int,odd: {(b: int)}");
+    }
+
     @Test
     public void testExplainXmlComplex() throws Throwable {
         pig.registerQuery("a = load 'a' as (site: chararray, count: int, itemCounts: bag { itemCountsTuple: tuple (type: chararray, typeCount: int, f: float, m: map[]) } ) ;") ;
@@ -507,16 +538,16 @@ public class TestPigServer {
         pig.registerQuery("c = group b by site;");
         pig.registerQuery("d = foreach c generate FLATTEN($1);");
         pig.registerQuery("e = group d by $2;");
-        
+
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
         pig.explain("e", "xml", true, false, ps, ps, null, null);
-        
+
         ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
         Document doc = dBuilder.parse(bais);
-        
+
         //Verify Logical and Physical Plans aren't supported.
         NodeList logicalPlan = doc.getElementsByTagName("logicalPlan");
         assertEquals(1, logicalPlan.getLength());
@@ -524,20 +555,20 @@ public class TestPigServer {
         NodeList physicalPlan = doc.getElementsByTagName("physicalPlan");
         assertEquals(1, physicalPlan.getLength());
         assertTrue(physicalPlan.item(0).getTextContent().contains("Not Supported"));
-        
+
         //Verify we have two loads and one is temporary
         NodeList loads = doc.getElementsByTagName("POLoad");
         assertEquals(2, loads.getLength());
-        
+
         boolean sawTempLoad = false;
         boolean sawNonTempLoad = false;
         for (int i = 0; i < loads.getLength(); i++) {
             Boolean isTempLoad = null;
             boolean hasAlias = false;
-            
+
             Node poLoad = loads.item(i);
             NodeList children = poLoad.getChildNodes();
-            
+
             for (int j = 0; j < children.getLength(); j++) {
                 Node child = children.item(j);
                 if (child.getNodeName().equals("alias")) {
@@ -551,7 +582,7 @@ public class TestPigServer {
                     }
                 }
             }
-            
+
             if (isTempLoad == null) {
                 fail("POLoad elements should have isTmpLoad child node.");
             } else if (isTempLoad && hasAlias) {
@@ -559,11 +590,11 @@ public class TestPigServer {
             } else if (!isTempLoad && !hasAlias) {
                 fail("Non temporary loads should be associated with alias.");
             }
-            
+
             sawTempLoad = sawTempLoad || isTempLoad;
             sawNonTempLoad = sawNonTempLoad || !isTempLoad;
         }
-        
+
         assertTrue(sawTempLoad && sawNonTempLoad);
     }
 
@@ -599,6 +630,25 @@ public class TestPigServer {
         assertEquals("Hello, World", t.get(0));
 
         assertFalse(iter.hasNext());
+    }
+
+    // PIG-3469
+    @Test
+    public void testNonExistingSecondDirectoryInSkewJoin() throws Exception {
+        String script =
+          "exists = LOAD 'test/org/apache/pig/test/data/InputFiles/jsTst1.txt' AS (x:chararray, a:long);" +
+          "missing = LOAD '/non/existing/directory' AS (a:long);" +
+          "missing = FOREACH ( GROUP missing BY a ) GENERATE $0 AS a, COUNT_STAR($1);" +
+          "joined = JOIN exists BY a, missing BY a USING 'skewed';" +
+          "STORE joined INTO '/tmp/test_out.tsv';";
+
+        PigServer pig = new PigServer(ExecType.LOCAL);
+        // Execution of the script should fail, but without throwing any exceptions (such as NPE)
+        try {
+            pig.registerScript(new ByteArrayInputStream(script.getBytes("UTF-8")));
+        } catch(Exception ex) {
+            fail("Unexpected exception: " + ex);
+        }
     }
 
     @Test
@@ -728,14 +778,20 @@ public class TestPigServer {
         File propertyFile = new File(tempDir, "pig.properties");
         propertyFile.deleteOnExit();
         PrintWriter out = new PrintWriter(new FileWriter(propertyFile));
-        out.println("pig.temp.dir=/opt/temp");
+        out.println(PigConfiguration.PIG_TEMP_DIR + "=/tmp/test");
         out.close();
         Properties properties = PropertiesUtil.loadDefaultProperties();
         PigContext pigContext=new PigContext(ExecType.LOCAL, properties);
         pigContext.connect();
         FileLocalizer.setInitialized(false);
         String tempPath= FileLocalizer.getTemporaryPath(pigContext).toString();
-        assertTrue(tempPath.startsWith("file:/opt/temp"));
+        assertTrue(tempPath.startsWith("file:/tmp/test/"));
+        Path path = new Path(tempPath);
+        FileSystem fs = FileSystem.get(path.toUri(),
+                ConfigurationUtil.toConfiguration(pigContext.getProperties()));
+        FileStatus status = fs.getFileStatus(path.getParent());
+        // Temporary root dir should have 700 as permission
+        assertEquals("rwx------", status.getPermission().toString());
         propertyFile.delete();
         FileLocalizer.setInitialized(false);
     }
@@ -882,9 +938,8 @@ public class TestPigServer {
             PigServer pigServer = new PigServer(pigContext);
             data = resetData(pigServer);
             data.set("foo", tuple("a", 1, "b"), tuple("b", 2, "c"), tuple("c", 3, "d"));
-            GruntParser grunt = new GruntParser(in);
+            GruntParser grunt = new GruntParser(in, pigServer);
             grunt.setInteractive(false);
-            grunt.setParams(pigServer);
             grunt.parseStopOnError(true); //not batch
         }
 

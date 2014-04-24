@@ -25,12 +25,14 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.Properties;
+import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
@@ -42,6 +44,7 @@ import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.Path;
@@ -51,6 +54,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
@@ -105,7 +109,8 @@ public class TestJobControlCompiler {
     final String testUDFFileName = className+".class";
 
     // JobControlCompiler setup
-    PigContext pigContext = new PigContext(ExecType.MAPREDUCE, new Properties());
+    PigServer pigServer = new PigServer(ExecType.MAPREDUCE);
+    PigContext pigContext = pigServer.getPigContext();
     pigContext.connect();
     pigContext.addJar(tmpFile.getAbsolutePath());
     JobControlCompiler jobControlCompiler = new JobControlCompiler(pigContext, CONF);
@@ -131,11 +136,61 @@ public class TestJobControlCompiler {
         jarContainsFileNamed(new File(fileClassPaths[0].toUri().getPath()), testUDFFileName));
 
     // verifying the job jar does not contain the UDF
-//    jobConf.writeXml(System.out);
     File submitJarFile = new File(jobConf.get("mapred.jar"));
     Assert.assertFalse("the mapred.jar should *not* contain the testUDF", jarContainsFileNamed(submitJarFile, testUDFFileName));
 
   }
+
+    private static List<File> createFiles(String... extensions)
+            throws IOException {
+        List<File> files = new ArrayList<File>();
+        for (String extension : extensions) {
+            File file = File.createTempFile("file", extension);
+            file.deleteOnExit();
+            files.add(file);
+        }
+        return files;
+    }
+
+    private static void assertFilesInDistributedCache(URI[] uris, int size,
+            String... extensions) {
+        Assert.assertEquals(size, uris.length);
+        for (int i = 0; i < uris.length; i++) {
+            Assert.assertTrue(uris[i].toString().endsWith(extensions[i]));
+        }
+    }
+
+    @Test
+    public void testAddArchiveToDistributedCache() throws IOException {
+        final File textFile = File.createTempFile("file", ".txt");
+        textFile.deleteOnExit();
+
+        final List<File> zipArchives = createFiles(".zip");
+        zipArchives.add(textFile);
+        final List<File> tarArchives = createFiles(".tgz", ".tar.gz", ".tar");
+
+        final PigServer pigServer = new PigServer(ExecType.MAPREDUCE);
+        final PigContext pigContext = pigServer.getPigContext();
+        pigContext.connect();
+        pigContext.getProperties().put("pig.streaming.ship.files",
+                StringUtils.join(zipArchives, ","));
+        pigContext.getProperties().put("pig.streaming.cache.files",
+                StringUtils.join(tarArchives, ","));
+        final JobControlCompiler jobControlCompiler = new JobControlCompiler(
+                pigContext, CONF);
+
+        final MROperPlan plan = new MROperPlan();
+        plan.add(new MapReduceOper(new OperatorKey()));
+
+        final JobControl jobControl = jobControlCompiler.compile(plan, "test");
+        final JobConf jobConf = jobControl.getWaitingJobs().get(0).getJobConf();
+        
+        assertFilesInDistributedCache(DistributedCache.getCacheFiles(jobConf),
+                1, ".txt");
+        assertFilesInDistributedCache(
+                DistributedCache.getCacheArchives(jobConf), 4, ".zip", ".tgz",
+                ".tar.gz", ".tar");
+    }
 
     @Test
     public void testEstimateNumberOfReducers() throws Exception {
@@ -160,6 +215,7 @@ public class TestJobControlCompiler {
         file.deleteOnExit();
         RandomAccessFile f = new RandomAccessFile(file, "rw");
         f.setLength(size);
+        f.close();
 
         loadFunc.setLocation(file.getAbsolutePath(), new org.apache.hadoop.mapreduce.Job(CONF));
         FuncSpec funcSpec = new FuncSpec(loadFunc.getClass().getCanonicalName());

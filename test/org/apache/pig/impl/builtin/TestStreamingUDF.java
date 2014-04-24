@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.pig.impl.builtin;
 
 import static org.apache.pig.builtin.mock.Storage.resetData;
@@ -284,8 +301,8 @@ public class TestStreamingUDF {
         /*
          * Expected output for first tuple.
          * (10,
-         * {(user1,10,(,32,1000000099990000,32.0,3200.12346785,Some String,Hello\u2026Hello,HelloƒHello,Some Byte Array),
-         *   [Simple Name#Simple Value,SomeNum#32,WeirdƒName#Weird ƒ Value],ƒ)
+         * {(user1,10,(,32,1000000099990000,32.0,3200.12346785,Some String,Hello\u2026Hello,Hello\u2026Hello,Some Byte Array),
+         *   [Simple Name#Simple Value,SomeNum#32,Weird\u2026Name#Weird \u2026 Value],\u2026)
          * })
          */
         

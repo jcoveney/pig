@@ -26,6 +26,7 @@ import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
+import org.apache.hadoop.mapred.TaskReport;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.OutputCommitter;
@@ -96,7 +97,7 @@ public class HadoopShims {
     public static JobControl newJobControl(String groupName, int timeToSleep) {
       return new PigJobControl(groupName, timeToSleep);
     }
-    
+
     public static long getDefaultBlockSize(FileSystem fs, Path path) {
         return fs.getDefaultBlockSize();
     }
@@ -105,4 +106,27 @@ public class HadoopShims {
         JobClient jobClient = job.getJobClient();
         return jobClient.getJob(job.getAssignedJobID()).getCounters();
     }
+
+    public static boolean isJobFailed(TaskReport report) {
+        float successfulProgress = 1.0f;
+        // if the progress reported is not 1.0f then the map or reduce
+        // job failed
+        // this comparison is in place for the backward compatibility
+        // for Hadoop 0.20
+        return report.getProgress() != successfulProgress;
+    }
+
+    public static void unsetConf(Configuration conf, String key) {
+        // Not supported in Hadoop 0.20/1.x
+    }
+    
+    /**
+     * Fetch mode needs to explicitly set the task id which is otherwise done by Hadoop 
+     * @param conf
+     * @param taskAttemptID
+     */
+    public static void setTaskAttemptId(Configuration conf, TaskAttemptID taskAttemptID) {
+        conf.set("mapred.task.id", taskAttemptID.toString());
+    }
+    
 }

@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -72,8 +73,6 @@ public class TestEvalPipelineLocal {
     
     @Before
     public void setUp() throws Exception{
-        FileLocalizer.setR(new Random());
-//        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         pigServer = new PigServer(ExecType.LOCAL);
     }
     
@@ -1144,5 +1143,77 @@ public class TestEvalPipelineLocal {
         Assert.assertTrue(iter.next().toString().equals("(NYSE)"));
         Assert.assertTrue(iter.next().toString().equals("(NASDAQ)"));
         Assert.assertFalse(iter.hasNext());
+    }
+    
+    // Self cross, see PIG-3292
+    @Test
+    public void testSelfCross() throws Exception{
+        File f1 = createFile(new String[]{"1\t2", "1\t3"});
+        
+        pigServer.registerQuery("a = load '" + Util.encodeEscape(Util.generateURI(f1.toString(), pigServer.getPigContext()))
+                + "' as (key, x);");
+        pigServer.registerQuery("a_group = group a by key;");
+        pigServer.registerQuery("b = foreach a_group {y = a.x;pair = cross a.x, y;"
+                + "generate flatten(pair);}");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("b");
+        
+        Collection<String> results = new HashSet<String>();
+        results.add("(3,3)");
+        results.add("(2,2)");
+        results.add("(3,2)");
+        results.add("(2,3)");
+        
+        Assert.assertTrue(results.contains(iter.next().toString()));
+        Assert.assertTrue(results.contains(iter.next().toString()));
+        Assert.assertTrue(results.contains(iter.next().toString()));
+        Assert.assertTrue(results.contains(iter.next().toString()));
+        
+        Assert.assertFalse(iter.hasNext());
+    }
+    static public class GenBag extends EvalFunc<DataBag> {
+        @Override
+        public DataBag exec(Tuple input) throws IOException {
+            Integer content = (Integer)input.get(0);
+            DataBag bag = BagFactory.getInstance().newDefaultBag();
+
+            if (content > 10) {
+                Tuple t = TupleFactory.getInstance().newTuple();
+                t.append(content);
+                bag.add(t);
+            }
+            return bag;
+        }
+    }
+    // Two flatten statement in a pipeline, see PIG-3292
+    @Test
+    public void testFlattenTwice() throws Exception{
+        File f1 = createFile(new String[]{"{(1),(12),(9)}", "{(15),(2)}"});
+        
+        pigServer.registerQuery("a = load '" + Util.encodeEscape(Util.generateURI(f1.toString(), pigServer.getPigContext()))
+                + "' as (bag1:bag{(t:int)});");
+        pigServer.registerQuery("b = foreach a generate flatten(bag1) as field1;");
+        pigServer.registerQuery("c = foreach b generate flatten(" + GenBag.class.getName() + "(field1));");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("c");
+        Assert.assertEquals(iter.next().toString(), "(12)");
+        Assert.assertEquals(iter.next().toString(), "(15)");
+        
+        Assert.assertFalse(iter.hasNext());
+    }
+    
+    // see PIG-3807
+    @Test
+    public void testDanglingNodeWrongSchema() throws Exception{
+        
+        pigServer.registerQuery("d1 = load 'test_data.txt' USING PigStorage() AS (f1: int, f2: int, f3: int, f4: int);");
+        pigServer.registerQuery("d2 = load 'test_data.txt' USING PigStorage() AS (f1: int, f2: int, f3: int, f4: int);");
+        pigServer.registerQuery("n1 = foreach (group d1 by f1) {sorted = ORDER d1 by f2; generate group, flatten(d1.f3) as x3; };");
+        pigServer.registerQuery("n2 = foreach (group d2 by f1) {sorted = ORDER d2 by f2; generate group, flatten(d2.f3) as q3; };");
+        pigServer.registerQuery("joined = join n1 by x3, n2 by q3;");
+        pigServer.registerQuery("final = foreach joined generate n1::x3;");
+        
+        Schema s = pigServer.dumpSchema("final");
+        Assert.assertEquals(s.toString(), "{n1::x3: int}");
     }
 }

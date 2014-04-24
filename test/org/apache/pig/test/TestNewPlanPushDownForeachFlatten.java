@@ -1111,6 +1111,25 @@ public class TestNewPlanPushDownForeachFlatten {
                   ((LOLoad)load).getSchema().getField("a1") != null );
     }
 
+    // See PIG-3782
+    @Test
+    public void testForeachJoinWithUserDefinedSchemaAndPruning() throws Exception {
+        String query =
+        "a = load '1.txt' as (a0:int, a1, a2:bag{});" +
+        "b = load '2.txt' as (b0:int, b1);" +
+        "c = foreach a generate a0, flatten(a2) as (q1, q2);" +
+        "d = join c by a0, b by b0;" +
+        "e = foreach d generate a0, q1, q2;" +
+        "f = foreach e generate a0, (int)q1, (int)q2;" +
+        "store f into 'output';" ;
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlanWithPruning( query );
+        //In the original issue, Exception is thrown during the Pruning due to
+        //incorrect UID assignment by the PushDownForEachFlatten failing this
+        //test
+
+    }
+
     public class MyPlanOptimizerWithPruning extends LogicalPlanOptimizer {
         protected MyPlanOptimizerWithPruning (OperatorPlan p,  int iterations) {
             super(p, iterations, new HashSet<String>());
@@ -1195,6 +1214,22 @@ public class TestNewPlanPushDownForeachFlatten {
         Operator sort = newLogicalPlan.getSuccessors( foreach ).get( 0 );
         Assert.assertTrue( sort instanceof LOSort );
         
+    }
+    
+    @Test
+    // See PIG-3826
+    public void testOuterJoin() throws Exception {
+        String query = "A = load 'A.txt' as (id:chararray, value:double);" +
+        "B = load 'B.txt' as (id:chararray, name:chararray);" +
+        "t1 = group A by id;" +
+        "t2 = foreach t1 { r1 = filter $1 by (value>1); r2 = limit r1 1; generate group as id, FLATTEN(r2.value) as value; }" +
+        "t3 = join B by id LEFT OUTER, t2 by id;" +
+        "store t3 into 'output';";
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
+        
+        Operator store = newLogicalPlan.getSinks().get( 0 );
+        Operator join = newLogicalPlan.getPredecessors(store).get(0);
+        Assert.assertTrue( join instanceof LOJoin );
     }
 }
 

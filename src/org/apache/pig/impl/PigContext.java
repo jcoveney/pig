@@ -23,9 +23,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.IOException;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.lang.reflect.Constructor;
@@ -112,11 +112,14 @@ public class PigContext implements Serializable {
     transient private Map<URL, String> extraJarOriginalPaths = new HashMap<URL, String>();
 
     // jars needed for scripting udfs - jython.jar etc
-    public List<String> scriptJars = new ArrayList<String>(2);
+    transient public List<String> scriptJars = new ArrayList<String>(2);
 
     // jars that should not be merged in.
     // (some functions may come from pig.jar and we don't want the whole jar file.)
     transient public Vector<String> skipJars = new Vector<String>(2);
+
+    // jars that are predeployed to the cluster and thus should not be merged in at all (even subsets).
+    transient public Vector<String> predeployedJars = new Vector<String>(2);
 
     // script files that are needed to run a job
     @Deprecated
@@ -144,6 +147,9 @@ public class PigContext implements Serializable {
 
     private static ThreadLocal<ArrayList<String>> packageImportList =
         new ThreadLocal<ArrayList<String>>();
+
+    private static ThreadLocal<Map<String,Class<?>>> classCache = 
+        new ThreadLocal<Map<String,Class<?>>>();
 
     private Properties log4jProperties = new Properties();
 
@@ -253,9 +259,9 @@ public class PigContext implements Serializable {
         String pigJar = JarManager.findContainingJar(Main.class);
         String hadoopJar = JarManager.findContainingJar(FileSystem.class);
         if (pigJar != null) {
-            skipJars.add(pigJar);
+            addSkipJar(pigJar);
             if (!pigJar.equals(hadoopJar))
-                skipJars.add(hadoopJar);
+                addSkipJar(hadoopJar);
         }
 
         this.executionEngine = execType.getExecutionEngine(this);
@@ -299,24 +305,9 @@ public class PigContext implements Serializable {
     }
 
     public void connect() throws ExecException {
-                executionEngine.init();
-                dfs = executionEngine.getDataStorage();
-                lfs = new HDataStorage(URI.create("file:///"), properties);
-                Runtime.getRuntime().addShutdownHook(new ExecutionEngineKiller());
-
-    }
-
-    class ExecutionEngineKiller extends Thread {
-        public ExecutionEngineKiller() {}
-                
-                @Override
-        public void run() {
-            try {
-                executionEngine.kill();
-            } catch (Exception e) {
-                log.warn("Error in killing Execution Engine: " + e);
-            }
-        }
+        executionEngine.init();
+        dfs = executionEngine.getDataStorage();
+        lfs = new HDataStorage(URI.create("file:///"), properties);
     }
 
     public void setJobtrackerLocation(String newLocation) {
@@ -329,18 +320,7 @@ public class PigContext implements Serializable {
      * @param path
      */
     public void addScriptFile(String path) {
-        if (path != null) {
-            aliasedScriptFiles.put(path.replaceFirst("^/", "").replaceAll(":", ""), new File(path));
-        }
-    }
-
-    public boolean hasJar(String path) {
-        for (URL url : extraJars) {
-            if (extraJarOriginalPaths.get(url).equals(path)) {
-                return true;
-            }
-        }
-        return false;
+        addScriptFile(path, path);
     }
 
     /**
@@ -355,6 +335,18 @@ public class PigContext implements Serializable {
         }
     }
 
+    public void addScriptJar(String path) {
+        if (path != null && !scriptJars.contains(path)) {
+            scriptJars.add(path);
+        }
+    }
+
+    public void addSkipJar(String path) {
+        if (path != null && !skipJars.contains(path)) {
+            skipJars.add(path);
+        }
+    }
+
     public void addJar(String path) throws MalformedURLException {
         if (path != null) {
             URL resource = (new File(path)).toURI().toURL();
@@ -363,11 +355,33 @@ public class PigContext implements Serializable {
     }
 
     public void addJar(URL resource, String originalPath) throws MalformedURLException{
-        if (resource != null) {
+        if (resource != null && !extraJars.contains(resource)) {
             extraJars.add(resource);
             extraJarOriginalPaths.put(resource, originalPath);
             classloader.addURL(resource);
             Thread.currentThread().setContextClassLoader(PigContext.classloader);
+        }
+    }
+
+    public boolean hasJar(String path) {
+        for (URL url : extraJars) {
+            if (extraJarOriginalPaths.get(url).equals(path)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Adds the specified path to the predeployed jars list. These jars will 
+     * never be included in generated job jar.
+     * <p>
+     * This can be called for jars that are pre-installed on the Hadoop 
+     * cluster to reduce the size of the job jar.
+     */
+    public void markJarAsPredeployed(String path) {
+        if (path != null && !predeployedJars.contains(path)) {
+            predeployedJars.add(path);
         }
     }
 
@@ -621,12 +635,30 @@ public class PigContext implements Serializable {
         return new ContextClassLoader(urls, PigContext.class.getClassLoader());
     }
 
+    private static Map<String,Class<?>> getClassCache() {
+        Map<String,Class<?>> c = classCache.get();
+        if (c == null) {
+            c = new HashMap<String,Class<?>>();
+            classCache.set(c);
+        }
+             
+        return c;
+    }
+    
     @SuppressWarnings("rawtypes")
     public static Class resolveClassName(String name) throws IOException{
+        Map<String,Class<?>> cache = getClassCache(); 
+        
+        Class c = cache.get(name);
+        if (c != null) {
+            return c;
+        }
+        
         for(String prefix: getPackageImportList()) {
-            Class c;
             try {
                 c = Class.forName(prefix+name,true, PigContext.classloader);
+                cache.put(name, c);
+                
                 return c;
             }
             catch (ClassNotFoundException e) {
