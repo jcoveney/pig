@@ -139,12 +139,11 @@ public class PigCombiner {
                 PhysicalOperator.setReporter(pigReporter);
 
                 boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
-
+                PigStatusReporter pigStatusReporter = PigStatusReporter.getInstance();
+                pigStatusReporter.setContext(new MRTaskContext(context));
                 PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
+                pigHadoopLogger.setReporter(pigStatusReporter);
                 pigHadoopLogger.setAggregate(aggregateWarning);
-                PigStatusReporter.setContext(context);
-                pigHadoopLogger.setReporter(PigStatusReporter.getInstance());
-
                 PhysicalOperator.setPigLogger(pigHadoopLogger);
             }
 
